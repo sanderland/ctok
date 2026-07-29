@@ -9,15 +9,7 @@
   "allcaps_min": 4,
   "digit_group": 3,
   "built": "2026-07-25T19:13:19.597725+00:00",
-  "fragment_counts": {
-   "marker": 2,
-   "word": 20292,
-   "bow": 10787,
-   "eow": 7858,
-   "mid": 5451,
-   "word_pieces_mined_finewiki": 3
-  },
-  "provenance": "all costs derived from our own count_tokens probes; see data_v3/probes/"
+  "provenance": "every token measured with count_tokens against this family's source model"
  },
  "tokens": {
   "word_pieces": [
