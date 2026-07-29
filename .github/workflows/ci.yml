@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --dev --python ${{ matrix.python-version }}
+
+      - name: Test
+        run: uv run --python ${{ matrix.python-version }} pytest -q
+
+      - name: Report reproduction gates
+        if: matrix.python-version == '3.12'
+        run: |
+          uv run --python ${{ matrix.python-version }} python tests/gates.py --markdown \
+            >> "$GITHUB_STEP_SUMMARY"
