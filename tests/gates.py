@@ -89,54 +89,65 @@ def score(name: str, family: str) -> dict:
         r["abs"] = abs(r["rel"])
 
     total = sum(r[cfg["weight"]] for r in rows) or 1
+    # The error buckets PARTITION the corpus, so the four counts always sum to n. Bounds are
+    # inclusive on the right, which keeps ``exact + under1`` identical to the old |err| <= 1% gate.
     return {
         "rows": rows,
         "n": len(rows),
         "mass": sum(abs(r["ours"] - r["api"]) for r in rows) / sum(r["api"] for r in rows),
         "mean": statistics.mean(r["abs"] for r in rows),
         "weighted": sum(r[cfg["weight"]] * r["abs"] for r in rows) / total,
-        "exact": sum(r["rel"] == 0 for r in rows) / len(rows),
-        "within1": sum(r["abs"] <= 0.01 for r in rows) / len(rows),
+        "exact": sum(r["rel"] == 0 for r in rows),
+        "under1": sum(0 < r["abs"] <= 0.01 for r in rows),
+        "mid": sum(0.01 < r["abs"] <= 0.05 for r in rows),
+        "over5": sum(r["abs"] > 0.05 for r in rows),
+        "worst": max(rows, key=lambda r: r["abs"]),
     }
 
 
 def assert_gate(name: str, family: str, agg: dict) -> None:
-    """Apply the thresholds — shared by pytest and the standalone report."""
+    """Apply the thresholds — shared by pytest and the standalone report. Thresholds stay
+    *fractions* of the corpus, so they do not have to move when a corpus gains a document."""
     cfg = GATES[name]
     limits = cfg["families"][family]
     assert agg["n"] == cfg["n"], f"[{name}/{family}] corpus size changed: {agg['n']} != {cfg['n']}"
+    assert agg["exact"] + agg["under1"] + agg["mid"] + agg["over5"] == agg["n"], "buckets must partition"
+    exact, within1 = agg["exact"] / agg["n"], (agg["exact"] + agg["under1"]) / agg["n"]
     if limits["mean"] is not None:
         assert agg["mean"] < limits["mean"], \
             f"[{name}/{family}] mean |rel err| regressed to {100 * agg['mean']:.3f}%"
     if limits["within1"] is not None:
-        assert agg["within1"] > limits["within1"], \
-            f"[{name}/{family}] within-1% dropped to {100 * agg['within1']:.1f}%"
+        assert within1 > limits["within1"], \
+            f"[{name}/{family}] within-1% dropped to {100 * within1:.1f}%"
     if limits["exact"] is not None:
-        assert agg["exact"] > limits["exact"], \
-            f"[{name}/{family}] exact-match rate dropped to {100 * agg['exact']:.1f}%"
+        assert exact > limits["exact"], \
+            f"[{name}/{family}] exact-match rate dropped to {100 * exact:.1f}%"
 
 
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go."""
     if markdown:
         print("## Reproduction gates\n")
-        print("| corpus | family | docs | error mass | mean \\|rel\\| | exact | within 1% |")
-        print("|---|---|---:|---:|---:|---:|---:|")
+        print("Documents by absolute error against recorded `count_tokens` values.\n")
+        print("| corpus | family | docs | error mass | mean \\|err\\| "
+              "| exact | ≤1% | 1–5% | >5% | worst |")
+        print("|---|---|---:|---:|---:|---:|---:|---:|---:|---|")
     for name, cfg in GATES.items():
         for family in cfg["families"]:
             a = score(name, family)
             assert_gate(name, family, a)
-            exact_n = round(a["exact"] * a["n"])
+            w = a["worst"]
+            worst = f"{w['name']} {100 * w['rel']:+.1f}%"
             if markdown:
                 print(f"| {cfg['title']} | {family} | {a['n']} | {100 * a['mass']:.3f}% "
-                      f"| {100 * a['mean']:.3f}% | {exact_n}/{a['n']} "
-                      f"| {100 * a['within1']:.1f}% |")
+                      f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
+                      f"| {a['over5']} | {worst} |")
                 continue
             print(f"{cfg['title']} [{family}] — {a['n']} {cfg['unit']}\n")
             print(f"  error mass          {100 * a['mass']:.3f}%")
-            print(f"  mean |rel err|      {100 * a['mean']:.3f}%")
+            print(f"  mean |err|          {100 * a['mean']:.3f}%")
             print(f"  {cfg['weight']}-weighted  {100 * a['weighted']:.3f}%")
-            print(f"  exact {exact_n}/{a['n']}   within 1% {100 * a['within1']:.1f}%\n")
+            print(f"  exact {a['exact']}   ≤1% {a['under1']}   1–5% {a['mid']}   >5% {a['over5']}\n")
             print("  worst documents:")
             for r in sorted(a["rows"], key=lambda r: -r["abs"])[:8]:
                 print(f"    {r['name'][:28]:28} ours={r['ours']:6} recorded={r['api']:6} "
