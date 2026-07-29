@@ -12,7 +12,7 @@ tiles.
 from __future__ import annotations
 
 from .constants import BOW_G, EOW_G, MARKER_GLYPHS
-from .normalize import stream
+from .normalize import nfc, stream_norm
 from .notation import parse_marked
 
 
@@ -101,15 +101,41 @@ def char_cost(model, ch: str) -> int:
     return hit
 
 
+def frame_tail(n: int, model) -> list[str]:
+    """What a content-final run of ``n`` newlines costs beyond the frame's own trailing token.
+
+    The message frame appends ⏎⏎ after the content, and ONE token can span content into it. So the
+    run the tokenizer actually sees is ``n + 2`` newlines, tiled over the newline-run vocabulary,
+    of which the frame already pays for one token — ``stream`` is right to drop the run, but not to
+    call it free.
+
+    That is why the cost is not monotonic in ``n``: up to 28 trailing newlines cost nothing (30 is
+    a single token), 29 costs one, 30 and 31 are free again (32 and 33 are single tokens), and 38
+    is free (40 is). Live-exact on all 40 recorded ``a`` + ``n`` newline rows, n = 1…40. Beyond 40
+    the prediction rests on the vocabulary's sampled ladder (48, 64, 96, 128) being complete.
+    """
+    if n == 0:
+        return []
+    run = "\n" * (n + 2)
+
+    def cost_fn(j: int, i: int) -> int | None:
+        return 1 if (i - j == 1 or run[j:i] in model.vocab) else None
+
+    _total, spans = min_tile(len(run), cost_fn, model.max_piece_len)
+    return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
+
+
 def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
 
     Tokens are internal-form: a ``str`` for a vocabulary piece or a marker, and ``bytes`` for a
     sub-character chunk of a codepoint the vocabulary does not cover. ``len(tokens) == cost``.
     """
-    s = stream(text, model)
+    norm = nfc(text, fold_quotes=model.fold_quotes)
+    s = stream_norm(norm, model)
+    tail = frame_tail(len(norm) - len(norm.rstrip("\n")), model)
     if not s:
-        return 0, []
+        return len(tail), list(tail)
     pieces = model.vocab
 
     def unit_floor(j: int) -> int:
@@ -135,4 +161,5 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         else:
             out.extend(model.bytes.chunks(seg.encode()))
     assert len(out) == int(total), (len(out), int(total))
-    return int(total), out
+    out.extend(tail)
+    return int(total) + len(tail), out

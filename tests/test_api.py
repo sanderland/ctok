@@ -94,8 +94,20 @@ def test_non_str_input_rejected(bad):
         token_count(bad)
 
 
-def test_trailing_newlines_and_a_single_leading_space_are_free():
-    """The message frame absorbs trailing newlines, and its final ⟨bow⟩ IS a single leading space."""
-    assert token_count("hello\n\n\n") == token_count("hello")
+def test_a_single_leading_space_is_free():
+    """The frame's final ⟨bow⟩ IS a single leading space; two or more are a whitespace-run token."""
     assert token_count(" hello") == token_count("hello")
     assert token_count("  hello") == token_count("hello") + 1
+
+
+def test_trailing_newlines_are_absorbed_only_as_far_as_one_token_reaches():
+    """The frame appends ⏎⏎ and one token spans content into it, so a trailing run of n newlines is
+    really a run of n + 2 tiled over the newline vocabulary, less the frame's own token. Hence not
+    monotonic: 1–28 free (30 is one token), 29 costs one, 30 and 31 free again (32 and 33 are), 38
+    free (40 is). The split below is the live-measured pattern — 40/40 recorded ``a`` + n rows, and
+    prefix-independent across every other cached prefix."""
+    base = token_count("hello")
+    for n in (1, 3, 28, 30, 31, 38):
+        assert token_count("hello" + "\n" * n) == base, n
+    for n in (29, 32, 37, 39, 40):
+        assert token_count("hello" + "\n" * n) == base + 1, n

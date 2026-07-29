@@ -136,7 +136,14 @@ def stream(text: str, model) -> str:
     is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal. Nothing
     else is marked here: whether punctuation wants a marker is for the tiling to reveal.
     """
-    norm = nfc(text, fold_quotes=model.fold_quotes).rstrip("\n")
+    return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model)
+
+
+def stream_norm(norm: str, model) -> str:
+    """:func:`stream` over already-normalized text. Split out so a document is NFC-folded once and
+    the caller can read the content-final newline run — which ``rstrip`` below drops — off the same
+    string it streams (see ``engine.frame_tail``)."""
+    norm = norm.rstrip("\n")
     # A single leading space is dropped: the frame ends in ⟨bow⟩ and that ⟨bow⟩ IS the space
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
     if norm[:1] == " " and norm[1:2] != " ":
