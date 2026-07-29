@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write        # to post the gate report as a PR comment
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --dev --python ${{ matrix.python-version }}
+
+      - name: Test
+        run: uv run --python ${{ matrix.python-version }} pytest -q
+
+      - name: Report reproduction gates
+        if: matrix.python-version == '3.12'
+        run: |
+          uv run --python ${{ matrix.python-version }} python tests/gates.py --markdown \
+            | tee gates.md >> "$GITHUB_STEP_SUMMARY"
+          cat gates.md
+
+      # Same-repo pull requests only: a fork's GITHUB_TOKEN is read-only and cannot comment.
+      # The step summary above is always written, so a fork PR still reports, just not inline.
+      - name: Comment the gates on the pull request
+        if: >-
+          matrix.python-version == '3.12'
+          && github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --body-file gates.md --edit-last --create-if-none \
+            || gh pr comment "$PR" --body-file gates.md
