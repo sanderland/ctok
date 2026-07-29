@@ -4,7 +4,8 @@
 call, no network and no dependencies.
 
 Unofficial, not affiliated with Anthropic. Everything here was derived by probing `count_tokens`, so
-counts are reproduced but token boundaries are approximate. Write-up: [TODO: substack link].
+counts are reproduced but token boundaries are approximate. Write-up [here](https://open.substack.com/pub/tokencontributions/p/on-the-biology-of-claudes-tokenizer
+).
 
 ```python
 from ctok import token_count, tokenize
