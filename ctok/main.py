@@ -89,7 +89,8 @@ class TokenizerModel:
         self.allcaps_min = meta["allcaps_min"]
 
         tokens = doc["tokens"]
-        pieces = list(tokens["word_pieces"]) + list(tokens["punctuation"])
+        pieces = (list(tokens["word_pieces"]) + list(tokens.get("digits", []))
+                  + list(tokens["punctuation"]))
         # Cost-1 whole single-codepoint characters live in ``pieces`` (a whole character is a
         # length-1 token, not a byte prefix). The byte floor folds them back into its membership set
         # so an uncovered character still prices at 1. The structural markers are not text.
