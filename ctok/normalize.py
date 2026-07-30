@@ -170,8 +170,13 @@ def stream_norm(norm: str, model) -> str:
             return False
         if runs[j][0] != SPACE:
             return False
-        adjacent = runs[j][1][-1:] if side < 0 else runs[j][1][:1]
-        return adjacent == " "
+        if side < 0:
+            return runs[j][1][-1:] == " "
+        # Run-kills-marker (measured 2026-07-30, `punct_ws` grids): a punct right-marker is
+        # written for the SEAM space only. Before a run of two or more spaces there is no
+        # charge — uniform over run lengths 2/3/4/17 — while tab and newline neighbours keep
+        # their (differently priced) boundaries.
+        return runs[j][1][:1] == " " and runs[j][1][:2] != "  "
 
     # The frame ends in ⟨bow⟩, always. A wordy or punct first run writes its own, as does a leading
     # non-ASCII digit run (it borders a space at the message edge); a leading whitespace run absorbs
