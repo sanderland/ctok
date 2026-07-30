@@ -90,6 +90,7 @@ class TokenizerModel:
 
         tokens = doc["tokens"]
         pieces = (list(tokens["word_pieces"]) + list(tokens.get("digits", []))
+                  + list(tokens.get("ascii_digits", [])) + list(tokens.get("other_digits", []))
                   + list(tokens["punctuation"]))
         # Cost-1 whole single-codepoint characters live in ``pieces`` (a whole character is a
         # length-1 token, not a byte prefix). The byte floor folds them back into its membership set
