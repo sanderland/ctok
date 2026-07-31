@@ -124,6 +124,43 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
             f"[{name}/{family}] exact-match rate dropped to {100 * exact:.1f}%"
 
 
+def vocabulary_sizes() -> dict[str, dict[str, int]]:
+    """Piece counts per group per family, straight from the shipped files."""
+    import json
+
+    from ctok.main import FAMILIES
+    from importlib.resources import files
+
+    out: dict[str, dict[str, int]] = {}
+    for key, fam in FAMILIES.items():
+        if fam.pieces is None:
+            continue
+        doc = json.loads(files("ctok").joinpath("data", fam.pieces).read_text(encoding="utf-8"))
+        out[key] = {g: len(v) for g, v in doc["tokens"].items()}
+    return out
+
+
+def report_vocabulary(markdown: bool = False) -> None:
+    """Report each family's piece counts by group — a silently emptied or ballooning group is a
+    vocabulary regression the error gates alone would not name."""
+    sizes = vocabulary_sizes()
+    groups = sorted({g for fam in sizes.values() for g in fam})
+    if markdown:
+        print("\n## Vocabulary size by group\n")
+        print("| family | " + " | ".join(groups) + " | total |")
+        print("|---" * (len(groups) + 2) + "|")
+        for fam, counts in sizes.items():
+            cells = " | ".join(f"{counts.get(g, 0):,}" for g in groups)
+            print(f"| {fam} | {cells} | {sum(counts.values()):,} |")
+        return
+    print("Vocabulary size by group\n")
+    for fam, counts in sizes.items():
+        print(f"  [{fam}] total {sum(counts.values()):,}")
+        for g in groups:
+            print(f"    {g:16} {counts.get(g, 0):>7,}")
+    print()
+
+
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go."""
     if markdown:
@@ -158,4 +195,6 @@ def report(markdown: bool = False) -> None:
 if __name__ == "__main__":
     import sys
 
-    report(markdown="--markdown" in sys.argv)
+    md = "--markdown" in sys.argv
+    report(markdown=md)
+    report_vocabulary(markdown=md)
