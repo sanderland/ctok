@@ -101,6 +101,24 @@ def _is_punct_text(body: str) -> bool:
     return bool(body) and all(unicodedata.category(c).startswith("P") for c in body)
 
 
+def _is_symbol_text(body: str) -> bool:
+    """Unicode symbols (category S*), which take the same whitespace markers as punctuation.
+
+    Measured 2026-07-31 (`hard_boundary` grids): with digit anchors, `1c1` is exact for every such
+    character — the intrinsic cost was never wrong — while `1 c1` and `1c 1` each cost one more than
+    we charged and `1 c 1` two more, which is a ⟨bow⟩ and an ⟨eow⟩ at the space borders. `1c  1` is
+    exact, so run-kills-marker applies here too.
+
+    Confirmed on 44 characters the rule was not derived from. Three of them — `±`, `©`, `®` — first
+    looked like exceptions, showing no gap on the right; they are not. Each has a single-token
+    `X⟨eow⟩` piece, so the oracle charges 1 for character-plus-marker where `←` pays 2, and the gap
+    reads 0 while the marker is written all the same. The rule is uniform; only the vocabulary
+    differs. `›` disagrees in the other direction and is recorded as open in
+    `data_v4_7/hard_boundary.json`.
+    """
+    return bool(body) and all(unicodedata.category(c).startswith("S") for c in body)
+
+
 def _is_nd_run(body: str) -> bool:
     """A run of decimal digits (Nd), in either the DIGIT or the Nd-HARD class."""
     return all(unicodedata.category(c) == "Nd" for c in body)
@@ -184,6 +202,7 @@ def stream_norm(norm: str, model) -> str:
     # none, so the frame's ⟨bow⟩ is written here and tiles as itself.
     first = runs[0]
     has_own_bow = (first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
+                   or _is_symbol_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     out = [] if has_own_bow else [BOW_G]
@@ -195,7 +214,7 @@ def stream_norm(norm: str, model) -> str:
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             out.append(pre + BOW_G + n + EOW_G)
-        elif cls == PUNCT or _is_punct_text(body):
+        elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.
