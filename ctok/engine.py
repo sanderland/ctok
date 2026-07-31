@@ -76,16 +76,14 @@ class ByteFloor:
 
 
 def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
-    """The tiling vocabulary: every piece, the marker atoms, whitespace runs and contractions.
+    """The tiling vocabulary: every piece, the marker atoms and the glued contraction spelling.
     Returns it with the longest piece length, the DP's window."""
     vocab = {parse_marked(p) for p in pieces}
     vocab.update(MARKER_GLYPHS)
-    vocab.update(tokens["whitespace"])
     # A contraction suffix needs no encoder rule: the normal rewrites already produce
-    # `⟨bow⟩don⟨eow⟩'⟨bow⟩t⟨eow⟩`, so the suffix is a piece in exactly that spelling. The second
-    # form is the glued one, `it'sX`.
+    # `⟨bow⟩don⟨eow⟩'⟨bow⟩t⟨eow⟩`, so the suffix arrives in `pieces` already spelled that way. Only
+    # the glued form, `it'sX`, has to be added here.
     for cn in tokens["contractions"]:
-        vocab.add(cn)
         vocab.add(cn[:1] + BOW_G + cn[1:] + EOW_G)
     return frozenset(vocab), max((len(p) for p in vocab), default=1)
 

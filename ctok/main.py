@@ -89,9 +89,10 @@ class TokenizerModel:
         self.allcaps_min = meta["allcaps_min"]
 
         tokens = doc["tokens"]
-        pieces = (list(tokens["word_pieces"]) + list(tokens.get("digits", []))
-                  + list(tokens.get("ascii_digits", [])) + list(tokens.get("other_digits", []))
-                  + list(tokens["punctuation"]))
+        # Every group is cost-1 pieces except the byte fallback, which is prefix costs rather than
+        # tokens. Grouping is for provenance — which campaign measured a piece — so the loader takes
+        # them all and stays correct when a group is added or split.
+        pieces = [p for group, ps in tokens.items() if group != "bytes_fallback" for p in ps]
         # Cost-1 whole single-codepoint characters live in ``pieces`` (a whole character is a
         # length-1 token, not a byte prefix). The byte floor folds them back into its membership set
         # so an uncovered character still prices at 1. The structural markers are not text.
