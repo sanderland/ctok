@@ -13868,7 +13868,13 @@
       "⟨bow⟩AP",
       "⟨bow⟩MET",
       "⟨bow⟩UR",
-      "eded"
+      "eded",
+      "⟨bow⟩“",
+      "،⟨eow⟩",
+      "।⟨eow⟩",
+      "⟨bow⟩।⟨eow⟩",
+      "⟨shift⟩⟨bow⟩българия⟨eow⟩",
+      "።⟨eow⟩"
     ],
     "ascii_digits": [
       "0",
@@ -15530,7 +15536,8 @@
       "×⟨eow⟩",
       "←⟨eow⟩",
       "⟨bow⟩©⟨eow⟩",
-      "⟨bow⟩×⟨eow⟩"
+      "⟨bow⟩×⟨eow⟩",
+      "»,⟨eow⟩"
     ],
     "whitespace": [
       "\t",
