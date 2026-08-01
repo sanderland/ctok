@@ -44,8 +44,8 @@ languages, which varies everything at once.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.225% | 0.148% | 278/501 | 96.0% |
-| UDHR | v4.7 | 0.137% | 0.111% | 296/501 | 97.2% |
+| UDHR (501 languages) | v3 | 0.215% | 0.143% | 278/501 | 96.2% |
+| UDHR | v4.7 | 0.131% | 0.106% | 296/501 | 97.4% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
