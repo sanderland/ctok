@@ -26,11 +26,19 @@ Tokens carry their structure in-line: `⟨bow⟩`/`⟨eow⟩` word boundaries, `
 | version | family | reconstructs |
 |---|---|---|
 | `3.0` – `4.6` (default) | v3 | Claude 3 … Opus 4.5/4.6 |
-| `4.7` – `4.9` | v4.7 | Opus 4.7+ |
+| `4.7` – `4.9` | v4.7 | Opus 4.7 … 4.9 |
+| `5.0`+ | v5 | Opus 5 — **provisional**, see below |
 | anything else | — | `NotImplementedError` |
 
 Versions are decimals, so `4.10` means 4.1. A model id also routes:
 `token_count(text, "claude-opus-4-7")`.
+
+**v5 is provisional.** It reads the *v4.7 vocabulary* through its own measured message frame
+(`count_tokens` on a one-character message is 7 tokens there, against 12 on 4.7). That is not a
+guess about the pieces: on 1,741 Rosetta Code documents the two families price the content
+identically 94.7% of the time. What v5 does not have yet is its own *edge* rules — its frame
+absorbs any trailing whitespace, and the seam at the start of a message prices differently — so
+expect an occasional one-token over-count on text that opens with a digit, an ideograph or a space.
 
 ## Accuracy
 
@@ -46,11 +54,15 @@ languages, which varies everything at once.
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
 | UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
+| UDHR | v5 | TBD | TBD | TBD | TBD |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
+| MultiPL-E | v5 | 0.000% | 0.000% | 21/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
+| Rosetta Code | v5 | TBD | TBD | TBD | TBD |
 | Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
+| Rosetta Code, held out (250) | v5 | TBD | TBD | TBD | TBD |
 
 No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both

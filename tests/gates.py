@@ -60,6 +60,9 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
             "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            # v5 reads the v4.7 vocabulary through its own frame, and loses documents to the frame
+            # rules it does not model yet — hence a floor well under v4.7's on the same pieces.
+            "v5": {"version": 5.0, "mean": 0.005, "within1": 0.90, "exact": 0.47},
         },
     },
     "rosetta": {
@@ -73,6 +76,9 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
             "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+            # v5: 1648/1741 on a vocabulary nothing here mined for it, and 92 of the 93 misses are
+            # a single token over — the message-start and trailing-whitespace rules, not pieces.
+            "v5": {"version": 5.0, "mean": 0.0006, "within1": 0.97, "exact": 0.92},
         },
     },
     "rosetta_holdout": {
@@ -90,6 +96,7 @@ GATES: dict[str, dict] = {
         # word boundary and 2 after a symbol's last byte, which no single piece covers.
         "families": {
             "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
+            "v5": {"version": 5.0, "mean": 0.0006, "within1": 0.97, "exact": 0.92},
         },
     },
     "multipl_e": {
@@ -106,6 +113,8 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
             "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
+            # v5 misses one file of 22, by one token, on a leading newline.
+            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.98, "exact": 0.90},
         },
     },
 }

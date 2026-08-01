@@ -7,7 +7,7 @@ import pytest
 
 from ctok import marked_stream, normalize, token_count, tokenize
 from ctok.constants import PAD
-from ctok.main import _family, _model
+from ctok.main import FAMILIES, _family, _model
 
 # Inputs that have historically been edge cases, or would crash a naive byte path.
 ADVERSARIAL = [
@@ -77,11 +77,19 @@ def test_version_routing():
     # A source-model id routes straight to the family that reconstructs it.
     assert _family("claude-opus-4-5") == "v3"
     assert _family("claude-opus-4-7") == "v4.7"
+    assert _family("claude-opus-5") == "v5"
 
 
-@pytest.mark.parametrize("version", [2.9, 0, "banana", 5.0, "5.1"])
+def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
+    """v5 counts with v4.7's pieces and its own measured message frame — five tokens smaller. The
+    family table's override is what makes that one file rather than a copy that can drift."""
+    assert FAMILIES["v5"].pieces == FAMILIES["v4.7"].pieces
+    assert token_count("hello, world", 5.0) == token_count("hello, world", 4.7) - 5
+
+
+@pytest.mark.parametrize("version", [2.9, 0, "banana"])
 def test_unavailable_versions_raise(version):
-    """Below 3.0 and at/above 5.0 are not reconstructed, and neither is a nonsense version."""
+    """Below 3.0 is not reconstructed, and neither is a nonsense version."""
     with pytest.raises(NotImplementedError):
         token_count("hello", version=version)
     with pytest.raises(NotImplementedError):

@@ -25,12 +25,20 @@ class Family:
     pieces: str | None         # its vocabulary file under data/; None = not reconstructed yet
     source_model: str          # the count_tokens model this family reconstructs
     min_version: Decimal       # lowest requested version this family serves
+    meta: tuple[tuple[str, object], ...] = ()   # measured overrides on that file's ``meta``
 
 
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", Decimal("3.0")),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", Decimal("4.7")),
-    "v5": Family(None, "claude-opus-5", Decimal("5.0")),
+    # v5 BORROWS v4.7's vocabulary: its message frame is measured (`count_tokens` on a one-character
+    # message is 7 tokens, so the frame is 6 against 4.7's 11) but no piece has been mined against
+    # opus-5 yet, so the honest model is "v4.7's token list read through v5's frame". The other two
+    # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
+    # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
+    # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
+    "v5": Family("pieces_v4_7.json", "claude-opus-5", Decimal("5.0"),
+                 (("message_overhead", 6),)),
 }
 
 _MODEL_TO_FAMILY = {fam.source_model: key for key, fam in FAMILIES.items()}
@@ -71,7 +79,12 @@ def _model(family: str) -> "TokenizerModel":
             f"available families: {', '.join(k for k, f in FAMILIES.items() if f.pieces)}."
         )
     path = files("ctok").joinpath("data", pieces)
-    return TokenizerModel(json.loads(path.read_text(encoding="utf-8")))
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    # A family may borrow another's vocabulary file and carry its own measured scalars over it (see
+    # v5 above). The override is applied to the loaded copy only — the file on disk stays the one
+    # its own family compiled.
+    doc["meta"] = {**doc["meta"], **dict(FAMILIES[family].meta)}
+    return TokenizerModel(doc)
 
 
 class TokenizerModel:
