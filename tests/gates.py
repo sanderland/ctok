@@ -52,13 +52,14 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-08-01, after the akshara law. It took the Brahmic/South-East-Asian
-        # under-count out structurally — no document in either family is over 5% now, where 15 in
-        # each were — so these are three times tighter than the thresholds that preceded it, and a
-        # revert of the law trips every one of them. What is left is vocabulary.
+        # Measured 2026-08-01, after the akshara law and the cluster re-spelling. The law took the
+        # Brahmic/South-East-Asian under-count out structurally — no document in either family is
+        # over 5% now, where 15 in each were — and the re-spelling took most of what was left. These
+        # are four times tighter than the thresholds that preceded both, and a revert of either
+        # trips every one of them. What remains is unmined vocabulary.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0025, "within1": 0.94, "exact": 0.52},
-            "v4.7": {"version": 4.7, "mean": 0.0025, "within1": 0.93, "exact": 0.56},
+            "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
+            "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
         },
     },
     "rosetta": {

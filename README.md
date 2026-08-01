@@ -44,8 +44,8 @@ languages, which varies everything at once.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.242% | 0.155% | 278/501 | 96.2% |
-| UDHR | v4.7 | 0.239% | 0.160% | 294/501 | 95.6% |
+| UDHR (501 languages) | v3 | 0.225% | 0.148% | 278/501 | 96.0% |
+| UDHR | v4.7 | 0.176% | 0.130% | 295/501 | 96.6% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
@@ -61,9 +61,9 @@ decides which candidate gets asked.
 
 No document in either family is now more than 5% off; 15 in each were, before the akshara law (a
 mark that closes its orthographic syllable also closes the word, so a conjunct is two words and
-carries the boundary markers that says so). What is left is vocabulary rather than structure: the
-residual is spread in both directions instead of being a one-sided under-count, and it is largest
-where the byte floor is still the whole model.
+carries the boundary markers that say so). What is left is vocabulary rather than structure — the
+residual is spread in both directions instead of being a one-sided under-count — and the largest
+remaining piece of it is Brahmic and South-East Asian clusters that have not been mined yet.
 
 ## License
 
