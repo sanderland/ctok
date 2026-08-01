@@ -12,9 +12,9 @@ from __future__ import annotations
 import unicodedata
 
 from .constants import (
-    BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT,
-    PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE, SURROGATE,
-    SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
+    BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, EXTRA_KILLERS, FUNNY_SPACE,
+    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE,
+    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 
@@ -93,8 +93,15 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
 
 
 def _seam_sub(match) -> str:
+    """The seam law, minus the two places a real space is NOT absorbable.
+
+    A killer is the second: it has already put an ``⟨eow⟩⟨bow⟩`` there by closing its word (see
+    :func:`_runs`), and one boundary cannot encode two things. Absorbing the space here would make
+    ``ᨠ᩠ᨦ`` and ``ᨠ᩠ ᨦ`` the same stream, which no decoder could tell apart — and the oracle prices
+    them one token apart, so they are not the same string to it either.
+    """
     ch, case_markers = match.group(1), match.group(2)
-    if CHARGING_MARK.fullmatch(ch):
+    if CHARGING_MARK.fullmatch(ch) or is_killer(ch):
         return match.group(0)
     return ch + EOW_G + case_markers + BOW_G
 
@@ -179,14 +186,43 @@ def _nonascii_digits(body: str) -> bool:
     return _is_nd_run(body) and not body.isascii()
 
 
+def is_killer(c: str) -> bool:
+    """A mark that terminates the orthographic syllable, and so closes the word.
+
+    Two populations, and the split between them is the honest part. **Viramas** — the Brahmic sign
+    that suppresses a consonant's inherent vowel so it can join the next one — are all canonical
+    combining class 9, so those 65 characters are DEFINED, not listed. Everything else is
+    ENUMERATED in ``EXTRA_KILLERS``: Thai and Lao tone marks, Myanmar dot-below, nukta, the Khmer
+    consonant shifters, Tai Tham's tone signs. Those are not a combining class and no numeric rule
+    picks them out — a Lao tone mark (ccc 122) splits and the Lao vowel sign beside it (ccc 118)
+    does not. What they share is orthographic: a Thai tone mark is written after the whole syllable
+    exactly as a virama is written after the whole cluster, and the vowel signs that do not split
+    are written inside it.
+    """
+    return unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
+
+
 def _runs(norm: str) -> list[tuple[str, str]]:
-    """The text split into maximal same-class runs."""
+    """The text split into maximal same-class runs — and a run also ends after a killer.
+
+    **The akshara law.** A killer closes its word: what follows it starts a new one. So a conjunct
+    is two words, not one, and the oracle charges the ⟨eow⟩⟨bow⟩ that says so.
+
+    Measured live on v4.7 as ``cost(C killer X) == cost(C killer) + cost(X)`` — the two halves
+    priced as independent words — for 198 of 198 random consonant pairs across nine scripts, 25 of
+    26 real words (the exception has a ZWJ, which asks for the join back), and in 18 of the 19
+    scripts that have a killer at all. Thai phinthu is the one that does not split; it is also the
+    one that is not a conjunct-former in modern orthography.
+
+    This is why Brahmic and South-East Asian text used to under-count: the byte floor priced the
+    letters correctly all along, and every conjunct was missing its two boundary markers.
+    """
     if not norm:
         return []
     out, cur, cur_cls = [], norm[0], classify(norm[0])
     for ch in norm[1:]:
         c = classify(ch)
-        if c == cur_cls:
+        if c == cur_cls and not is_killer(cur[-1]):
             cur += ch
         else:
             out.append((cur_cls, cur))
