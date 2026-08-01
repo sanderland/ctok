@@ -11,11 +11,16 @@ the counts vary only with the language:
 Plus one corpus that is not parallel at all, and is here for the opposite reason — it is real,
 unedited source in hundreds of languages, so it exercises the whole model rather than one axis:
 
-  * **Rosetta Code** — 1,741 documents sampled from ``christopher/rosetta-code``, and a **held-out**
-    250 drawn from blocks the first sample never touched. Every campaign bisects against the first
-    one, so its rate is in-sample by construction: pieces are accepted on membership probes rather
-    than on documents, but the documents choose which candidates get probed. The held-out gate is
-    the honest one; the in-sample gate is the sharp regression detector, and both are asserted.
+  * **Rosetta Code** — 1,741 documents sampled from ``christopher/rosetta-code``, and a further 250
+    drawn from blocks the first sample never touched. Every campaign bisects against the first, so
+    its rate is in-sample by construction: pieces are accepted on membership probes rather than on
+    documents, but the documents choose which candidates get probed. The 250 are out-of-sample for
+    anything the 1,741 chose, which makes them the sharper accuracy reading; the in-sample gate is
+    the sharper regression detector, and both are asserted.
+
+**UDHR and MultiPL-E are the held-out gates and Rosetta is not.** Mining may bisect Rosetta freely;
+nothing may select, accept or reject a piece because of UDHR or MultiPL-E. The dev repo's
+``CLAUDE.md`` carries the same table, and it is the reason these two numbers mean anything.
 
 Each fixture ships the corpus once (``<name>.jsonl.gz``) plus one recorded count per family
 (``<name>_counts.json``) — the corpus text is identical across families, only the counts differ. No
@@ -53,7 +58,7 @@ GATES: dict[str, dict] = {
         # revert of the law trips every one of them. What is left is vocabulary.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0025, "within1": 0.94, "exact": 0.52},
-            "v4.7": {"version": 4.7, "mean": 0.0030, "within1": 0.92, "exact": 0.55},
+            "v4.7": {"version": 4.7, "mean": 0.0025, "within1": 0.93, "exact": 0.56},
         },
     },
     "rosetta": {
@@ -76,12 +81,14 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # Measured 2026-08-01 at 99.2% exact / 0.012% mass, against 89.6% / 0.096% for the model
+        # Measured 2026-08-01 at 99.6% exact / 0.006% mass, against 89.6% / 0.096% for the model
         # shipped before the apostrophe work. v3 has no held-out sample measured yet. The akshara
         # law moved this by exactly one document, which is all it could move: two of the 250 hold a
-        # killer at all, and one of those two is the document that flipped.
+        # killer at all, and one of those two is the document that flipped. `►⟨eow⟩` took the
+        # second, leaving one — a Unicode-notation file where the same marked span costs 3 after a
+        # word boundary and 2 after a symbol's last byte, which no single piece covers.
         "families": {
-            "v4.7": {"version": 4.7, "mean": 0.0003, "within1": 0.98, "exact": 0.96},
+            "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
         },
     },
     "multipl_e": {

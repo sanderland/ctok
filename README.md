@@ -45,17 +45,19 @@ languages, which varies everything at once.
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.242% | 0.155% | 278/501 | 96.2% |
-| UDHR | v4.7 | 0.285% | 0.196% | 291/501 | 94.6% |
+| UDHR | v4.7 | 0.239% | 0.160% | 294/501 | 95.6% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
-| Rosetta Code, held out (250) | v4.7 | 0.012% | 0.010% | 248/250 | 99.6% |
+| Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
 
-**Read the held-out row, not the one above it.** The 1,741-document sample is the one every mining
-campaign bisects against: pieces are accepted on membership probes rather than on documents, but
-the documents choose which candidates get probed, so its rate is in-sample. The held-out sample is
-drawn from blocks that one never touched, and nothing in the vocabulary was probed because of it.
+**UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
+rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
+Rosetta samples are mining corpora — the 1,741 documents are what every campaign bisects against,
+and the 250 are drawn from blocks that sample never touched, so the second rate is out-of-sample for
+anything the first chose. A piece is accepted on a membership probe either way; the corpus only ever
+decides which candidate gets asked.
 
 No document in either family is now more than 5% off; 15 in each were, before the akshara law (a
 mark that closes its orthographic syllable also closes the word, so a conjunct is two words and
