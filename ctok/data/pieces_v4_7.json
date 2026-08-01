@@ -13871,7 +13871,17 @@
       "⟨shift⟩⟨bow⟩българия⟨eow⟩",
       "።⟨eow⟩",
       "ględ",
-      "ës"
+      "ës",
+      "⟨bow⟩Mc",
+      "ither⟨eow⟩",
+      "⟨bow⟩А",
+      "⟨bow⟩Б",
+      "⟨bow⟩К",
+      "⟨bow⟩М",
+      "⟨bow⟩Н",
+      "⟨bow⟩Р",
+      "⟨bow⟩С",
+      "⟨bow⟩У"
     ],
     "ascii_digits": [
       "0",
@@ -15384,7 +15394,10 @@
       "←⟨eow⟩",
       "⟨bow⟩©⟨eow⟩",
       "⟨bow⟩×⟨eow⟩",
-      "»,⟨eow⟩"
+      "»,⟨eow⟩",
+      "⟨bow⟩△",
+      "║",
+      "⟨bow⟩'./"
     ],
     "whitespace": [
       "\t",

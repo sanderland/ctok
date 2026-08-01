@@ -178,6 +178,17 @@ CONTRACTION_ROWS = [
 
 # Astral symbols take no boundary markers, where BMP ones do; variation selectors take no word
 # model. Digit anchors, as the boundary campaign used.
+# The thirteen pieces the 2026-08-01 bisect witnessed, each with the control that bounds it.
+PIECE_ROWS = [
+    (4.7, "△", 1), (4.7, "▽", 3), (4.7, "◇", 3),                       # ⟨bow⟩△, and its neighbours
+    (4.7, "║", 2), (4.7, "a║b", 3), (4.7, "╔", 3),                      # ║ is a whole character
+    (4.7, "a McN b", 4), (4.7, "a McQ b", 5), (4.7, "a MdN b", 5),      # ⟨bow⟩Mc, control MdN
+    (4.7, "a neither b", 4), (4.7, "a zither b", 4), (4.7, "a wather b", 4),   # ither⟨eow⟩
+    (4.7, "'./", 1), (4.7, "a './b", 3), (4.7, "'.", 2), (4.7, "./", 2),       # ⟨bow⟩'./
+    (4.7, "a КИ b", 5), (4.7, "a КЭ b", 6), (4.7, "a ЛИ b", 7),         # ⟨bow⟩К, control Л
+    (4.7, "a МИ b", 5), (4.7, "a СИ b", 5), (4.7, "a ПИ b", 6),         # ⟨bow⟩М ⟨bow⟩С, control П
+]
+
 SYMBOL_ROWS = [
     (4.7, "1🐫1", 6), (4.7, "1 🐫1", 7), (4.7, "1🐫 1", 7), (4.7, "1 🐫 1", 8),
     (4.7, "1😀1", 5), (4.7, "1 😀1", 6), (4.7, "1 😀 1", 7),
@@ -186,7 +197,7 @@ SYMBOL_ROWS = [
 ]
 
 
-@pytest.mark.parametrize("version,text,content", CONTRACTION_ROWS + SYMBOL_ROWS,
+@pytest.mark.parametrize("version,text,content", CONTRACTION_ROWS + SYMBOL_ROWS + PIECE_ROWS,
                          ids=lambda v: repr(v) if isinstance(v, str) else str(v))
 def test_recorded_contraction_and_symbol_costs(version, text, content):
     overhead = _model(_family(version)).message_overhead

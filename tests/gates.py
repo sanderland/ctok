@@ -8,6 +8,15 @@ the counts vary only with the language:
   * **MultiPL-E** — the same 25 HumanEval problems in 22 programming languages, translated by
     MultiPL-E's own translators (https://huggingface.co/datasets/nuprl/MultiPL-E).
 
+Plus one corpus that is not parallel at all, and is here for the opposite reason — it is real,
+unedited source in hundreds of languages, so it exercises the whole model rather than one axis:
+
+  * **Rosetta Code** — 1,741 documents sampled from ``christopher/rosetta-code``, and a **held-out**
+    250 drawn from blocks the first sample never touched. Every campaign bisects against the first
+    one, so its rate is in-sample by construction: pieces are accepted on membership probes rather
+    than on documents, but the documents choose which candidates get probed. The held-out gate is
+    the honest one; the in-sample gate is the sharp regression detector, and both are asserted.
+
 Each fixture ships the corpus once (``<name>.jsonl.gz``) plus one recorded count per family
 (``<name>_counts.json``) — the corpus text is identical across families, only the counts differ. No
 API and no network: the counts were measured once against each family's source model.
@@ -22,6 +31,7 @@ from __future__ import annotations
 import gzip
 import json
 import statistics
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from ctok.main import FAMILIES, token_count
@@ -41,7 +51,33 @@ GATES: dict[str, dict] = {
         # vocabulary has no pieces for those scripts and the byte floor is the entire model there.
         "families": {
             "v3": {"version": 3.0, "mean": 0.005, "within1": 0.91, "exact": 0.45},
-            "v4.7": {"version": 4.7, "mean": 0.005, "within1": 0.90, "exact": 0.50},
+            "v4.7": {"version": 4.7, "mean": 0.005, "within1": 0.90, "exact": 0.52},
+        },
+    },
+    "rosetta": {
+        "title": "Rosetta Code",
+        "unit": "documents",
+        "key": "id",
+        "weight": "chars",
+        "n": 1741,
+        # Measured 2026-08-01. v4.7 reproduces every document; the floor is set just under so that
+        # a single regressing document trips it. v3 still carries a vocabulary tail.
+        "families": {
+            "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
+            "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+        },
+    },
+    "rosetta_holdout": {
+        "title": "Rosetta Code (held out)",
+        "unit": "documents",
+        "key": "id",
+        "weight": "chars",
+        "n": 250,
+        # Documents that selected nothing: no piece in the vocabulary was probed because of them.
+        # Measured 2026-08-01 at 98.8% exact / 0.013% mass, against 89.6% / 0.096% for the model
+        # shipped before the apostrophe work. v3 has no held-out sample measured yet.
+        "families": {
+            "v4.7": {"version": 4.7, "mean": 0.0003, "within1": 0.98, "exact": 0.95},
         },
     },
     "multipl_e": {
@@ -163,8 +199,22 @@ def report_vocabulary(markdown: bool = False) -> None:
     print()
 
 
+def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
+    name, family = job
+    return name, family, score(name, family)
+
+
 def report(markdown: bool = False) -> None:
-    """Print every gate's numbers, applying the thresholds as we go."""
+    """Print every gate's numbers, applying the thresholds as we go.
+
+    The corpora are scored in a process pool: there are eight independent (corpus, family) replays
+    and the biggest of them is most of the wall clock, so running them sequentially is the slowest
+    thing in CI for no reason. Results are collected into a dict and printed in GATES order, so the
+    report is byte-identical to the sequential one.
+    """
+    jobs = [(name, family) for name, cfg in GATES.items() for family in cfg["families"]]
+    with ProcessPoolExecutor() as pool:
+        scored = {(n, f): a for n, f, a in pool.map(_score_one, jobs)}
     if markdown:
         print("## Reproduction gates\n")
         print("Documents by absolute error against recorded `count_tokens` values.\n")
@@ -173,10 +223,12 @@ def report(markdown: bool = False) -> None:
         print("|---|---|---:|---:|---:|---:|---:|---:|---:|---|")
     for name, cfg in GATES.items():
         for family in cfg["families"]:
-            a = score(name, family)
+            a = scored[(name, family)]
             assert_gate(name, family, a)
             w = a["worst"]
-            worst = f"{w['name']} {100 * w['rel']:+.1f}%"
+            # A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
+            # documents, so fall back to the key the counts are stored under.
+            worst = f"{w.get('name') or w[cfg['key']]} {100 * w['rel']:+.1f}%"
             if markdown:
                 print(f"| {cfg['title']} | {family} | {a['n']} | {100 * a['mass']:.3f}% "
                       f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
