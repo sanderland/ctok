@@ -11,6 +11,8 @@ tiles.
 
 from __future__ import annotations
 
+import unicodedata
+
 from .constants import BOW_G, EOW_G, MARKER_GLYPHS
 from .normalize import nfc, stream_norm
 from .notation import parse_marked
@@ -75,6 +77,11 @@ class ByteFloor:
 # ---- tiling the marked stream ---------------------------------------------------------------
 
 
+def glued_contraction(cn: str) -> str:
+    """A contraction suffix in the spelling the marked stream uses: `'t` → `'⟨bow⟩t⟨eow⟩`."""
+    return cn[:1] + BOW_G + cn[1:] + EOW_G
+
+
 def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
     """The tiling vocabulary: every piece, the marker atoms and the glued contraction spelling.
     Returns it with the longest piece length, the DP's window."""
@@ -83,9 +90,25 @@ def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
     # A contraction suffix needs no encoder rule: the normal rewrites already produce
     # `⟨bow⟩don⟨eow⟩'⟨bow⟩t⟨eow⟩`, so the suffix arrives in `pieces` already spelled that way. Only
     # the glued form, `it'sX`, has to be added here.
-    for cn in tokens["contractions"]:
-        vocab.add(cn[:1] + BOW_G + cn[1:] + EOW_G)
+    vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
     return frozenset(vocab), max((len(p) for p in vocab), default=1)
+
+
+def after_punct(s: str, j: int) -> bool:
+    """Does the marked stream carry a punctuation character immediately left of position ``j``?
+
+    The contraction suffix is a WORD-side token — it is the `'s` of `it's`, and it reaches across
+    the seam only because there is nothing but a word on its left. An apostrophe that follows other
+    punctuation belongs to THAT run and hands the word nothing: `}'s` = 3, `.'s.` = 4, `.'ve.` = 5,
+    `a)'s b` = 5, `a(n)'s b` = 7 — each exactly one more than the glued piece allows — while `f's`,
+    `x't`, `a 's b` and a message-initial `'s` are all exact with it. 205 v4.7 and 30 v3 cached rows
+    move onto their measurement under this test and none moves off.
+    """
+    if j == 0:
+        return False
+    prev = s[j - 1]
+    return (prev not in MARKER_GLYPHS and not prev.isspace()
+            and unicodedata.category(prev)[0] in ("P", "S"))
 
 
 def char_cost(model, ch: str) -> int:
@@ -135,6 +158,7 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
+    contractions = model.contractions
 
     def unit_floor(j: int) -> int:
         """What one character costs where no piece covers it — a marker is a token, anything else
@@ -142,10 +166,13 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         ch = s[j]
         return 1 if ch in MARKER_GLYPHS else char_cost(model, ch)
 
+    def usable(seg: str, j: int) -> bool:
+        """Is this piece available at this position? Only one thing can take it away: a
+        contraction suffix reaching out of a punctuation run (see :func:`after_punct`)."""
+        return seg in pieces and not (seg in contractions and after_punct(s, j))
+
     def cost_fn(j: int, i: int) -> int | None:
-        if s[j:i] in pieces:
-            return 1
-        return unit_floor(j) if i - j == 1 else None
+        return 1 if usable(s[j:i], j) else (unit_floor(j) if i - j == 1 else None)
 
     total, spans = min_tile(len(s), cost_fn, model.max_piece_len)
     # A span the vocabulary covers is one token, but a span that fell to the byte floor may cost
@@ -154,7 +181,7 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]
-        if seg in pieces or unit_floor(j) == 1:
+        if usable(seg, j) or unit_floor(j) == 1:
             out.append(seg)
         else:
             out.extend(model.bytes.chunks(seg.encode()))

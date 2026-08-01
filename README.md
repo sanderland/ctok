@@ -41,10 +41,10 @@ programming languages. Both run from committed fixtures: `uv run pytest`.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.917% | 0.408% | 263/501 | 92.6% |
-| UDHR | v4.7 | 0.879% | 0.465% | 240/501 | 90.4% |
-| MultiPL-E (22 languages) | v3 | 0.069% | 0.073% | 11/22 | 100% |
-| MultiPL-E | v4.7 | 0.498% | 0.499% | 1/22 | 81.8% |
+| UDHR (501 languages) | v3 | 0.894% | 0.394% | 273/501 | 92.4% |
+| UDHR | v4.7 | 0.807% | 0.397% | 283/501 | 92.2% |
+| MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
+| MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 
 Largest known residual: an under-count in Brahmic and South-East Asian scripts, where the vocabulary
 has no pieces and the byte floor is the entire model.

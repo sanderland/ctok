@@ -37,11 +37,11 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-07-28. The honest residual is a Brahmic/South-East-Asian under-count: the
+        # Measured 2026-08-01. The honest residual is a Brahmic/South-East-Asian under-count: the
         # vocabulary has no pieces for those scripts and the byte floor is the entire model there.
         "families": {
             "v3": {"version": 3.0, "mean": 0.005, "within1": 0.91, "exact": 0.45},
-            "v4.7": {"version": 4.7, "mean": 0.006, "within1": 0.88, "exact": 0.42},
+            "v4.7": {"version": 4.7, "mean": 0.005, "within1": 0.90, "exact": 0.50},
         },
     },
     "multipl_e": {
@@ -50,12 +50,14 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # Measured 2026-07-28. v4.7 is well behind v3 here because its vocabulary is sparser, not
-        # because it runs a different mechanism; ``exact`` is one file there, so asserting it would
-        # measure luck.
+        # Measured 2026-08-01. v4.7 reproduces all 22 files exactly since the word-opening
+        # apostrophe, the contraction's word-side anchor and the space-spelled punct duplicates
+        # landed, so ``exact`` is asserted there — it used to be one file, where asserting it would
+        # have measured luck. v3 (15/22) still carries a vocabulary tail. Thresholds are compared
+        # with a STRICT >, so a perfect corpus cannot be gated at 1.0.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.35},
-            "v4.7": {"version": 4.7, "mean": 0.006, "within1": 0.77, "exact": None},
+            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
+            "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
         },
     },
 }

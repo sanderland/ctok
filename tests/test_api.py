@@ -111,3 +111,52 @@ def test_trailing_newlines_are_absorbed_only_as_far_as_one_token_reaches():
         assert token_count("hello" + "\n" * n) == base, n
     for n in (29, 32, 37, 39, 40):
         assert token_count("hello" + "\n" * n) == base + 1, n
+
+
+# ---- the apostrophe and strip rules, each row a recorded ``count_tokens`` measurement ------------
+
+# (version, text, content tokens) — the count MINUS the message frame, so the rows read as costs.
+# Every one is a probe taken against that family's source model.
+APOSTROPHE_ROWS = [
+    # ⟨bow⟩' is a real piece: the boundary and the apostrophe price 1 together wherever no word
+    # follows — at the message edge, before punctuation, before a space.
+    (4.7, "'", 1), (4.7, "'.", 2), (4.7, "', '", 3), (3.0, "'", 1), (3.0, "'.", 1),
+    # ...and it is not what the oracle reaches for in front of a word. Each of these costs one more.
+    (4.7, "'d", 3), (4.7, "'m", 3), (4.7, "'F", 3), (4.7, "'First", 3),
+    (4.7, "a 'b", 4), (4.7, "a 'x b", 5), (3.0, "a 'b", 4),
+    # A two-space run already priced this way, and the single space now matches it.
+    (4.7, "a  'b", 4),
+    # Only `'` behaves so: the other word-opening punctuation absorbs the boundary normally.
+    (4.7, 'a "b', 3), (4.7, "a (b", 3), (4.7, "a -b", 3), (3.0, 'a "b', 3),
+    # And only a run that IS the apostrophe: in `('` or `'''` the boundary lands elsewhere.
+    (4.7, "a ('b", 4), (4.7, "a '''a", 4), (4.7, "z '''w", 4),
+    (3.0, "a '''a", 3), (3.0, "z '''w", 3),
+    # The contraction suffix is word-side: after a word or the boundary it is one token, after
+    # other punctuation it is not.
+    (4.7, "f's", 2), (4.7, "x's", 2), (4.7, "x't", 2), (4.7, "'s", 2), (4.7, "'t", 2),
+    (4.7, "a 's b", 4), (3.0, "x's", 2), (3.0, "x't", 2),
+    (4.7, "}'s", 3), (4.7, ".'s.", 4), (4.7, ".'re.", 4), (4.7, ".'ve.", 5),
+    (3.0, ".'s.", 4), (3.0, ".'re.", 4), (3.0, ".'ve.", 4),
+]
+
+# A punct piece spelled with a trailing space is the SEAM space, so it cannot open a run of two or
+# more. The space-run ladder is {1..16} parts for a punct lead exactly as it is for a letter.
+SPACE_RUN_ROWS = [(4.7, "]" + " " * 17 + "i", 5), (4.7, "a" + " " * 17 + "b", 4)]
+
+
+@pytest.mark.parametrize("version,text,content", APOSTROPHE_ROWS + SPACE_RUN_ROWS,
+                         ids=lambda v: repr(v) if isinstance(v, str) else str(v))
+def test_recorded_apostrophe_and_space_run_costs(version, text, content):
+    overhead = _model(_family(version)).message_overhead
+    assert token_count(text, version=version) - overhead == content
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_private_use_characters_are_stripped(version: float):
+    """A BMP private-use codepoint costs nothing AND joins its neighbours into one word — it is
+    deleted, like the C0/C1 controls, not merely free. An UNASSIGNED codepoint is the control: it
+    survives and pays its bytes."""
+    assert token_count("ab", version=version) == token_count("ab", version=version)
+    assert token_count("", version=version) == token_count("", version=version)
+    assert normalize("ab", version=version) == "ab"
+    assert token_count("a\U00090095a", version=version) > token_count("aa", version=version)

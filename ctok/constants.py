@@ -52,6 +52,16 @@ SYMBOL_LETTERS = (
 # C0/C1 controls the API strips before tokenizing (cost 0), i.e. every gc=Cc except TAB, LF and NUL.
 STRIP_CONTROL = re.compile("[\x01-\x08\x0B-\x1F\x7F\x80-\x9F]")
 
+# The BMP private-use area is stripped the same way — the character costs nothing AND its two
+# neighbours join into one word: `a` + U+F0B7 + `b` prices exactly as `ab` (v4.7 and v3), and the
+# HyperTalk `put "` + U+F8FF + `pple" into x` ladder is exact at all four recorded prefixes only
+# with the character gone. Seven rows, two codepoints, both families, no row against.
+#
+# It is private use that is stripped, not "anything unusual": an UNASSIGNED codepoint survives and
+# pays its bytes (`a` + U+90095 + `a` costs 6, our byte-floor number, where stripping would read 1).
+# The two supplementary private-use planes are unprobed and deliberately left out of the class.
+STRIP_PRIVATE = re.compile("[-]")
+
 # Lone surrogates are valid in a str but not UTF-8-encodable, so they would crash the byte floor.
 # They can never be genuine tokenizer input; fold each to U+FFFD, which prices as an ordinary
 # 3-byte HARD character. This is what keeps token_count total on any str.

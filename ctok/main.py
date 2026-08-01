@@ -13,7 +13,7 @@ from functools import cache
 from importlib.resources import files
 
 from .constants import MARKER_GLYPHS, PAD
-from .engine import ByteFloor, build_vocab, tile
+from .engine import ByteFloor, build_vocab, glued_contraction, tile
 from .normalize import nfc, stream
 from .notation import parse_marked, render_bytes, render_marked
 
@@ -100,6 +100,8 @@ class TokenizerModel:
                             if len(c) == 1 and c not in MARKER_GLYPHS}
         self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
         self.vocab, self.max_piece_len = build_vocab(pieces, tokens)
+        # The contraction suffixes, which `engine.after_punct` holds to the word side.
+        self.contractions = frozenset(glued_contraction(cn) for cn in tokens["contractions"])
 
         self._char_cost_cache: dict[str, int] = {}
 

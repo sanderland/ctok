@@ -13,18 +13,20 @@ import unicodedata
 
 from .constants import (
     BOW_G, CAPS_G, CHARGING_MARK, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD,
-    SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, SURROGATE, SYMBOL_LETTERS, WORDY,
+    SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE, SURROGATE, SYMBOL_LETTERS, WORDY,
 )
 
 
 def nfc(text: str, *, fold_quotes: bool = True) -> str:
-    """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control characters,
-    optionally fold the curly quotes, then fold space-separator variants (and NUL) to U+0020.
+    """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control and private-use
+    characters, optionally fold the curly quotes, then fold space-separator variants (and NUL) to
+    U+0020.
 
     ``fold_quotes`` is a per-family flag: v3 folds, v4.7 measured not to.
     """
     text = SURROGATE.sub("�", text)
     text = STRIP_CONTROL.sub("", unicodedata.normalize("NFC", text)).replace("\x00", " ")
+    text = STRIP_PRIVATE.sub("", text)
     if fold_quotes:
         text = text.translate(QUOTE_FOLD)
     return FUNNY_SPACE.sub(" ", text)
@@ -119,6 +121,22 @@ def _is_symbol_text(body: str) -> bool:
     return bool(body) and all(unicodedata.category(c).startswith("S") for c in body)
 
 
+def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
+    """Is run ``i`` a lone ``'`` that opens the word after it — ``a 'b``, ``'First``, ``x 'REXX``?
+
+    The boundary before such an apostrophe is NOT absorbed into it. Measured on the whole
+    ``a 'X b`` / ``a 'X'b`` / ``a 'X', b`` letter sweep (every letter except the ``'s``/``'t``
+    contractions costs one more than an absorbed boundary allows), on the message-start ladder
+    (``'d`` ``'m`` ``'F`` ``'First`` = 3, where a piece-swallowed boundary reads 2) and on
+    the head-seam probe ``" 'a"`` = 3. The ``⟨bow⟩'`` piece is real — ``'`` alone, ``'.``,
+    ``', '`` all price 1 for the pair — it is simply not what the oracle uses in front of a word.
+
+    Only a punct run that is EXACTLY ``'`` qualifies: in ``('`` or ``'''`` the boundary lands on a
+    different character and those rows are exact as they stand (``a ('b`` = 4, ``a '''a`` = 4).
+    """
+    return runs[i][1] == "'" and i + 1 < len(runs) and runs[i + 1][0] == WORDY
+
+
 def _is_nd_run(body: str) -> bool:
     """A run of decimal digits (Nd), in either the DIGIT or the Nd-HARD class."""
     return all(unicodedata.category(c) == "Nd" for c in body)
@@ -200,12 +218,16 @@ def stream_norm(norm: str, model) -> str:
     # non-ASCII digit run (it borders a space at the message edge); a leading whitespace run absorbs
     # it only if it starts with a real space, since a TAB or NEWLINE cannot. Anything else supplies
     # none, so the frame's ⟨bow⟩ is written here and tiles as itself.
+    # A word-opening `'` supplies no ⟨bow⟩ either (see `_opens_word`), and what the frame hands it
+    # is a space, so at message start that space is written as the character it is.
     first = runs[0]
-    has_own_bow = (first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
+    head_quote = _opens_word(runs, 0)
+    has_own_bow = not head_quote and (
+                   first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
                    or _is_symbol_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
-    out = [] if has_own_bow else [BOW_G]
+    out = [] if has_own_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:
             # A wordy span is flanked on both sides, always.
@@ -218,7 +240,8 @@ def stream_norm(norm: str, model) -> str:
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.
-            out.append((BOW_G if borders_space(i, -1) else "") + body
+            takes_bow = borders_space(i, -1) and not _opens_word(runs, i)
+            out.append((BOW_G if takes_bow else "") + body
                        + (EOW_G if borders_space(i, +1) else ""))
         elif _is_nd_run(body) and cls in (DIGIT, HARD):
             # A digit run takes a leading ⟨bow⟩ when it borders a space — the same rule punct has.
