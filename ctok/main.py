@@ -38,7 +38,7 @@ FAMILIES: dict[str, Family] = {
     # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
     # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
     "v5": Family("pieces_v4_7.json", "claude-opus-5", Decimal("5.0"),
-                 (("message_overhead", 6),)),
+                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
 }
 
 _MODEL_TO_FAMILY = {fam.source_model: key for key, fam in FAMILIES.items()}
@@ -103,6 +103,18 @@ class TokenizerModel:
         # Whether a Myanmar killer keeps its run open when the NEXT character is also a Myanmar
         # killer. Per-family because the families genuinely disagree — see `normalize._runs`.
         self.myanmar_stacked_killer = meta.get("myanmar_stacked_killer", False)
+        # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
+        # measured different at BOTH edges, which is why these are family scalars and not constants.
+        #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is
+        #                an interior word boundary: it absorbs one leading space, and a run that
+        #                cannot own that ⟨bow⟩ pays for it as a token of its own.
+        #   frame_tail — "ladder": the frame's own ⏎⏎ tail, which one token can span into, so a
+        #                trailing newline run is nearly free but not quite (`engine.frame_tail`).
+        #                "free": trailing whitespace of every kind costs nothing at all.
+        self.frame_bow = meta.get("frame_bow", True)
+        self.frame_tail = meta.get("frame_tail", "ladder")
+        # The characters the frame absorbs off the end of the content, per that rule.
+        self.frame_strip = "\n" if self.frame_tail == "ladder" else " \t\n\r\f\v"
 
         tokens = doc["tokens"]
         # Every group is cost-1 pieces except the byte fallback, which is prefix costs rather than

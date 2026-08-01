@@ -27,18 +27,18 @@ Tokens carry their structure in-line: `⟨bow⟩`/`⟨eow⟩` word boundaries, `
 |---|---|---|
 | `3.0` – `4.6` (default) | v3 | Claude 3 … Opus 4.5/4.6 |
 | `4.7` – `4.9` | v4.7 | Opus 4.7 … 4.9 |
-| `5.0`+ | v5 | Opus 5 — **provisional**, see below |
+| `5.0`+ | v5 | Opus 5 — v4.7's vocabulary, v5's frame (see below) |
 | anything else | — | `NotImplementedError` |
 
 Versions are decimals, so `4.10` means 4.1. A model id also routes:
 `token_count(text, "claude-opus-4-7")`.
 
-**v5 is provisional.** It reads the *v4.7 vocabulary* through its own measured message frame
-(`count_tokens` on a one-character message is 7 tokens there, against 12 on 4.7). That is not a
-guess about the pieces: on 1,741 Rosetta Code documents the two families price the content
-identically 94.7% of the time. What v5 does not have yet is its own *edge* rules — its frame
-absorbs any trailing whitespace, and the seam at the start of a message prices differently — so
-expect an occasional one-token over-count on text that opens with a digit, an ideograph or a space.
+**v5 reads the v4.7 vocabulary.** Its message frame is its own — `count_tokens` on a
+one-character message is 7 tokens there against 12 on 4.7 — and so are the rules at that frame's two
+edges: it absorbs trailing whitespace of every kind, and it ends in no word boundary, so a leading
+space costs a token while an opening digit or ideograph does not. With those three facts measured,
+v5 scores the *same number as v4.7 on every corpus below*, down to the same documents. No piece has
+been mined against opus-5 yet, and nothing measured so far says one differs.
 
 ## Accuracy
 
@@ -57,7 +57,7 @@ languages, which varies everything at once.
 | UDHR | v5 | TBD | TBD | TBD | TBD |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
-| MultiPL-E | v5 | 0.000% | 0.000% | 21/22 | 100% |
+| MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code | v5 | TBD | TBD | TBD | TBD |
