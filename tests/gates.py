@@ -225,10 +225,13 @@ def report(markdown: bool = False) -> None:
         for family in cfg["families"]:
             a = scored[(name, family)]
             assert_gate(name, family, a)
+            def label(row: dict) -> str:
+                """A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
+                documents, so fall back to the key the counts are stored under."""
+                return str(row.get("name") or row[cfg["key"]])
+
             w = a["worst"]
-            # A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
-            # documents, so fall back to the key the counts are stored under.
-            worst = f"{w.get('name') or w[cfg['key']]} {100 * w['rel']:+.1f}%"
+            worst = f"{label(w)} {100 * w['rel']:+.1f}%"
             if markdown:
                 print(f"| {cfg['title']} | {family} | {a['n']} | {100 * a['mass']:.3f}% "
                       f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
@@ -241,7 +244,7 @@ def report(markdown: bool = False) -> None:
             print(f"  exact {a['exact']}   ≤1% {a['under1']}   1–5% {a['mid']}   >5% {a['over5']}\n")
             print("  worst documents:")
             for r in sorted(a["rows"], key=lambda r: -r["abs"])[:8]:
-                print(f"    {r['name'][:28]:28} ours={r['ours']:6} recorded={r['api']:6} "
+                print(f"    {label(r)[:28]:28} ours={r['ours']:6} recorded={r['api']:6} "
                       f"rel={100 * r['rel']:+6.2f}%")
             print()
 
