@@ -47,11 +47,13 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-08-01. The honest residual is a Brahmic/South-East-Asian under-count: the
-        # vocabulary has no pieces for those scripts and the byte floor is the entire model there.
+        # Measured 2026-08-01, after the akshara law. It took the Brahmic/South-East-Asian
+        # under-count out structurally — no document in either family is over 5% now, where 15 in
+        # each were — so these are three times tighter than the thresholds that preceded it, and a
+        # revert of the law trips every one of them. What is left is vocabulary.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.005, "within1": 0.91, "exact": 0.45},
-            "v4.7": {"version": 4.7, "mean": 0.005, "within1": 0.90, "exact": 0.52},
+            "v3": {"version": 3.0, "mean": 0.0025, "within1": 0.94, "exact": 0.52},
+            "v4.7": {"version": 4.7, "mean": 0.0030, "within1": 0.92, "exact": 0.55},
         },
     },
     "rosetta": {
@@ -74,10 +76,12 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # Measured 2026-08-01 at 98.8% exact / 0.013% mass, against 89.6% / 0.096% for the model
-        # shipped before the apostrophe work. v3 has no held-out sample measured yet.
+        # Measured 2026-08-01 at 99.2% exact / 0.012% mass, against 89.6% / 0.096% for the model
+        # shipped before the apostrophe work. v3 has no held-out sample measured yet. The akshara
+        # law moved this by exactly one document, which is all it could move: two of the 250 hold a
+        # killer at all, and one of those two is the document that flipped.
         "families": {
-            "v4.7": {"version": 4.7, "mean": 0.0003, "within1": 0.98, "exact": 0.95},
+            "v4.7": {"version": 4.7, "mean": 0.0003, "within1": 0.98, "exact": 0.96},
         },
     },
     "multipl_e": {
