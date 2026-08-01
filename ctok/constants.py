@@ -47,10 +47,27 @@ SYMBOL_LETTERS = (
     (0x24B6, 0x24E9),   # circled letters (So, cased)
 )
 
+# Variation selectors are gc=Mn, which would put them in the WORDY class and give them the whole
+# word model. They do not take it: `️` alone costs 2 where ⟨bow⟩…⟨eow⟩ flanks read 3, and `⚖️` `⚖︎`
+# `✔️` each cost exactly one more than the base character, where the flanks read three more.
+# Probed on U+FE00, U+FE0E and U+FE0F — both ends of the block and the middle. The supplementary
+# selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
+VARIATION_SELECTORS = (0xFE00, 0xFE0F)
+
 # ---- normalization ------------------------------------------------------------------------------
 
 # C0/C1 controls the API strips before tokenizing (cost 0), i.e. every gc=Cc except TAB, LF and NUL.
 STRIP_CONTROL = re.compile("[\x01-\x08\x0B-\x1F\x7F\x80-\x9F]")
+
+# The BMP private-use area is stripped the same way — the character costs nothing AND its two
+# neighbours join into one word: `a` + U+F0B7 + `b` prices exactly as `ab` (v4.7 and v3), and the
+# HyperTalk `put "` + U+F8FF + `pple" into x` ladder is exact at all four recorded prefixes only
+# with the character gone. Seven rows, two codepoints, both families, no row against.
+#
+# It is private use that is stripped, not "anything unusual": an UNASSIGNED codepoint survives and
+# pays its bytes (`a` + U+90095 + `a` costs 6, our byte-floor number, where stripping would read 1).
+# The two supplementary private-use planes are unprobed and deliberately left out of the class.
+STRIP_PRIVATE = re.compile("[-]")
 
 # Lone surrogates are valid in a str but not UTF-8-encodable, so they would crash the byte floor.
 # They can never be genuine tokenizer input; fold each to U+FFFD, which prices as an ordinary
@@ -65,6 +82,17 @@ FUNNY_SPACE = re.compile("[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F]")
 # The four standard curly quotes fold to their ASCII forms (v3 only; NFC does not do this). The
 # low-9 mark U+201E is a different token and is deliberately not folded.
 QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201C": '"', "\u201D": '"'})
+
+# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩ — the
+# standard English contraction set, lowercase and whole-word only. Measured per member against
+# `⟨bow⟩W⟨eow⟩` in the same position: `ll` absorbs (`x'll` = 3 where a paid boundary reads 4) and so
+# do `s` `t` `re` `ve` (each 1, via their own token); `d` and `m` price the same either way and are
+# carried as the class. Everything else pays: `ji` `ka` `ne` `ye` `ing` `lo` `tion` `zz` `abc` all
+# read `'` + a full boundary, and they are not a special population — `ji⟨eow⟩` `ka⟨eow⟩` `ne⟨eow⟩`
+# `ye⟨eow⟩` `ing⟨eow⟩` are pieces exactly as `ll⟨eow⟩` is, so a "bow-less piece exists" rule would
+# have absorbed them too. Case-sensitive: `x'S` = 3 and `x'LL` = 4 both pay. Whole-word: `x'llo`
+# = 4 and `x'lls` = 4 pay.
+CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 
 # ---- the seam law -------------------------------------------------------------------------------
 

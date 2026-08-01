@@ -11,7 +11,7 @@ tiles.
 
 from __future__ import annotations
 
-from .constants import BOW_G, EOW_G, MARKER_GLYPHS
+from .constants import EOW_G, MARKER_GLYPHS
 from .normalize import nfc, stream_norm
 from .notation import parse_marked
 
@@ -75,6 +75,14 @@ class ByteFloor:
 # ---- tiling the marked stream ---------------------------------------------------------------
 
 
+def glued_contraction(cn: str) -> str:
+    """A contraction suffix in the spelling the marked stream uses: `'t` → `'t⟨eow⟩`.
+
+    No ⟨bow⟩: the apostrophe IS the word's opening boundary, and `normalize._contraction_seam`
+    writes the stream that way."""
+    return cn + EOW_G
+
+
 def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
     """The tiling vocabulary: every piece, the marker atoms and the glued contraction spelling.
     Returns it with the longest piece length, the DP's window."""
@@ -83,8 +91,7 @@ def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
     # A contraction suffix needs no encoder rule: the normal rewrites already produce
     # `⟨bow⟩don⟨eow⟩'⟨bow⟩t⟨eow⟩`, so the suffix arrives in `pieces` already spelled that way. Only
     # the glued form, `it'sX`, has to be added here.
-    for cn in tokens["contractions"]:
-        vocab.add(cn[:1] + BOW_G + cn[1:] + EOW_G)
+    vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
     return frozenset(vocab), max((len(p) for p in vocab), default=1)
 
 

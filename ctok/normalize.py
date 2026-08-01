@@ -12,19 +12,22 @@ from __future__ import annotations
 import unicodedata
 
 from .constants import (
-    BOW_G, CAPS_G, CHARGING_MARK, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD,
-    SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, SURROGATE, SYMBOL_LETTERS, WORDY,
+    BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT,
+    PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE, SURROGATE,
+    SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 
 def nfc(text: str, *, fold_quotes: bool = True) -> str:
-    """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control characters,
-    optionally fold the curly quotes, then fold space-separator variants (and NUL) to U+0020.
+    """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control and private-use
+    characters, optionally fold the curly quotes, then fold space-separator variants (and NUL) to
+    U+0020.
 
     ``fold_quotes`` is a per-family flag: v3 folds, v4.7 measured not to.
     """
     text = SURROGATE.sub("�", text)
     text = STRIP_CONTROL.sub("", unicodedata.normalize("NFC", text)).replace("\x00", " ")
+    text = STRIP_PRIVATE.sub("", text)
     if fold_quotes:
         text = text.translate(QUOTE_FOLD)
     return FUNNY_SPACE.sub(" ", text)
@@ -57,6 +60,8 @@ def classify(c: str) -> str:
         return PUNCT
     if c in PUNCT_SYMS:
         return PUNCT
+    if VARIATION_SELECTORS[0] <= o <= VARIATION_SELECTORS[1]:
+        return HARD                   # gc=Mn, but they take no word model at all
     if cat[0] in ("L", "M") and not is_hard_cp(o):
         # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
         # vocabulary plus the per-codepoint byte floor as any other letter script.
@@ -115,8 +120,51 @@ def _is_symbol_text(body: str) -> bool:
     reads 0 while the marker is written all the same. The rule is uniform; only the vocabulary
     differs. `›` disagrees in the other direction and is recorded as open in
     `data_v4_7/hard_boundary.json`.
+
+    ASTRAL symbols are excluded, and that is measured on the same grid: `🐫` `😀` `🚀` read `1c1`
+    exact but `1 c1` and `1c 1` one MORE than we charge and `1 c 1` two more — a boundary written
+    where the oracle writes none, the exact mirror of what the BMP characters do. `文 🐫` = 6 is
+    the row it costs on real text.
     """
-    return bool(body) and all(unicodedata.category(c).startswith("S") for c in body)
+    return bool(body) and all(unicodedata.category(c).startswith("S") and ord(c) < 0x10000
+                              for c in body)
+
+
+def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
+    """Is run ``i`` a lone ``'`` that opens the word after it — ``a 'b``, ``'First``, ``x 'REXX``?
+
+    The boundary before such an apostrophe is NOT absorbed into it. Measured on the whole
+    ``a 'X b`` / ``a 'X'b`` / ``a 'X', b`` letter sweep (every letter except the ``'s``/``'t``
+    contractions costs one more than an absorbed boundary allows), on the message-start ladder
+    (``'d`` ``'m`` ``'F`` ``'First`` = 3, where a piece-swallowed boundary reads 2) and on
+    the head-seam probe ``" 'a"`` = 3. The ``⟨bow⟩'`` piece is real — ``'`` alone, ``'.``,
+    ``', '`` all price 1 for the pair — it is simply not what the oracle uses in front of a word.
+
+    Only a punct run that is EXACTLY ``'`` qualifies: in ``('`` or ``'''`` the boundary lands on a
+    different character and those rows are exact as they stand (``a ('b`` = 4, ``a '''a`` = 4).
+    """
+    return runs[i][1] == "'" and i + 1 < len(runs) and runs[i + 1][0] == WORDY
+
+
+def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
+    """Does a lone apostrophe immediately left of wordy run ``i`` supply that word's ⟨bow⟩?
+
+    `it's` is one word boundary, not two: the apostrophe IS the boundary, exactly as the seam space
+    is. So the word after it is written bare — `x'll` = ⟨bow⟩x⟨eow⟩ + ' + ll⟨eow⟩ = 3, where paying
+    for the boundary reads 4. It is the vocabulary that then decides whether a piece swallows the
+    pair (`'s⟨eow⟩` does, at 1; `'ll⟨eow⟩` in this family does not, at 2).
+
+    Two conditions, both measured. The suffix must be in ``CONTRACTION_SUFFIXES``, whole-word and
+    lowercase. And the apostrophe must be a punct run of its OWN: one that follows other punctuation
+    belongs to that run and reaches the word with nothing — `}'s` = 3, `.'s.` = 4, `.'ve.` = 5,
+    `a)'s b` = 5, `.'ll.` = 5 are each one more than the seam allows. A letter, a digit, a space run
+    or the message edge on the left all let it through: `f's` = 2, `1'll` = 4, `a  'll b` = 5.
+    """
+    if runs[i][1] not in CONTRACTION_SUFFIXES or i == 0:
+        return False
+    prev_cls, prev_body = runs[i - 1]
+    # A punct run is maximal, so a run that IS the apostrophe cannot have punctuation to its left.
+    return prev_cls == PUNCT and prev_body == "'"
 
 
 def _is_nd_run(body: str) -> bool:
@@ -200,25 +248,32 @@ def stream_norm(norm: str, model) -> str:
     # non-ASCII digit run (it borders a space at the message edge); a leading whitespace run absorbs
     # it only if it starts with a real space, since a TAB or NEWLINE cannot. Anything else supplies
     # none, so the frame's ⟨bow⟩ is written here and tiles as itself.
+    # A word-opening `'` supplies no ⟨bow⟩ either (see `_opens_word`), and what the frame hands it
+    # is a space, so at message start that space is written as the character it is.
     first = runs[0]
-    has_own_bow = (first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
+    head_quote = _opens_word(runs, 0)
+    has_own_bow = not head_quote and (
+                   first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
                    or _is_symbol_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
-    out = [] if has_own_bow else [BOW_G]
+    out = [] if has_own_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:
-            # A wordy span is flanked on both sides, always.
+            # A wordy span is flanked on both sides, always — except where a contraction apostrophe
+            # is already its opening boundary (see `_contraction_seam`).
             n = mark_case(body, caps)
             pre = ""
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
-            out.append(pre + BOW_G + n + EOW_G)
+            bow = "" if _contraction_seam(runs, i) else BOW_G
+            out.append(pre + bow + n + EOW_G)
         elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.
-            out.append((BOW_G if borders_space(i, -1) else "") + body
+            takes_bow = borders_space(i, -1) and not _opens_word(runs, i)
+            out.append((BOW_G if takes_bow else "") + body
                        + (EOW_G if borders_space(i, +1) else ""))
         elif _is_nd_run(body) and cls in (DIGIT, HARD):
             # A digit run takes a leading ⟨bow⟩ when it borders a space — the same rule punct has.

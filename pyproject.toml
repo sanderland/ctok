@@ -18,6 +18,7 @@ ctok = "ctok.main:main"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "pytest-xdist>=3.6",
 ]
 
 [build-system]
@@ -29,3 +30,8 @@ packages = ["ctok"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The gates replay four corpora over two families; each (corpus, family) case is independent and
+# expensive, so distribute per TEST rather than per module — the default `--dist load` does that,
+# where `loadscope` would pin both families of a corpus to one worker. Each worker pays the
+# vocabulary load once. `-n auto` uses the runner's core count and costs nothing on one core.
+addopts = "-n auto"
