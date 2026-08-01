@@ -12,8 +12,9 @@ from __future__ import annotations
 import unicodedata
 
 from .constants import (
-    BOW_G, CAPS_G, CHARGING_MARK, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD,
-    SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE, SURROGATE, SYMBOL_LETTERS, WORDY,
+    BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, FUNNY_SPACE, HARD, PUNCT,
+    PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE, SURROGATE,
+    SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 
@@ -59,6 +60,8 @@ def classify(c: str) -> str:
         return PUNCT
     if c in PUNCT_SYMS:
         return PUNCT
+    if VARIATION_SELECTORS[0] <= o <= VARIATION_SELECTORS[1]:
+        return HARD                   # gc=Mn, but they take no word model at all
     if cat[0] in ("L", "M") and not is_hard_cp(o):
         # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
         # vocabulary plus the per-codepoint byte floor as any other letter script.
@@ -117,8 +120,14 @@ def _is_symbol_text(body: str) -> bool:
     reads 0 while the marker is written all the same. The rule is uniform; only the vocabulary
     differs. `›` disagrees in the other direction and is recorded as open in
     `data_v4_7/hard_boundary.json`.
+
+    ASTRAL symbols are excluded, and that is measured on the same grid: `🐫` `😀` `🚀` read `1c1`
+    exact but `1 c1` and `1c 1` one MORE than we charge and `1 c 1` two more — a boundary written
+    where the oracle writes none, the exact mirror of what the BMP characters do. `文 🐫` = 6 is
+    the row it costs on real text.
     """
-    return bool(body) and all(unicodedata.category(c).startswith("S") for c in body)
+    return bool(body) and all(unicodedata.category(c).startswith("S") and ord(c) < 0x10000
+                              for c in body)
 
 
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
@@ -135,6 +144,27 @@ def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
     different character and those rows are exact as they stand (``a ('b`` = 4, ``a '''a`` = 4).
     """
     return runs[i][1] == "'" and i + 1 < len(runs) and runs[i + 1][0] == WORDY
+
+
+def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
+    """Does a lone apostrophe immediately left of wordy run ``i`` supply that word's ⟨bow⟩?
+
+    `it's` is one word boundary, not two: the apostrophe IS the boundary, exactly as the seam space
+    is. So the word after it is written bare — `x'll` = ⟨bow⟩x⟨eow⟩ + ' + ll⟨eow⟩ = 3, where paying
+    for the boundary reads 4. It is the vocabulary that then decides whether a piece swallows the
+    pair (`'s⟨eow⟩` does, at 1; `'ll⟨eow⟩` in this family does not, at 2).
+
+    Two conditions, both measured. The suffix must be in ``CONTRACTION_SUFFIXES``, whole-word and
+    lowercase. And the apostrophe must be a punct run of its OWN: one that follows other punctuation
+    belongs to that run and reaches the word with nothing — `}'s` = 3, `.'s.` = 4, `.'ve.` = 5,
+    `a)'s b` = 5, `.'ll.` = 5 are each one more than the seam allows. A letter, a digit, a space run
+    or the message edge on the left all let it through: `f's` = 2, `1'll` = 4, `a  'll b` = 5.
+    """
+    if runs[i][1] not in CONTRACTION_SUFFIXES or i == 0:
+        return False
+    prev_cls, prev_body = runs[i - 1]
+    # A punct run is maximal, so a run that IS the apostrophe cannot have punctuation to its left.
+    return prev_cls == PUNCT and prev_body == "'"
 
 
 def _is_nd_run(body: str) -> bool:
@@ -230,12 +260,14 @@ def stream_norm(norm: str, model) -> str:
     out = [] if has_own_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:
-            # A wordy span is flanked on both sides, always.
+            # A wordy span is flanked on both sides, always — except where a contraction apostrophe
+            # is already its opening boundary (see `_contraction_seam`).
             n = mark_case(body, caps)
             pre = ""
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
-            out.append(pre + BOW_G + n + EOW_G)
+            bow = "" if _contraction_seam(runs, i) else BOW_G
+            out.append(pre + bow + n + EOW_G)
         elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides

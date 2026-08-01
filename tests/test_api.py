@@ -160,3 +160,34 @@ def test_private_use_characters_are_stripped(version: float):
     assert token_count("", version=version) == token_count("", version=version)
     assert normalize("ab", version=version) == "ab"
     assert token_count("a\U00090095a", version=version) > token_count("aa", version=version)
+
+
+# The apostrophe is a word boundary for the contraction suffixes — and only for those. Each row is
+# a recorded measurement; `x'll` is the one that discriminates, since `ll⟨eow⟩` is a piece where
+# `⟨bow⟩ll⟨eow⟩` is not.
+CONTRACTION_ROWS = [
+    (4.7, "x'll", 3), (4.7, "we'll", 3), (4.7, "a'll b", 4), (4.7, "a 'll b", 5), (4.7, "'ll", 3),
+    (4.7, "1'll", 4), (4.7, "a  'll b", 5), (4.7, "A'll", 3),
+    # ...blocked when the apostrophe is inside a punct run, exactly as the suffix pieces are.
+    (4.7, ".'ll.", 5), (4.7, "}'ll", 4), (4.7, "a)'ll b", 6),
+    # ...whole-word and lowercase only.
+    (4.7, "x'llo", 4), (4.7, "x'lls", 4), (4.7, "x'S", 3), (4.7, "x'LL", 4),
+    # ...and not a general rule: these have bow-less pieces too and still pay for the boundary.
+    (4.7, "x'ji", 4), (4.7, "x'ka", 4), (4.7, "x'ing", 4), (4.7, "a ll b", 4), (4.7, "ll", 2),
+]
+
+# Astral symbols take no boundary markers, where BMP ones do; variation selectors take no word
+# model. Digit anchors, as the boundary campaign used.
+SYMBOL_ROWS = [
+    (4.7, "1🐫1", 6), (4.7, "1 🐫1", 7), (4.7, "1🐫 1", 7), (4.7, "1 🐫 1", 8),
+    (4.7, "1😀1", 5), (4.7, "1 😀1", 6), (4.7, "1 😀 1", 7),
+    (4.7, "1←1", 4), (4.7, "1 ←1", 6), (4.7, "1← 1", 5), (4.7, "1 ← 1", 7),
+    (4.7, "️", 2), (4.7, "⚖️", 5), (4.7, "⚖︎", 6), (4.7, "a️b", 3),
+]
+
+
+@pytest.mark.parametrize("version,text,content", CONTRACTION_ROWS + SYMBOL_ROWS,
+                         ids=lambda v: repr(v) if isinstance(v, str) else str(v))
+def test_recorded_contraction_and_symbol_costs(version, text, content):
+    overhead = _model(_family(version)).message_overhead
+    assert token_count(text, version=version) - overhead == content

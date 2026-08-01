@@ -47,6 +47,13 @@ SYMBOL_LETTERS = (
     (0x24B6, 0x24E9),   # circled letters (So, cased)
 )
 
+# Variation selectors are gc=Mn, which would put them in the WORDY class and give them the whole
+# word model. They do not take it: `️` alone costs 2 where ⟨bow⟩…⟨eow⟩ flanks read 3, and `⚖️` `⚖︎`
+# `✔️` each cost exactly one more than the base character, where the flanks read three more.
+# Probed on U+FE00, U+FE0E and U+FE0F — both ends of the block and the middle. The supplementary
+# selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
+VARIATION_SELECTORS = (0xFE00, 0xFE0F)
+
 # ---- normalization ------------------------------------------------------------------------------
 
 # C0/C1 controls the API strips before tokenizing (cost 0), i.e. every gc=Cc except TAB, LF and NUL.
@@ -75,6 +82,17 @@ FUNNY_SPACE = re.compile("[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F]")
 # The four standard curly quotes fold to their ASCII forms (v3 only; NFC does not do this). The
 # low-9 mark U+201E is a different token and is deliberately not folded.
 QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201C": '"', "\u201D": '"'})
+
+# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩ — the
+# standard English contraction set, lowercase and whole-word only. Measured per member against
+# `⟨bow⟩W⟨eow⟩` in the same position: `ll` absorbs (`x'll` = 3 where a paid boundary reads 4) and so
+# do `s` `t` `re` `ve` (each 1, via their own token); `d` and `m` price the same either way and are
+# carried as the class. Everything else pays: `ji` `ka` `ne` `ye` `ing` `lo` `tion` `zz` `abc` all
+# read `'` + a full boundary, and they are not a special population — `ji⟨eow⟩` `ka⟨eow⟩` `ne⟨eow⟩`
+# `ye⟨eow⟩` `ing⟨eow⟩` are pieces exactly as `ll⟨eow⟩` is, so a "bow-less piece exists" rule would
+# have absorbed them too. Case-sensitive: `x'S` = 3 and `x'LL` = 4 both pay. Whole-word: `x'llo`
+# = 4 and `x'lls` = 4 pay.
+CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 
 # ---- the seam law -------------------------------------------------------------------------------
 
