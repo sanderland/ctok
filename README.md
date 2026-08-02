@@ -44,13 +44,18 @@ languages, which varies everything at once.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.215% | 0.143% | 278/501 | 96.2% |
-| UDHR | v4.7 | 0.131% | 0.106% | 296/501 | 97.4% |
+| UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
+| UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
+
+No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
+1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
+languages for which no marked-text source has been found. Weighted by speakers rather than by
+document, the error is 0.050% (v3) and 0.067% (v4.7).
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
