@@ -44,22 +44,31 @@ languages, which varies everything at once.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.894% | 0.394% | 273/501 | 92.4% |
-| UDHR | v4.7 | 0.806% | 0.396% | 287/501 | 92.2% |
+| UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
+| UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
-| Rosetta Code, held out (250) | v4.7 | 0.013% | 0.012% | 247/250 | 99.6% |
+| Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
 
-**Read the held-out row, not the one above it.** The 1,741-document sample is the one every mining
-campaign bisects against: pieces are accepted on membership probes rather than on documents, but
-the documents choose which candidates get probed, so its rate is in-sample. The held-out sample is
-drawn from blocks that one never touched, and nothing in the vocabulary was probed because of it.
+No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
+1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
+languages for which no marked-text source has been found. Weighted by speakers rather than by
+document, the error is 0.050% (v3) and 0.067% (v4.7).
 
-Largest known residual: an under-count in Brahmic and South-East Asian scripts, where the vocabulary
-has no pieces and the byte floor is the entire model — and, the same problem in another script
-family, marks whose cost belongs to the base+mark pair rather than to the mark.
+**UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
+rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
+Rosetta samples are mining corpora — the 1,741 documents are what every campaign bisects against,
+and the 250 are drawn from blocks that sample never touched, so the second rate is out-of-sample for
+anything the first chose. A piece is accepted on a membership probe either way; the corpus only ever
+decides which candidate gets asked.
+
+No document in either family is now more than 5% off; 15 in each were, before the akshara law (a
+mark that closes its orthographic syllable also closes the word, so a conjunct is two words and
+carries the boundary markers that say so). What is left is vocabulary rather than structure — the
+residual is spread in both directions instead of being a one-sided under-count — and the largest
+remaining piece of it is Brahmic and South-East Asian clusters that have not been mined yet.
 
 ## License
 

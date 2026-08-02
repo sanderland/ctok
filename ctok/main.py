@@ -87,6 +87,9 @@ class TokenizerModel:
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
+        # Whether a Myanmar killer keeps its run open when the NEXT character is also a Myanmar
+        # killer. Per-family because the families genuinely disagree — see `normalize._runs`.
+        self.myanmar_stacked_killer = meta.get("myanmar_stacked_killer", False)
 
         tokens = doc["tokens"]
         # Every group is cost-1 pieces except the byte fallback, which is prefix costs rather than
