@@ -8,6 +8,7 @@
   "fold_quotes": true,
   "allcaps_min": 4,
   "digit_group": 3,
+  "myanmar_stacked_killer": true,
   "built": "2026-07-25T19:13:19.597725+00:00",
   "provenance": "every token measured with count_tokens against this family's source model"
  },

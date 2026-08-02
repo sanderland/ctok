@@ -217,7 +217,11 @@ def is_killer(c: str) -> bool:
     return unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
 
 
-def _runs(norm: str) -> list[tuple[str, str]]:
+def _myanmar(c: str) -> bool:
+    return "က" <= c <= "႟"
+
+
+def _runs(norm: str, stacked_killer: bool = False) -> list[tuple[str, str]]:
     """The text split into maximal same-class runs — and a run also ends after a killer.
 
     **The akshara law.** A killer closes its word: what follows it starts a new one. So a conjunct
@@ -231,13 +235,28 @@ def _runs(norm: str) -> list[tuple[str, str]]:
 
     This is why Brahmic and South-East Asian text used to under-count: the byte floor priced the
     letters correctly all along, and every conjunct was missing its two boundary markers.
+
+    **STACKED KILLERS (v3 only).** The law over-fires where two Myanmar killers are adjacent. In
+    `ည့်` the dot-below is interior — it precedes the asat that actually closes the syllable — so
+    splitting after BOTH emits a run holding nothing but `်`, which costs ⟨bow⟩+char+⟨eow⟩ = 3
+    tokens for one character. Keeping the run open until the LAST killer of the stack is measured,
+    on 793 corpus lines holding the sequence, as v3 exact 87->103 and signed +3306->+2435.
+
+    It is family-conditional because the families disagree, which is `PROBES.md` meta-rule 1 with no
+    room left for interpretation: the identical rule reads UDHR Burmese +2.22% -> +0.80% in v3 and
+    +0.06% -> -1.65% in v4.7. Restricted to Myanmar because the unrestricted version regressed
+    Latin and Devanagari populations that have no stacked-killer orthography at all.
+
+    Note v4.7's WORD sample says the opposite of its own gate here (exact 27.7% -> 50.6%, signed
+    +300 -> +49) — the Thaana shape, and the reason the line check is what decides.
     """
     if not norm:
         return []
     out, cur, cur_cls = [], norm[0], classify(norm[0])
     for ch in norm[1:]:
         c = classify(ch)
-        if c == cur_cls and not is_killer(cur[-1]):
+        held = stacked_killer and is_killer(ch) and _myanmar(ch) and _myanmar(cur[-1])
+        if c == cur_cls and (held or not is_killer(cur[-1])):
             cur += ch
         else:
             out.append((cur_cls, cur))
@@ -265,7 +284,7 @@ def stream_norm(norm: str, model) -> str:
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
     if norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
-    runs = _runs(norm)
+    runs = _runs(norm, getattr(model, "myanmar_stacked_killer", False))
     if not runs:
         return ""
     caps = model.allcaps_min
