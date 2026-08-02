@@ -26,6 +26,7 @@ class Family:
     source_model: str          # the count_tokens model this family reconstructs
     min_version: Decimal       # lowest requested version this family serves
     meta: tuple[tuple[str, object], ...] = ()   # measured overrides on that file's ``meta``
+    also_serves: tuple[str, ...] = ()           # other model ids MEASURED to count identically
 
 
 FAMILIES: dict[str, Family] = {
@@ -37,11 +38,16 @@ FAMILIES: dict[str, Family] = {
     # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
     # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
     # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
+    # `claude-sonnet-5` is not assumed to share this family — it was measured: 80 texts drawn from
+    # the line corpora and the held-out Rosetta sample count identically to `claude-opus-5`, frame
+    # and all.
     "v5": Family("pieces_v4_7.json", "claude-opus-5", Decimal("5.0"),
-                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
+                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free")),
+                 ("claude-sonnet-5",)),
 }
 
-_MODEL_TO_FAMILY = {fam.source_model: key for key, fam in FAMILIES.items()}
+_MODEL_TO_FAMILY = {model: key for key, fam in FAMILIES.items()
+                    for model in (fam.source_model, *fam.also_serves)}
 # (base version, family key), highest first — derived from FAMILIES, so adding a family is one edit.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 

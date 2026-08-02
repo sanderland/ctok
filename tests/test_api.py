@@ -78,6 +78,8 @@ def test_version_routing():
     assert _family("claude-opus-4-5") == "v3"
     assert _family("claude-opus-4-7") == "v4.7"
     assert _family("claude-opus-5") == "v5"
+    # Measured, not assumed: sonnet-5 counts identically to opus-5 on 80 corpus texts.
+    assert _family("claude-sonnet-5") == "v5"
 
 
 def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():

@@ -32,7 +32,8 @@ Tokens carry their structure in-line: `⟨bow⟩`/`⟨eow⟩` word boundaries, `
 | anything else | — | `NotImplementedError` |
 
 Versions are decimals, so `4.10` means 4.1. A model id also routes:
-`token_count(text, "claude-opus-4-7")`.
+`token_count(text, "claude-opus-4-7")` — including `claude-sonnet-5`, which counts identically to
+`claude-opus-5` on all 80 corpus texts it was checked against, frame and all.
 
 All three families are reconstructed and gated; `token_count(text, 5.0)` works like `3.0` does.
 
