@@ -97,6 +97,13 @@ class TokenizerModel:
 
     def __init__(self, doc: dict) -> None:
         meta = doc["meta"]
+        # What a SINGLE user message costs before its content. Measured, and decomposed: a request
+        # costs a fixed prefix P, each turn costs a role marker plus its content, and a request that
+        # ends on the user is followed by the frame's own assistant prompt T. An assistant marker
+        # costs exactly T, and adjacent same-role messages merge into one turn joined by a 1-token
+        # separator — so the marker total is (number of user turns) x (H + T), and for one message
+        # that is P + H + T: 1 + 6 on v3, 1 + 10 on v4.7, 2 + 4 on v5. Only the sum H + T is
+        # measurable, since every request opens on a user turn.
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
