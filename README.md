@@ -54,15 +54,15 @@ languages, which varies everything at once.
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
 | UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
-| UDHR | v5 | TBD | TBD | TBD | TBD |
+| UDHR | v5 | 0.107% | 0.090% | 298/501 | 98.0% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
-| Rosetta Code | v5 | TBD | TBD | TBD | TBD |
+| Rosetta Code | v5 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
-| Rosetta Code, held out (250) | v5 | TBD | TBD | TBD | TBD |
+| Rosetta Code, held out (250) | v5 | 0.006% | 0.007% | 249/250 | 99.6% |
 
 No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
