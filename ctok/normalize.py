@@ -279,10 +279,16 @@ def stream_norm(norm: str, model) -> str:
     """:func:`stream` over already-normalized text. Split out so a document is NFC-folded once and
     the caller can read the content-final newline run — which ``rstrip`` below drops — off the same
     string it streams (see ``engine.frame_tail``)."""
-    norm = norm.rstrip("\n")
+    # The frame's tail, for a family whose frame HAS one: `engine.tile` reads the run off the same
+    # string before dropping it here. A "free" family is stripped on the raw text instead (see
+    # `tile`), so there is nothing left to take off here and taking it would eat a folded NBSP.
+    if model.frame_tail == "ladder":
+        norm = norm.rstrip(model.frame_strip)
     # A single leading space is dropped: the frame ends in ⟨bow⟩ and that ⟨bow⟩ IS the space
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
-    if norm[:1] == " " and norm[1:2] != " ":
+    # Where the frame does NOT end in a ⟨bow⟩ (v5), there is no space to stand in for: the leading
+    # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
+    if model.frame_bow and norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
     runs = _runs(norm, getattr(model, "myanmar_stacked_killer", False))
     if not runs:
@@ -301,7 +307,7 @@ def stream_norm(norm: str, model) -> str:
         """
         j = i + side
         if j < 0:
-            return True
+            return model.frame_bow
         if j >= n_runs:
             return False
         if runs[j][0] != SPACE:
@@ -327,7 +333,9 @@ def stream_norm(norm: str, model) -> str:
                    or _is_symbol_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
-    out = [] if has_own_bow else [" " if head_quote else BOW_G]
+    # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
+    # message pays for no marker, which is exactly where v5 counts one token under v4.7.
+    out = [] if has_own_bow or not model.frame_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:
             # A wordy span is flanked on both sides, always — except where a contraction apostrophe

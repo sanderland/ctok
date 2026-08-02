@@ -60,6 +60,9 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
             "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
+            # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
+            "v5": {"version": 5.0, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
         },
     },
     "rosetta": {
@@ -73,6 +76,9 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
             "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+            # v5 reproduces every document too, once its own frame rules are modelled — the two
+            # families differ at the message edges and nowhere else this corpus can see.
+            "v5": {"version": 5.0, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
         },
     },
     "rosetta_holdout": {
@@ -90,6 +96,8 @@ GATES: dict[str, dict] = {
         # word boundary and 2 after a symbol's last byte, which no single piece covers.
         "families": {
             "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
+            # The same documents as v4.7, and no others.
+            "v5": {"version": 5.0, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
         },
     },
     "multipl_e": {
@@ -106,6 +114,7 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
             "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
+            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
         },
     },
 }
@@ -174,24 +183,53 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
             f"[{name}/{family}] exact-match rate dropped to {100 * exact:.1f}%"
 
 
+def vocabulary_owners() -> dict[str, str]:
+    """family -> the family whose vocabulary FILE it counts with (itself, unless it borrows one).
+
+    Two families sharing a file is what borrowing IS, so this is derived rather than declared. The
+    first family listed for a file owns it; v5 reads v4.7's."""
+    from ctok.main import FAMILIES
+
+    owner: dict[str, str] = {}
+    for key, fam in FAMILIES.items():
+        if fam.pieces is None:
+            continue
+        owner[key] = next(k for k, f in FAMILIES.items() if f.pieces == fam.pieces)
+    return owner
+
+
 def vocabulary_sizes() -> dict[str, dict[str, int]]:
-    """Piece counts per group per family, straight from the shipped files."""
+    """Piece counts per group, per vocabulary FILE — keyed by the family that owns it.
+
+    A borrowing family is deliberately absent rather than listed with a copy of the lender's row:
+    repeating the numbers reads as two vocabularies that happen to agree, when there is one file
+    and no second measurement behind the second row."""
     import json
 
     from ctok.main import FAMILIES
     from importlib.resources import files
 
     out: dict[str, dict[str, int]] = {}
-    for key, fam in FAMILIES.items():
-        if fam.pieces is None:
+    for key, owner in vocabulary_owners().items():
+        if owner != key:
             continue
-        doc = json.loads(files("ctok").joinpath("data", fam.pieces).read_text(encoding="utf-8"))
+        doc = json.loads(
+            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
         out[key] = {g: len(v) for g, v in doc["tokens"].items()}
     return out
 
 
+def _borrowers() -> list[str]:
+    """One line per family that counts with someone else's file — so the report says so out loud
+    rather than leaving a family it never mentioned to look like an omission."""
+    from ctok.main import FAMILIES
+
+    return [f"{key} counts with {owner}'s vocabulary ({FAMILIES[key].pieces})"
+            for key, owner in vocabulary_owners().items() if owner != key]
+
+
 def report_vocabulary(markdown: bool = False) -> None:
-    """Report each family's piece counts by group — a silently emptied or ballooning group is a
+    """Report each vocabulary's piece counts by group — a silently emptied or ballooning group is a
     vocabulary regression the error gates alone would not name."""
     sizes = vocabulary_sizes()
     groups = sorted({g for fam in sizes.values() for g in fam})
@@ -202,12 +240,16 @@ def report_vocabulary(markdown: bool = False) -> None:
         for fam, counts in sizes.items():
             cells = " | ".join(f"{counts.get(g, 0):,}" for g in groups)
             print(f"| {fam} | {cells} | {sum(counts.values()):,} |")
+        for line in _borrowers():
+            print(f"\n{line}.")
         return
     print("Vocabulary size by group\n")
     for fam, counts in sizes.items():
         print(f"  [{fam}] total {sum(counts.values()):,}")
         for g in groups:
             print(f"    {g:16} {counts.get(g, 0):>7,}")
+    for line in _borrowers():
+        print(f"  {line}")
     print()
 
 

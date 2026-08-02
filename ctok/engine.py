@@ -107,7 +107,12 @@ def char_cost(model, ch: str) -> int:
 
 
 def frame_tail(n: int, model) -> list[str]:
-    """What a content-final run of ``n`` newlines costs beyond the frame's own trailing token.
+    """What a content-final run of ``n`` frame-absorbed characters costs beyond the frame's own
+    trailing token.
+
+    Only where the family's frame ends in that ⏎⏎ tail (``frame_tail == "ladder"``). v5 measured
+    the other shape — trailing whitespace of every kind is free there, spaces and tabs included,
+    and a 29-newline run that costs v4.7 a token costs it nothing — so the run is simply gone.
 
     The message frame appends ⏎⏎ after the content, and ONE token can span content into it. So the
     run the tokenizer actually sees is ``n + 2`` newlines, tiled over the newline-run vocabulary,
@@ -119,7 +124,7 @@ def frame_tail(n: int, model) -> list[str]:
     is free (40 is). Live-exact on all 40 recorded ``a`` + ``n`` newline rows, n = 1…40. Beyond 40
     the prediction rests on the vocabulary's sampled ladder (48, 64, 96, 128) being complete.
     """
-    if n == 0:
+    if n == 0 or model.frame_tail != "ladder":
         return []
     run = "\n" * (n + 2)
 
@@ -136,9 +141,19 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     Tokens are internal-form: a ``str`` for a vocabulary piece or a marker, and ``bytes`` for a
     sub-character chunk of a codepoint the vocabulary does not cover. ``len(tokens) == cost``.
     """
-    norm = nfc(text, fold_quotes=model.fold_quotes)
+    if model.frame_tail == "ladder":
+        norm = nfc(text, fold_quotes=model.fold_quotes)
+        n_tail = len(norm) - len(norm.rstrip(model.frame_strip))
+    else:
+        # The frame absorbs RAW ASCII whitespace, which is why this strip runs before NFC rather
+        # than after it: `nfc` folds NBSP and the other space separators to U+0020, and those do
+        # NOT come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
+        # same. Stripping the folded text would hand back that token and under-count 363 documents
+        # of the Rosetta corpus, which is how this was found.
+        norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
+        n_tail = 0
     s = stream_norm(norm, model)
-    tail = frame_tail(len(norm) - len(norm.rstrip("\n")), model)
+    tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab

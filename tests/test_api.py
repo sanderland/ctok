@@ -7,7 +7,7 @@ import pytest
 
 from ctok import marked_stream, normalize, token_count, tokenize
 from ctok.constants import PAD
-from ctok.main import _family, _model
+from ctok.main import FAMILIES, _family, _model
 
 # Inputs that have historically been edge cases, or would crash a naive byte path.
 ADVERSARIAL = [
@@ -77,11 +77,46 @@ def test_version_routing():
     # A source-model id routes straight to the family that reconstructs it.
     assert _family("claude-opus-4-5") == "v3"
     assert _family("claude-opus-4-7") == "v4.7"
+    assert _family("claude-opus-5") == "v5"
+    # Measured, not assumed: sonnet-5 counts identically to opus-5 on 80 corpus texts.
+    assert _family("claude-sonnet-5") == "v5"
 
 
-@pytest.mark.parametrize("version", [2.9, 0, "banana", 5.0, "5.1"])
+def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
+    """v5 counts with v4.7's pieces and its own measured message frame — five tokens smaller. The
+    family table's override is what makes that one file rather than a copy that can drift."""
+    assert FAMILIES["v5"].pieces == FAMILIES["v4.7"].pieces
+    assert token_count("hello, world", 5.0) == token_count("hello, world", 4.7) - 5
+
+
+def test_the_v5_frame_absorbs_any_trailing_whitespace():
+    """v4.7's frame ends in ⏎⏎ and absorbs a trailing NEWLINE run, on a ladder that charges for
+    some lengths. v5's absorbs every kind of trailing whitespace, at every length — but only the
+    ASCII kind: a trailing NBSP folds to a space in normalization and still costs a token, which is
+    why the strip runs on the raw text."""
+    for tail in (" ", "   ", " " * 50, "\t", "\n", "\n" * 29, "\r\n", " \n\t \n"):
+        assert token_count("hello world" + tail, 5.0) == token_count("hello world", 5.0), repr(tail)
+    assert token_count("hello world\xa0", 5.0) == token_count("hello world", 5.0) + 1
+    # v4.7 keeps its ladder: 29 trailing newlines cost it a token where v5 pays nothing.
+    assert token_count("hello world" + "\n" * 29, 4.7) == token_count("hello world", 4.7) + 1
+
+
+def test_the_v5_frame_ends_in_no_bow():
+    """Message start is an interior word boundary on v4.7 — the frame's last token IS a ⟨bow⟩, so a
+    single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v5 has
+    no such token: the digit and the ideograph open for free, and the leading space is a character
+    like any other."""
+    assert token_count("123", 5.0) == token_count("123", 4.7) - 6      # 4.7 pays for the ⟨bow⟩
+    assert token_count("日本", 5.0) == token_count("日本", 4.7) - 6
+    assert token_count(" a", 5.0) == token_count("a", 5.0) + 1
+    assert token_count(" a", 4.7) == token_count("a", 4.7)
+    # A word opens with its own ⟨bow⟩ in both families, so nothing moves there beyond the frame.
+    assert token_count("hello", 5.0) == token_count("hello", 4.7) - 5
+
+
+@pytest.mark.parametrize("version", [2.9, 0, "banana"])
 def test_unavailable_versions_raise(version):
-    """Below 3.0 and at/above 5.0 are not reconstructed, and neither is a nonsense version."""
+    """Below 3.0 is not reconstructed, and neither is a nonsense version."""
     with pytest.raises(NotImplementedError):
         token_count("hello", version=version)
     with pytest.raises(NotImplementedError):

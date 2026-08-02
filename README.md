@@ -10,8 +10,9 @@ counts are reproduced but token boundaries are approximate. Write-up [here](http
 ```python
 from ctok import token_count, tokenize
 
-token_count("hello, world")         # 10
-token_count("hello, world", 4.7)    # 15 — a different tokenizer family
+token_count("hello, world")         # 10  — v3, the default
+token_count("hello, world", 4.7)    # 15  — a different tokenizer family
+token_count("hello, world", 5.0)    # 10  — v4.7's vocabulary, a smaller frame
 
 tokenize("NASA likes tokenizers")   # token_count is len() of this
 # ['⟨pad⟩' ×7, '⟨caps⟩⟨bow⟩nasa⟨eow⟩', '⟨bow⟩likes⟨eow⟩', '⟨bow⟩token', 'izers⟨eow⟩']
@@ -26,11 +27,45 @@ Tokens carry their structure in-line: `⟨bow⟩`/`⟨eow⟩` word boundaries, `
 | version | family | reconstructs |
 |---|---|---|
 | `3.0` – `4.6` (default) | v3 | Claude 3 … Opus 4.5/4.6 |
-| `4.7` – `4.9` | v4.7 | Opus 4.7+ |
+| `4.7` – `4.9` | v4.7 | Opus 4.7 … 4.9 |
+| `5.0`+ | v5 | Opus 5 — v4.7's vocabulary, v5's frame (see below) |
 | anything else | — | `NotImplementedError` |
 
 Versions are decimals, so `4.10` means 4.1. A model id also routes:
-`token_count(text, "claude-opus-4-7")`.
+`token_count(text, "claude-opus-4-7")` — including `claude-sonnet-5`, which counts identically to
+`claude-opus-5` on all 80 corpus texts it was checked against, frame and all.
+
+All three families are reconstructed and gated; `token_count(text, 5.0)` works like `3.0` does.
+
+**v5 reads the v4.7 vocabulary.** Its message frame is its own — `count_tokens` on a
+one-character message is 7 tokens there against 12 on 4.7 — and so are the rules at that frame's two
+edges: it right-strips trailing whitespace, and it ends in no word boundary, so a leading space costs
+a token while an opening digit or ideograph does not. With those three facts measured, v5 scores the
+*same number as v4.7 on every corpus below*, down to the same documents. No piece has been mined
+against opus-5, and nothing measured says one differs.
+
+## What the tokenizer change cost, by content
+
+The v4.7 family is the one that changed: same text, more tokens. Measured here as the ratio of
+recorded `count_tokens` values over the corpora below, content only, with the message frame removed:
+
+| content | v4.7 ÷ v3 | v5 ÷ v3 | v5 ÷ v4.7 |
+|---|---:|---:|---:|
+| English web text | **1.44** | **1.44** | 1.00 |
+| German web text | 1.39 | 1.39 | 1.00 |
+| Code (Rosetta Code, 1,741 docs) | 1.22 | 1.20 | 0.99 |
+| Code (MultiPL-E: Python 1.22, JS 1.27, Rust 1.29) | 1.24 | 1.23 | 1.00 |
+| UDHR, 501 languages | 1.16 | 1.16 | 1.00 |
+| Russian / Arabic / Hindi web text | 1.02 / 1.01 / 1.01 | same | 1.00 |
+| Chinese / Japanese web text | 1.00 / 1.01 | 0.99 / 1.00 | 0.99 |
+
+**The inflation is Latin-script-specific.** v4.7's vocabulary holds 14k word pieces against v3's 47k,
+so Latin words fragment where they used to be whole; scripts that were already at the byte floor in
+v3 — Cyrillic, Arabic, Devanagari, CJK — are unchanged. That is why a single "×1.4" figure travels
+badly: it is an English number, and the same model reads ×1.00 on Chinese.
+
+**v5 does not inflate again.** Its ratio against v4.7 is 1.00 on everything except CJK-opening lines,
+where it is *cheaper* by a token per message — the frame rule above, not the vocabulary.
 
 ## Accuracy
 
@@ -46,11 +81,15 @@ languages, which varies everything at once.
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
 | UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
+| UDHR | v5 | 0.107% | 0.090% | 298/501 | 98.0% |
 | MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
+| MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
 | Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
+| Rosetta Code | v5 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
+| Rosetta Code, held out (250) | v5 | 0.006% | 0.007% | 249/250 | 99.6% |
 
 No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both

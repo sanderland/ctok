@@ -25,15 +25,29 @@ class Family:
     pieces: str | None         # its vocabulary file under data/; None = not reconstructed yet
     source_model: str          # the count_tokens model this family reconstructs
     min_version: Decimal       # lowest requested version this family serves
+    meta: tuple[tuple[str, object], ...] = ()   # measured overrides on that file's ``meta``
+    also_serves: tuple[str, ...] = ()           # other model ids MEASURED to count identically
 
 
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", Decimal("3.0")),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", Decimal("4.7")),
-    "v5": Family(None, "claude-opus-5", Decimal("5.0")),
+    # v5 BORROWS v4.7's vocabulary: its message frame is measured (`count_tokens` on a one-character
+    # message is 7 tokens, so the frame is 6 against 4.7's 11) but no piece has been mined against
+    # opus-5 yet, so the honest model is "v4.7's token list read through v5's frame". The other two
+    # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
+    # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
+    # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
+    # `claude-sonnet-5` is not assumed to share this family — it was measured: 80 texts drawn from
+    # the line corpora and the held-out Rosetta sample count identically to `claude-opus-5`, frame
+    # and all.
+    "v5": Family("pieces_v4_7.json", "claude-opus-5", Decimal("5.0"),
+                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free")),
+                 ("claude-sonnet-5",)),
 }
 
-_MODEL_TO_FAMILY = {fam.source_model: key for key, fam in FAMILIES.items()}
+_MODEL_TO_FAMILY = {model: key for key, fam in FAMILIES.items()
+                    for model in (fam.source_model, *fam.also_serves)}
 # (base version, family key), highest first — derived from FAMILIES, so adding a family is one edit.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 
@@ -71,7 +85,12 @@ def _model(family: str) -> "TokenizerModel":
             f"available families: {', '.join(k for k, f in FAMILIES.items() if f.pieces)}."
         )
     path = files("ctok").joinpath("data", pieces)
-    return TokenizerModel(json.loads(path.read_text(encoding="utf-8")))
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    # A family may borrow another's vocabulary file and carry its own measured scalars over it (see
+    # v5 above). The override is applied to the loaded copy only — the file on disk stays the one
+    # its own family compiled.
+    doc["meta"] = {**doc["meta"], **dict(FAMILIES[family].meta)}
+    return TokenizerModel(doc)
 
 
 class TokenizerModel:
@@ -84,12 +103,31 @@ class TokenizerModel:
 
     def __init__(self, doc: dict) -> None:
         meta = doc["meta"]
+        # What a SINGLE user message costs before its content. Measured, and decomposed: a request
+        # costs a fixed prefix P, each turn costs a role marker plus its content, and a request that
+        # ends on the user is followed by the frame's own assistant prompt T. An assistant marker
+        # costs exactly T, and adjacent same-role messages merge into one turn joined by a 1-token
+        # separator — so the marker total is (number of user turns) x (H + T), and for one message
+        # that is P + H + T: 1 + 6 on v3, 1 + 10 on v4.7, 2 + 4 on v5. Only the sum H + T is
+        # measurable, since every request opens on a user turn.
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
         # Whether a Myanmar killer keeps its run open when the NEXT character is also a Myanmar
         # killer. Per-family because the families genuinely disagree — see `normalize._runs`.
         self.myanmar_stacked_killer = meta.get("myanmar_stacked_killer", False)
+        # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
+        # measured different at BOTH edges, which is why these are family scalars and not constants.
+        #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is
+        #                an interior word boundary: it absorbs one leading space, and a run that
+        #                cannot own that ⟨bow⟩ pays for it as a token of its own.
+        #   frame_tail — "ladder": the frame's own ⏎⏎ tail, which one token can span into, so a
+        #                trailing newline run is nearly free but not quite (`engine.frame_tail`).
+        #                "free": trailing whitespace of every kind costs nothing at all.
+        self.frame_bow = meta.get("frame_bow", True)
+        self.frame_tail = meta.get("frame_tail", "ladder")
+        # The characters the frame absorbs off the end of the content, per that rule.
+        self.frame_strip = "\n" if self.frame_tail == "ladder" else " \t\n\r\f\v"
 
         tokens = doc["tokens"]
         # Every group is cost-1 pieces except the byte fallback, which is prefix costs rather than
