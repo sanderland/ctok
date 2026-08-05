@@ -46,8 +46,7 @@
         "no-instrument": 806,
         "prefix": 467,
         "raw": 2092,
-        "special": 4,
-        "unmeasured": 2
+        "special": 4
       }
     }
   },
@@ -15009,8 +15008,6 @@
     "bytes_fallback": {
       "e0a4": {"probe": "aऄa", "raw": 15, "kind": "prefix", "agree": 3},
       "e0a5": {"probe": "aॐa", "raw": 15, "kind": "prefix", "agree": 3},
-      "e0a5a6e0a5a6": {"kind": "unmeasured"},
-      "e0a5a7e0a5a7": {"kind": "unmeasured"},
       "e0a6": {"probe": "aঀa", "raw": 15, "kind": "prefix", "agree": 3},
       "e0a7": {"probe": "a৅a", "raw": 15, "kind": "prefix", "agree": 3},
       "e0a8": {"probe": "a਀a", "raw": 15, "kind": "prefix", "agree": 3},
