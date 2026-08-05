@@ -229,28 +229,101 @@ def _borrowers() -> list[str]:
 
 
 def report_vocabulary(markdown: bool = False) -> None:
-    """Report each vocabulary's piece counts by group — a silently emptied or ballooning group is a
-    vocabulary regression the error gates alone would not name."""
-    sizes = vocabulary_sizes()
-    groups = sorted({g for fam in sizes.values() for g in fam})
+    """Piece counts by group, and what share of each group carries a witness.
+
+    Two regressions the error gates cannot name, in one table: a silently emptied or ballooning
+    group, and a group whose pieces stopped being backed by measurements. They belong in the same
+    table because the second is only actionable per group — an unwitnessed piece counts exactly like
+    a witnessed one, so every accuracy number is identical either way and only this says so.
+    """
+    cov = witness_coverage()
+    groups = sorted({g for fam in cov.values() for g in fam})
+    # Every gap kind, so each row adds up: pieces = witnessed + the columns. `structural` is the
+    # byte fallback, which shows 0 witnessed and always will — prefixes are not tokens.
+    cols = GAP_KINDS
+
+    def cells(counts: dict[str, int]) -> tuple[int, int, str]:
+        total, w = sum(counts.values()), witnessed(counts)
+        return total, w, f"{100 * w / total:.1f}%" if total else "n/a"
+
     if markdown:
-        print("\n## Vocabulary size by group\n")
-        print("| family | " + " | ".join(groups) + " | total |")
-        print("|---" * (len(groups) + 2) + "|")
-        for fam, counts in sizes.items():
-            cells = " | ".join(f"{counts.get(g, 0):,}" for g in groups)
-            print(f"| {fam} | {cells} | {sum(counts.values()):,} |")
+        print("\n## Vocabulary and witness coverage by group\n")
+        print("Every piece carries the probe that pins it at one token "
+              "(`cost = raw − base + 1 − overhead`, and `cost == 1` is membership). See PROBES.md.\n")
+        print("| family | group | pieces | witnessed | " + " | ".join(cols) + " |")
+        print("|---" * (len(cols) + 4) + "|")
+        for fam, by_group in cov.items():
+            whole = totals(by_group)
+            total, w, pct = cells(whole)
+            gaps = " | ".join(f"{whole.get(c, 0):,}" for c in cols)
+            print(f"| **{fam}** | *all groups* | **{total:,}** | **{w:,}** ({pct}) | {gaps} |")
+            for g in groups:
+                if g not in by_group:
+                    continue
+                total, w, pct = cells(by_group[g])
+                gaps = " | ".join(f"{by_group[g].get(c, 0):,}" for c in cols)
+                print(f"| {fam} | {g} | {total:,} | {w:,} ({pct}) | {gaps} |")
         for line in _borrowers():
             print(f"\n{line}.")
         return
-    print("Vocabulary size by group\n")
-    for fam, counts in sizes.items():
-        print(f"  [{fam}] total {sum(counts.values()):,}")
+    print("Vocabulary and witness coverage by group\n")
+    for fam, by_group in cov.items():
+        total, w, pct = cells(totals(by_group))
+        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed ({pct})")
         for g in groups:
-            print(f"    {g:16} {counts.get(g, 0):>7,}")
+            if g not in by_group:
+                continue
+            total, w, pct = cells(by_group[g])
+            gaps = "  ".join(f"{c}={by_group[g][c]:,}" for c in cols if by_group[g].get(c))
+            print(f"    {g:16} {total:>7,}  witnessed {w:>7,} ({pct:>6})   {gaps}")
     for line in _borrowers():
         print(f"  {line}")
     print()
+
+
+def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
+    """family -> group -> {witness kind: pieces}, per vocabulary FILE.
+
+    Keyed like ``vocabulary_sizes``: one row per file, so a borrowing family is absent rather than
+    listed with a copy of the lender's numbers it did not measure. Broken down by GROUP because that
+    is where a gap is actionable — "845 unwitnessed" is a number, "845 of them in word_pieces" is a
+    campaign.
+    """
+    import json
+    from importlib.resources import files
+
+    from ctok.main import FAMILIES
+
+    out: dict[str, dict[str, dict[str, int]]] = {}
+    for key, owner in vocabulary_owners().items():
+        if owner != key:
+            continue
+        doc = json.loads(
+            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+        out[key] = {}
+        for group, entries in doc["tokens"].items():
+            counts: dict[str, int] = {}
+            for w in entries.values():
+                kind = "structural" if w is None else w.get("kind", "?")
+                counts[kind] = counts.get(kind, 0) + 1
+            out[key][group] = counts
+    return out
+
+
+# The kinds that are NOT a witness. `structural` is the byte fallback — prefixes rather than tokens,
+# so there is nothing to ask about and never will be; the rest are gaps with a reason attached.
+GAP_KINDS = ("unmeasured", "no-instrument", "context-bound", "refuted", "structural")
+
+
+def witnessed(counts: dict[str, int]) -> int:
+    """How many of ``counts`` carry a probe."""
+    return sum(counts.values()) - sum(counts.get(k, 0) for k in GAP_KINDS)
+
+
+def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:
+    """One family's per-kind counts, summed over its groups."""
+    return {k: sum(g.get(k, 0) for g in by_group.values())
+            for k in {k for g in by_group.values() for k in g}}
 
 
 def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:

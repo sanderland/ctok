@@ -32,7 +32,7 @@ jobs:
       - name: Test
         run: uv run --python ${{ matrix.python-version }} pytest -q
 
-      - name: Report reproduction gates
+      - name: Report gates, vocabulary and witness coverage
         if: matrix.python-version == '3.12'
         run: |
           uv run --python ${{ matrix.python-version }} python tests/gates.py --markdown \
@@ -41,7 +41,7 @@ jobs:
 
       # Same-repo pull requests only: a fork's GITHUB_TOKEN is read-only and cannot comment.
       # The step summary above is always written, so a fork PR still reports, just not inline.
-      - name: Comment the gates on the pull request
+      - name: Comment gates and witness coverage on the pull request
         if: >-
           matrix.python-version == '3.12'
           && github.event_name == 'pull_request'
