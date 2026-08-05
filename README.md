@@ -109,6 +109,58 @@ carries the boundary markers that say so). What is left is vocabulary rather tha
 residual is spread in both directions instead of being a one-sided under-count — and the largest
 remaining piece of it is Brahmic and South-East Asian clusters that have not been mined yet.
 
+## What each piece rests on
+
+The vocabulary is not a list of guesses. Every piece in `data/pieces_*.json` carries the probe that
+put it there and the count that accepted it:
+
+```python
+from ctok import witness, pieces
+
+witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
+witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
+witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix'}
+len(pieces(4.7))                # 16413
+```
+
+`raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
+cost, and the file carries the constants it needs in `meta.witness`:
+
+```
+cost = raw − base + 1 − overhead        is_token ⟺ cost == 1
+```
+
+`base` is `count_tokens` on the message `"a"` — one known token through the same frame — so every
+template's `overhead` is calibrated against it and the surrounding material is never measured
+separately. `kind` names the template:
+
+| kind | probe for `X` | what it asks |
+|---|---|---|
+| `raw` | `X` | the piece is the whole message |
+| `word` | `.X.` | a wordy span between Latin anchors |
+| `bow` / `eow` / `mid` | `.Xヲ.` / `.ヲX.` / `.ヲXヲ.` | where in a word the piece sits — ヲ (katakana WO) was measured not to share a token across a script boundary |
+| `cased_*` | `XController`, `československX` | material carrying a capital, which the ヲ bow probe over-reads |
+| `char` | `aXa` | one non-ASCII codepoint's intrinsic cost |
+| `glued` | `aXb` | an ASCII digit piece |
+| `digit_*` | `1X1`, `a X1`, `1X a`, `a X a` | punctuation, symbols and whitespace runs, on digit anchors — a digit neither rides nor seams, where a Latin anchor would fuse into one punctuation run and ヲ would put punctuation against a letter |
+
+A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word, `⟨bow⟩TH` a prefix,
+`izers⟨eow⟩` a suffix, `INT` word-interior. `ctok/witness.py` re-checks a recorded witness — that the
+probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
+that probe — and `tests/test_witness.py` runs it over every witness in the file.
+
+Three kinds are gaps in the evidence rather than witnesses, and the file says which:
+
+- `{"kind": "unmeasured"}` — a template applies and nobody has spent the API call yet.
+- `{"kind": "no-instrument"}` — nothing in the inventory reaches this piece. Whitespace runs, bare
+  punctuation and lone combining marks are the bulk of it.
+- `{"kind": "refuted", "refused": [...]}` — its own allowed probe priced it above one token, with
+  the reading kept. Those pieces are still shipped: what removes one is a campaign that re-judges the
+  corpus, not an audit.
+
+Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
+v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.
+
 ## License
 
 MIT

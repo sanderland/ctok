@@ -228,29 +228,136 @@ def _borrowers() -> list[str]:
             for key, owner in vocabulary_owners().items() if owner != key]
 
 
+def _breaches(cov: dict[str, dict[str, dict[str, int]]], kind: str) -> list[tuple[str, str, int]]:
+    """``(family, group, count)`` for every group holding pieces of one gap kind."""
+    return [(fam, g, c[kind]) for fam, by_group in cov.items()
+            for g, c in by_group.items() if c.get(kind)]
+
+
 def report_vocabulary(markdown: bool = False) -> None:
-    """Report each vocabulary's piece counts by group — a silently emptied or ballooning group is a
-    vocabulary regression the error gates alone would not name."""
-    sizes = vocabulary_sizes()
-    groups = sorted({g for fam in sizes.values() for g in fam})
+    """Piece counts by group, and what share of each group carries a witness.
+
+    Two regressions the error gates cannot name, in one table: a silently emptied or ballooning
+    group, and a group whose pieces stopped being backed by measurements. They belong in the same
+    table because the second is only actionable per group — an unwitnessed piece counts exactly like
+    a witnessed one, so every accuracy number is identical either way and only this says so.
+
+    The gap columns are two, not five. A reader needs to know whether evidence is ABSENT (missing:
+    unbought, or unreachable by any template) or CONTRADICTORY (unresolved: the probe and the corpus
+    disagree). Which kind, and where, is what the warnings underneath are for — a table cell cannot
+    say "run this script" and a warning can.
+    """
+    cov = witness_coverage()
+    groups = sorted({g for fam in cov.values() for g in fam})
+    cols = ("missing", "unresolved", "special")
+
+    def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
+        total, w = sum(counts.values()), witnessed(counts)
+        bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
+                  "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
+                  "special": sum(counts.get(k, 0) for k in SPECIAL)}
+        return total, w, (f"{100 * w / total:.1f}%" if total else "n/a"), bucket
+
+    refuted = _breaches(cov, "refuted")
+    bound = _breaches(cov, "context-bound")
+
     if markdown:
-        print("\n## Vocabulary size by group\n")
-        print("| family | " + " | ".join(groups) + " | total |")
-        print("|---" * (len(groups) + 2) + "|")
-        for fam, counts in sizes.items():
-            cells = " | ".join(f"{counts.get(g, 0):,}" for g in groups)
-            print(f"| {fam} | {cells} | {sum(counts.values()):,} |")
+        print("\n## Vocabulary and witness coverage\n")
+        print("Every piece carries the probe that pins it at one token "
+              "(`cost = raw − base + 1 − overhead`, and `cost == 1` is membership). See PROBES.md.\n")
+        for fam, by_group in cov.items():
+            total, w, pct, bucket = cells(totals(by_group))
+            print(f"### {fam} — {w:,} of {total:,} witnessed ({pct})\n")
+            print("| group | pieces | witnessed | " + " | ".join(cols) + " |")
+            print("|---" * (len(cols) + 3) + "|")
+            for g in groups:
+                if g not in by_group:
+                    continue
+                total, w, pct, bucket = cells(by_group[g])
+                gaps = " | ".join(f"{bucket[c]:,}" if bucket[c] else "·" for c in cols)
+                print(f"| {g} | {total:,} | {w:,} ({pct}) | {gaps} |")
+            print()
         for line in _borrowers():
             print(f"\n{line}.")
         return
-    print("Vocabulary size by group\n")
-    for fam, counts in sizes.items():
-        print(f"  [{fam}] total {sum(counts.values()):,}")
+
+    print("Vocabulary and witness coverage by group\n")
+    for fam, by_group in cov.items():
+        total, w, pct, _ = cells(totals(by_group))
+        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed ({pct})")
         for g in groups:
-            print(f"    {g:16} {counts.get(g, 0):>7,}")
+            if g not in by_group:
+                continue
+            total, w, pct, bucket = cells(by_group[g])
+            gaps = "  ".join(f"{c}={n:,}" for c, n in bucket.items() if n)
+            print(f"    {g:16} {total:>7,}  witnessed {w:>7,} ({pct:>6})   {gaps}")
+    if refuted:
+        print(f"\n  !! {sum(n for *_, n in refuted)} pieces REFUTED by their own probe:")
+        for fam, g, n in refuted:
+            print(f"       {fam} {g} ({n})   -> scripts/retire_refuted.py --leave-one-out")
+    if bound:
+        print(f"\n  ** {sum(n for *_, n in bound)} pieces have an inconsistent cost:")
+        for fam, g, n in bound:
+            print(f"       {fam} {g} ({n})")
     for line in _borrowers():
         print(f"  {line}")
     print()
+
+
+def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
+    """family -> group -> {witness kind: pieces}, per vocabulary FILE.
+
+    Keyed like ``vocabulary_sizes``: one row per file, so a borrowing family is absent rather than
+    listed with a copy of the lender's numbers it did not measure. Broken down by GROUP because that
+    is where a gap is actionable — "845 unwitnessed" is a number, "845 of them in word_pieces" is a
+    campaign.
+    """
+    import json
+    from importlib.resources import files
+
+    from ctok.main import FAMILIES
+
+    out: dict[str, dict[str, dict[str, int]]] = {}
+    for key, owner in vocabulary_owners().items():
+        if owner != key:
+            continue
+        doc = json.loads(
+            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+        out[key] = {}
+        for group, entries in doc["tokens"].items():
+            counts: dict[str, int] = {}
+            for w in entries.values():
+                kind = "structural" if w is None else w.get("kind", "?")
+                counts[kind] = counts.get(kind, 0) + 1
+            out[key][group] = counts
+    return out
+
+
+# The kinds that are NOT a witness, in two groups that mean different things to a reader.
+#
+# MISSING is an absence of evidence: nobody has bought the measurement (`unmeasured`) or no template
+# in the inventory reaches the piece (`no-instrument`). Both are work.
+#
+# UNRESOLVED is a CONFLICT of evidence: the probe prices the piece at more than one token while the
+# corpus gets worse without it (`context-bound`), or the probe refuses it outright and nothing has
+# retired it yet (`refuted`). Both mean a second error is hiding nearby, which is why they are not
+# folded in with the merely unmeasured.
+# Neither evidence nor a gap: a marker atom (`⟨bow⟩`) is not text, so no probe can contain it.
+SPECIAL = ("special",)
+MISSING = ("unmeasured", "no-instrument")
+UNRESOLVED = ("context-bound", "refuted")
+GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
+
+
+def witnessed(counts: dict[str, int]) -> int:
+    """How many of ``counts`` carry a probe."""
+    return sum(counts.values()) - sum(counts.get(k, 0) for k in GAP_KINDS)
+
+
+def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:
+    """One family's per-kind counts, summed over its groups."""
+    return {k: sum(g.get(k, 0) for g in by_group.values())
+            for k in {k for g in by_group.values() for k in g}}
 
 
 def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:

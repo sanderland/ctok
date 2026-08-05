@@ -93,6 +93,41 @@ def _model(family: str) -> "TokenizerModel":
     return TokenizerModel(doc)
 
 
+@cache
+def _vocabulary(family: str) -> dict:
+    """The raw vocabulary document for ``family`` — read again, and cached separately.
+
+    `_model` consumes its copy into the tiling structures and keeps no vocabulary document, which is
+    right for counting and useless for the question this answers: what is this piece, and what was
+    measured to put it there. Two small readers of one file beat one structure serving both.
+    """
+    path = files("ctok").joinpath("data", FAMILIES[family].pieces)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def pieces(version: float | str = 3.0) -> dict[str, dict | None]:
+    """Every piece in the vocabulary, mapped to its witness — the evidence that it is one token.
+
+    A witness is one probe and the count that accepts it: ``{"probe": "the", "n": 1, "kind":
+    "bare"}`` says the bare message ``the`` was measured at one content token, so ``⟨bow⟩the⟨eow⟩``
+    is a token and nothing about the rest of the vocabulary is involved in saying so. ``kind`` is
+    the rung — ``bare`` (the piece IS the message), ``edge`` (one anchor word beside it), ``frame``
+    (one on each side) — and ``n`` is always ``1 + anchors``.
+
+    Three values are not witnesses and each says which it is: ``{"kind": "unframeable"}`` for a
+    word-interior piece no probe can isolate, ``{"kind": "unmeasured"}`` for one nobody has paid the
+    API call for yet, and ``None`` for a ``bytes_fallback`` prefix, which is not a token at all.
+    """
+    doc = _vocabulary(_family(version))
+    return {p: w for group, entries in doc["tokens"].items() for p, w in entries.items()}
+
+
+def witness(piece: str, version: float | str = 3.0) -> dict | None:
+    """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
+    Raises ``KeyError`` for a string that is not a piece — which is itself the membership answer."""
+    return pieces(version)[piece]
+
+
 class TokenizerModel:
     """The loaded vocabulary plus the family scalars the encoder and tiler read from it.
 

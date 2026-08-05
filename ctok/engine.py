@@ -84,13 +84,25 @@ def glued_contraction(cn: str) -> str:
 
 
 def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
-    """The tiling vocabulary: every piece, the marker atoms and the glued contraction spelling.
-    Returns it with the longest piece length, the DP's window."""
+    """The tiling vocabulary: every piece and the glued contraction spelling. Returns it with the
+    longest piece length, the DP's window.
+
+    The structural markers used to be added here as well, which made three places that decided a
+    marker costs one token: this line, `tile`'s unit floor below, and the two of the four that the
+    vocabulary file happened to list. They live in the file now, in a `markers` group of their own —
+    a reader of `pieces.json` sees the whole tiling vocabulary rather than most of it.
+    """
     vocab = {parse_marked(p) for p in pieces}
-    vocab.update(MARKER_GLYPHS)
-    # A contraction suffix needs no encoder rule: the normal rewrites already produce
-    # `⟨bow⟩don⟨eow⟩'⟨bow⟩t⟨eow⟩`, so the suffix arrives in `pieces` already spelled that way. Only
-    # the glued form, `it'sX`, has to be added here.
+    # The contraction suffix, in the spelling the stream uses. The file stores `'t` and the encoder
+    # writes `'t⟨eow⟩` — `⟨bow⟩don⟨eow⟩'t⟨eow⟩`, with no ⟨bow⟩ after the apostrophe, because the
+    # apostrophe IS that word's opening boundary (`normalize._contraction_seam`).
+    #
+    # That is measured, not a spelling convention. The increment a contraction adds over its left
+    # context alone is 1 after a letter, a digit or a space, and 2 after punctuation — uniformly
+    # across all four v4.7 suffixes, all seven v3 suffixes and `}` `.` `)` in both families
+    # (2026-08-05). The step is the boundary token, appearing exactly where the apostrophe does not
+    # supply one. Marking every wordy span uniformly instead would have to reproduce that step out
+    # of the vocabulary, which moves the special case rather than removing it.
     vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
     return frozenset(vocab), max((len(p) for p in vocab), default=1)
 
@@ -162,6 +174,9 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         """What one character costs where no piece covers it — a marker is a token, anything else
         falls to the byte floor. Wider uncovered spans are simply unavailable to the DP."""
         ch = s[j]
+        # A marker the vocabulary somehow does not hold still costs one token — it is structure, not
+        # text, and the byte floor would price its three UTF-8 bytes. The `markers` group means this
+        # never fires in practice; it stays as the floor under a file that lost one.
         return 1 if ch in MARKER_GLYPHS else char_cost(model, ch)
 
     def cost_fn(j: int, i: int) -> int | None:

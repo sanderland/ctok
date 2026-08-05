@@ -41,6 +41,14 @@ def is_hard_cp(o: int) -> bool:
         or 0x3400 <= o <= 0x4DBF      # CJK Ext A
         or 0xF900 <= o <= 0xFAFF      # CJK Compatibility
         or 0xAC00 <= o <= 0xD7A3      # Hangul syllables
+        # The ideographic ITERATION and CLOSING marks. Both are letters by category (Lm, Lo), so the
+        # wordy branch below claimed them and opened a WORD on them: `日々` streams
+        # `⟨bow⟩日⟨bow⟩々⟨eow⟩` and costs two tokens more than the oracle pays. They continue the Han
+        # run they follow. Measured on opus-4-7: `日々` `人々` `様々` `々` `日〆` all read BASE+2 where
+        # we charged BASE+4. The katakana prolonged sound mark `ー` and small `ヶ` do NOT behave this
+        # way — they were probed in the same sweep and are exact as wordy — so this is the two marks
+        # and not the CJK punctuation block.
+        or o in (0x3005, 0x3006)      # 々 〆
     )
 
 
