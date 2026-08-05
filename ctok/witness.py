@@ -77,6 +77,8 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     if set(FIELDS) - set(witness):
         return f"missing {sorted(set(FIELDS) - set(witness))}"
     templates = meta["witness"]["templates"]
+    if witness["kind"] == "prefix":
+        return _verify_prefix(key, witness, meta, model)
     if witness["kind"] not in templates:
         return f"unknown template {witness['kind']!r}"
     template, overhead = templates[witness["kind"]]
@@ -85,8 +87,39 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     got = cost(witness["raw"], meta["witness"]["base"], overhead)
     if got != 1:
         return f"cost {got}, not 1 — the probe refutes the piece"
+    # A contraction's stored spelling is not its tiling spelling: the file says `'s` and the encoder
+    # writes `'s⟨eow⟩`, so the placement check has to ask about the glued form.
+    if witness["kind"] == "contraction":
+        from .engine import glued_contraction
+        key = glued_contraction(key)
     if model is not None and not places(key, witness["probe"], model):
         return "the encoder no longer writes this piece into that probe"
+    return None
+
+
+def _verify_prefix(prefix: str, witness: dict, meta: dict, model) -> str | None:
+    """A byte prefix is not a token, so ``cost == 1`` is the wrong question. It makes a PREDICTION.
+
+    The byte floor tiles a codepoint's UTF-8 over the prefixes, so carrying `e0a4` says every
+    character opening with those bytes costs one token less than it otherwise would. The witness
+    names a character and the count its probe returned; the prefix holds when the shipped floor
+    reproduces that count, and earns its place when a floor without it does not.
+    """
+    if model is None:
+        return None                                 # the check needs the byte floor
+    from .engine import ByteFloor
+
+    template, overhead = meta["witness"]["templates"]["char"]
+    body = witness["probe"][1:-1]                   # `a{X}a`
+    if template.format(body) != witness["probe"]:
+        return f"probe is not the char template of {body!r}"
+    want = cost(witness["raw"], meta["witness"]["base"], overhead)
+    if model.bytes.cost_char(body) != want:
+        return (f"the floor prices {body!r} at {model.bytes.cost_char(body)}, "
+                f"the probe measured {want}")
+    without = ByteFloor(set(model.bytes.tokens) - {prefix}, ())
+    if without.cost_bytes(body.encode()) == want:
+        return f"the floor reaches {body!r} without this prefix — it earns nothing"
     return None
 
 

@@ -119,7 +119,7 @@ from ctok import witness, pieces
 
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
-witness("e0a4", 4.7)            # None — a byte-fallback prefix is not a token
+witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix'}
 len(pieces(4.7))                # 16413
 ```
 

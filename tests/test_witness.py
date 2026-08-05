@@ -26,7 +26,7 @@ from ctok.notation import parse_marked
 from ctok.witness import cost, places, position, surface, verify
 
 FILES = sorted({fam.pieces for fam in FAMILIES.values() if fam.pieces})
-GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "context-bound"}
+GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "context-bound", "special"}
 
 
 def _doc(name):
@@ -41,13 +41,15 @@ def _family_of(name):
 def test_every_piece_carries_a_witness_or_says_why_not(name):
     """No piece is silent. A gap is a recorded kind, never a missing key or a bare null."""
     doc = _doc(name)
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS
+    # `prefix` is a witness but not a template: a byte prefix is verified by the floor
+    # reproducing a character it predicts, not by a probe costing one token.
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix"}
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
         for piece, w in entries.items():
-            if group == "bytes_fallback":
-                assert w is None, f"{piece}: a byte prefix is not a token and cannot be witnessed"
-                continue
+            # `bytes_fallback` used to be null here — a prefix is not a token, so there was thought
+            # to be nothing to ask. There is: it predicts what characters sharing it cost.
+            assert isinstance(w, dict) and w.get("kind"), f"{piece}: no witness record"
             assert isinstance(w, dict) and w.get("kind"), f"{piece}: no witness record"
             assert w["kind"] in kinds, f"{piece}: unknown kind {w['kind']!r}"
 
@@ -78,6 +80,9 @@ def test_a_refutation_records_what_refuted_it(name):
                 continue
             assert w.get("refused"), f"{piece}: refuted by nothing recorded"
             for r in w["refused"]:
+                if r["kind"] == "prefix":
+                    assert r["floor"] != r["measured"], f"{piece}: {r} does not refute anything"
+                    continue
                 template, overhead = templates[r["kind"]]
                 assert template.format(surface(parse_marked(piece))) == r["probe"]
                 assert cost(r["raw"], base, overhead) != 1, f"{piece}: {r} does not refute anything"
@@ -100,13 +105,17 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
+            if w["kind"] == "prefix":
+                continue                     # a byte prefix has no position in a word
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
             # its own — so the glued frame that pins it reads at `mid`. Every other template names
             # the position in its own name, whichever anchor family it belongs to.
             named = w["kind"].removeprefix("cased_").removeprefix("digit_")
+            # A contraction is stored bare (`'s`) and tiled glued (`'s⟨eow⟩`), so its stored form
+            # reads `mid` while the piece it stands for closes a word.
             expect = {"raw": ("word", "bow"), "word": ("word",), "char": ("mid",),
-                      "glued": ("mid", "word")}.get(w["kind"], (named,))
+                      "glued": ("mid", "word"), "contraction": ("mid",)}.get(w["kind"], (named,))
             assert pos in expect, f"{piece} sits at {pos} but is witnessed as {w['kind']}"
 
 
@@ -169,6 +178,6 @@ def test_a_witness_is_readable_without_reading_the_file():
     """The published API answers the question the file exists to answer."""
     assert witness("⟨bow⟩the⟨eow⟩", 4.7) == {"probe": "the", "raw": 12, "kind": "raw"}
     assert witness("00", 4.7) == {"probe": "a00b", "raw": 14, "kind": "glued"}
-    assert witness("e0a4", 4.7) is None
+    assert witness("e0a4", 4.7)["kind"] == "prefix"
     with pytest.raises(KeyError):
         witness("this is not a piece", 4.7)
