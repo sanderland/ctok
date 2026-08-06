@@ -13,7 +13,7 @@ import unicodedata
 
 from .constants import (
     BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, EXTRA_KILLERS, FUNNY_SPACE,
-    HARD, JEOW_G, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL,
+    HARD, JBOW_G, JEOW_G, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL,
     STRIP_PRIVATE, SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
@@ -136,6 +136,27 @@ def _seam_sub(match, absorb: bool = False) -> str:
 # per codepoint — see `_seam_sub`; never add an unprobed cousin. Deva/Taml/Mlym/Sinh viramas,
 # the Bengali nukta, the Myanmar asat, and the four Shan tone marks.
 _KILLER_SEAM_ABSORB = frozenset("়्்്්်ႇႈႉႊ")
+
+# The killers after which a junction reopens on ⟨jbow⟩ instead of ⟨bow⟩: the nine Brahmic script
+# viramas and the Bengali/Devanagari/Gurmukhi nuktas — the scripts whose ⟨bow⟩ pieces carry
+# translated ⟨jbow⟩ siblings (`scripts/junction_respell.py`), so the split is count-preserving
+# there and refinable per piece. The reopened side is measured position-bound on its own:
+# `⟨bow⟩ত` is a real word-opener while the same consonant after a junction reads one more,
+# consistently across DIFFERENT leading clusters — a fact only a distinct opening glyph can spell.
+_JBOW_KILLERS = frozenset(
+    "\u094d\u09cd\u0a4d\u0acd\u0bcd\u0c4d\u0ccd\u0d4d\u0dca"    # the nine script viramas
+    "\u093c\u09bc\u0a3c"                                          # Deva/Beng/Guru nuktas
+)
+
+
+_JBOW_BLOCKS = ((0x0900, 0x097F), (0x0980, 0x09FF), (0x0A00, 0x0A7F), (0x0A80, 0x0AFF),
+                (0x0B80, 0x0BFF), (0x0C00, 0x0C7F), (0x0C80, 0x0CFF), (0x0D00, 0x0D7F),
+                (0x0D80, 0x0DFF))
+
+
+def _jbow_script(c: str) -> bool:
+    o = ord(c)
+    return any(lo <= o <= hi for lo, hi in _JBOW_BLOCKS)
 
 
 def _is_punct_text(body: str) -> bool:
@@ -376,7 +397,13 @@ def stream_norm(norm: str, model) -> str:
             pre = ""
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
-            bow = "" if _contraction_seam(runs, i) else BOW_G
+            # The ⟨jbow⟩ reopen is written only when BOTH sides sit in a ⟨jbow⟩ script: the
+            # sibling translation covers those pieces, so the split is count-preserving. A
+            # cross-script reopen (a Latin word glued after a Bengali virama) keeps ⟨bow⟩.
+            bow = "" if _contraction_seam(runs, i) else (
+                JBOW_G if (i > 0 and runs[i - 1][0] == WORDY
+                           and runs[i - 1][1][-1] in _JBOW_KILLERS
+                           and _jbow_script(body[0])) else BOW_G)
             # A run a KILLER closed, with the word continuing right after it, closes on ⟨jeow⟩
             # rather than ⟨eow⟩: the internal junction and the word end are different positions,
             # and writing them as one glyph made every `mark⟨eow⟩` piece match both. A killer at

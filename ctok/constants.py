@@ -20,8 +20,14 @@ SHIFT_G, CAPS_G = "\ufdd3", "\ufdd4"
 # where the oracle prices the close differently. Two glyphs make the two positions two spellings,
 # so a vocabulary can hold one without leaking into the other.
 JEOW_G = "\ufdd5"
+# And its opening half: what REOPENS the word after such a junction. Measured to be position-bound
+# on its own — `⟨bow⟩ত` is a real word-opener while the same consonant after a junction reads one
+# more, consistently across different leading clusters — so the reopened side is its own spelling
+# too. Written only after the killers in `normalize._JBOW_KILLERS`, whose scripts carry translated
+# sibling pieces; everywhere else the junction still reopens on ⟨bow⟩.
+JBOW_G = "\ufdd6"
 
-MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G, JEOW_G})
+MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G, JEOW_G, JBOW_G})
 
 # The public form: named atoms in mathematical angle brackets, practically absent from real text.
 # Literal brackets in text are byte-escaped at render time, so a rendered token always parses back
@@ -29,11 +35,13 @@ MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G, JEOW_G})
 L, R = "⟨", "⟩"
 BOW, EOW, SHIFT, CAPS = f"{L}bow{R}", f"{L}eow{R}", f"{L}shift{R}", f"{L}caps{R}"
 JEOW = f"{L}jeow{R}"
+JBOW = f"{L}jbow{R}"
 PAD = f"{L}pad{R}"
 
 GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS,
-                 JEOW_G: JEOW}
-ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G, JEOW: JEOW_G}
+                 JEOW_G: JEOW, JBOW_G: JBOW}
+ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G, JEOW: JEOW_G,
+                 JBOW: JBOW_G}
 
 # ---- character classes --------------------------------------------------------------------------
 

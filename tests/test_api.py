@@ -66,9 +66,9 @@ def test_a_killer_junction_closes_on_jeow_and_a_final_killer_on_eow():
     """The internal junction and the word end are different positions with different spellings —
     a final-form piece is a prefix of the old ⟨eow⟩⟨bow⟩ junction pair, so one glyph for both let
     every `mark⟨eow⟩` piece match inside words, where the oracle prices the close differently."""
-    assert marked_stream("क्ष", 4.7) == "⟨bow⟩क्⟨jeow⟩⟨bow⟩ष⟨eow⟩"
+    assert marked_stream("क्ष", 4.7) == "⟨bow⟩क्⟨jeow⟩⟨jbow⟩ष⟨eow⟩"
     assert marked_stream("क्", 4.7) == "⟨bow⟩क्⟨eow⟩"
-    assert marked_stream("क्ष", 3.0) == "⟨bow⟩क्⟨jeow⟩⟨bow⟩ष⟨eow⟩"
+    assert marked_stream("क्ष", 3.0) == "⟨bow⟩क्⟨jeow⟩⟨jbow⟩ष⟨eow⟩"
 
 
 def test_the_killer_seam_law_is_per_codepoint_and_per_family():
