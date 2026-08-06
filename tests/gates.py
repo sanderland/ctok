@@ -63,10 +63,10 @@ GATES: dict[str, dict] = {
         # over-charged, so UDHR was read once, at the end, to find out whether it had worked.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0011, "within1": 0.965, "exact": 0.575},
-            "v4.7": {"version": 4.7, "mean": 0.0008, "within1": 0.975, "exact": 0.605},
+            "v4.7": {"version": 4.7, "mean": 0.0007, "within1": 0.975, "exact": 0.70},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0008, "within1": 0.975, "exact": 0.605},
+            "v5": {"version": 5.0, "mean": 0.0007, "within1": 0.975, "exact": 0.70},
         },
     },
     "rosetta": {
