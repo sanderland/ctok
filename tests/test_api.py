@@ -71,6 +71,12 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     assert marked_stream("्", version) == "⟨bow⟩्"
 
 
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_generic_combining_accents_close_the_word_after_the_mark(version: float):
+    """A Latin accent is a run terminator, not an orthographic separator like a virama."""
+    assert marked_stream("h\u0301b", version) == "⟨bow⟩h́⟨eow⟩⟨bow⟩b⟨eow⟩"
+
+
 def test_normalization_is_family_specific():
     # v3 folds the curly quotes to ASCII; v4.7 measured not to.
     assert normalize("don’t", version=3.0) == "don't"

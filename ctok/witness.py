@@ -29,6 +29,8 @@ encoder rather than trusting the recorded kind.
 
 from __future__ import annotations
 
+import copy
+
 from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
 from .normalize import nfc, stream_norm
 
@@ -79,6 +81,8 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     templates = meta["witness"]["templates"]
     if witness["kind"] == "prefix":
         return _verify_prefix(key, witness, meta, model)
+    if witness["kind"] == "ownscript":
+        return _verify_ownscript(key, witness, model)
     if witness["kind"] not in templates:
         return f"unknown template {witness['kind']!r}"
     template, overhead = templates[witness["kind"]]
@@ -94,6 +98,48 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
         key = glued_contraction(key)
     if model is not None and not places(key, witness["probe"], model):
         return "the encoder no longer writes this piece into that probe"
+    return None
+
+
+def _verify_ownscript(key: str, witness: dict, model) -> str | None:
+    """Verify a natural-text ablation witness for a piece no synthetic frame can isolate.
+
+    Combining-mark pieces cannot be moved onto the Latin/Katakana witness scaffolds: the host
+    becomes the mark's base and the probe asks about a different cluster.  An own-script witness
+    leaves the piece in a natural word and asks the narrower, reproducible question instead: the
+    shipped vocabulary matches the recorded count, and removing only this piece costs one token.
+    """
+    if model is None:
+        return None
+    rows = [{k: witness[k] for k in ("probe", "raw", "without") if k in witness}]
+    rows.extend(witness.get("corroborating", ()))
+    if not rows or any(set(("probe", "raw", "without")) - set(row) for row in rows):
+        return "ownscript witness is missing probe, raw or without"
+
+    from .engine import ByteFloor, tile
+
+    without = copy.copy(model)
+    without.vocab = frozenset(set(model.vocab) - {key})
+    without.max_piece_len = max(map(len, without.vocab), default=1)
+    if len(key) == 1 and key not in MARKER_GLYPHS:
+        without.unit_pieces = set(model.unit_pieces) - {key}
+        without.bytes = ByteFloor(set(model.bytes.tokens) - {key.encode().hex()},
+                                  without.unit_pieces)
+        without._char_cost_cache = {}
+    for row in rows:
+        probe, raw = row["probe"], row["raw"]
+        stream = stream_norm(nfc(probe, fold_quotes=model.fold_quotes), model)
+        if key not in stream:
+            return f"the encoder does not place this piece in {probe!r}"
+        with_n = tile(probe, model)[0] + model.message_overhead
+        without_n = tile(probe, without)[0] + model.message_overhead
+        if with_n != raw:
+            return f"the shipped vocabulary counts {probe!r} at {with_n}, not recorded {raw}"
+        if without_n != row["without"]:
+            return (f"ablating the piece counts {probe!r} at {without_n}, "
+                    f"not recorded {row['without']}")
+        if without_n != raw + 1:
+            return f"ablating the piece changes {probe!r} by {without_n - raw}, not 1"
     return None
 
 

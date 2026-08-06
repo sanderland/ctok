@@ -56,9 +56,9 @@ VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
 # Marks that separate word runs the way a virama does, but that Unicode does not give combining
 # class 9.
-# NOT only Brahmic: the U+0300 Latin combining block is here too, measured the same way on
-# byte-floor bases (ọ ẹ ṣ ị ǫ) — 41 of 45 cells split, and the four that do not are hosts where a
-# precomposed piece hides the boundary. That is 45 UDHR documents and was a third of the residual.
+# NOT only Brahmic: the U+0300 combining block is here too. Those accents close a word AFTER the
+# mark rather than standing outside it; `normalize.is_terminal_separator` keeps that independently
+# measured spelling separate from the terminal-mark population.
 # MEASURED, one character at a time, and the population MUST stay enumerated — the rule is
 # orthographic, not numeric, and the neighbouring codepoint is usually a vowel sign that does NOT
 # split. Test: `cost(H M H) == cost(H M) + cost(H)` at three cuts on three byte-floor CONSONANT hosts

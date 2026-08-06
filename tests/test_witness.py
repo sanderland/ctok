@@ -43,7 +43,7 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     doc = _doc(name)
     # `prefix` is a witness but not a template: a byte prefix is verified by the floor
     # reproducing a character it predicts, not by a probe costing one token.
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix"}
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix", "ownscript"}
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
         for piece, w in entries.items():
@@ -105,8 +105,8 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
-            if w["kind"] == "prefix":
-                continue                     # a byte prefix has no position in a word
+            if w["kind"] in ("prefix", "ownscript"):
+                continue                     # these kinds validate placement in their own verifier
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
             # its own — so the glued frame that pins it reads at `mid`. Every other template names

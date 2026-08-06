@@ -224,6 +224,18 @@ def is_killer(c: str) -> bool:
     return unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
 
 
+def is_terminal_separator(c: str) -> bool:
+    """A killer that stands outside the word rather than closing it from inside.
+
+    Generic combining accents do satisfy the older factorization test: they end the run after the
+    mark.  They are not terminal orthographic signs, though, and moving them outside the run makes
+    decomposed Latin text systematically too expensive.  FineWeb-2's accent-heavy Latin slices
+    distinguish the spellings directly.  The U+0300 block therefore keeps the measured after-mark
+    boundary; the Brahmic/SEA terminal population uses the separator spelling.
+    """
+    return is_killer(c) and not 0x0300 <= ord(c) <= 0x036F
+
+
 _KILLER = "killer"
 
 
@@ -243,12 +255,13 @@ def _runs(norm: str) -> list[tuple[str, str]]:
     if not norm:
         return []
     def run_class(ch: str) -> str:
-        return _KILLER if is_killer(ch) else classify(ch)
+        return _KILLER if is_terminal_separator(ch) else classify(ch)
 
     out, cur, cur_cls = [], norm[0], run_class(norm[0])
     for ch in norm[1:]:
         c = run_class(ch)
-        if c == cur_cls:
+        legacy_killer = is_killer(cur[-1]) and not is_terminal_separator(cur[-1])
+        if c == cur_cls and not legacy_killer:
             cur += ch
         else:
             out.append((cur_cls, cur))
