@@ -80,8 +80,8 @@ languages, which varies everything at once.
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.149% | 0.102% | 297/501 | 97.4% |
-| UDHR | v4.7 | 0.075% | 0.068% | 311/501 | 98.4% |
-| UDHR | v5 | 0.075% | 0.068% | 311/501 | 98.4% |
+| UDHR | v4.7 | 0.074% | 0.066% | 316/501 | 98.4% |
+| UDHR | v5 | 0.074% | 0.066% | 316/501 | 98.4% |
 | MultiPL-E (22 languages) | v3 | 0.016% | 0.014% | 18/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
@@ -93,7 +93,7 @@ languages, which varies everything at once.
 
 No document in either family is over 5% error. Thirteen v3 documents and eight v4.7 ones remain in
 the 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%).
-Weighted by speakers rather than by document, the error is 0.045% (v3) and 0.036% (v4.7).
+Weighted by speakers rather than by document, the error is 0.045% (v3) and 0.029% (v4.7).
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
