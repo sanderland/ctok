@@ -62,6 +62,27 @@ def test_marked_stream_is_the_one_intermediate():
     assert marked_stream("hello, world") == "⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩"
 
 
+def test_a_killer_junction_closes_on_jeow_and_a_final_killer_on_eow():
+    """The internal junction and the word end are different positions with different spellings —
+    a final-form piece is a prefix of the old ⟨eow⟩⟨bow⟩ junction pair, so one glyph for both let
+    every `mark⟨eow⟩` piece match inside words, where the oracle prices the close differently."""
+    assert marked_stream("क्ष", 4.7) == "⟨bow⟩क्⟨jeow⟩⟨bow⟩ष⟨eow⟩"
+    assert marked_stream("क्", 4.7) == "⟨bow⟩क्⟨eow⟩"
+    assert marked_stream("क्ष", 3.0) == "⟨bow⟩क्⟨jeow⟩⟨bow⟩ष⟨eow⟩"
+
+
+def test_the_killer_seam_law_is_per_codepoint_and_per_family():
+    """A killer-final word before a single space absorbs it only for the MEASURED absorb set
+    (`normalize._KILLER_SEAM_ABSORB`), and only in the family whose vocabulary was translated —
+    v3's corpus lines reject the translation, so its killers all keep the literal space."""
+    # Malayalam virama: ABSORB in v4.7, kept in v3
+    assert marked_stream("ത് ത", 4.7) == "⟨bow⟩ത്⟨eow⟩⟨bow⟩ത⟨eow⟩"
+    assert marked_stream("ത് ത", 3.0) == "⟨bow⟩ത്⟨eow⟩ ⟨bow⟩ത⟨eow⟩"
+    # Bengali virama: measured KEEP in both families
+    assert marked_stream("ক্ ক", 4.7) == "⟨bow⟩ক্⟨eow⟩ ⟨bow⟩ক⟨eow⟩"
+    assert marked_stream("ক্ ক", 3.0) == "⟨bow⟩ক্⟨eow⟩ ⟨bow⟩ক⟨eow⟩"
+
+
 def test_normalization_is_family_specific():
     # v3 folds the curly quotes to ASCII; v4.7 measured not to.
     assert normalize("don’t", version=3.0) == "don't"

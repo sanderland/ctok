@@ -14,18 +14,26 @@ import re
 # appear in interchanged text, so a literal `^` or `↑` in the input is never mistaken for a marker.
 BOW_G, EOW_G, PAD_G = "\ufdd0", "\ufdd1", "\ufdd2"
 SHIFT_G, CAPS_G = "\ufdd3", "\ufdd4"
+# The junction ⟨jeow⟩: what closes a word at an INTERNAL killer junction. The word-final ⟨eow⟩ and
+# the junction used to be one glyph, which made every `mark⟨eow⟩` piece position-ambiguous — a
+# final-form piece is a PREFIX of the ⟨eow⟩⟨bow⟩ junction pair, so it also matched inside words,
+# where the oracle prices the close differently. Two glyphs make the two positions two spellings,
+# so a vocabulary can hold one without leaking into the other.
+JEOW_G = "\ufdd5"
 
-MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G})
+MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G, JEOW_G})
 
 # The public form: named atoms in mathematical angle brackets, practically absent from real text.
 # Literal brackets in text are byte-escaped at render time, so a rendered token always parses back
 # unambiguously. Changing the bracket pair is a two-constant edit here.
 L, R = "⟨", "⟩"
 BOW, EOW, SHIFT, CAPS = f"{L}bow{R}", f"{L}eow{R}", f"{L}shift{R}", f"{L}caps{R}"
+JEOW = f"{L}jeow{R}"
 PAD = f"{L}pad{R}"
 
-GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS}
-ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G}
+GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS,
+                 JEOW_G: JEOW}
+ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G, JEOW: JEOW_G}
 
 # ---- character classes --------------------------------------------------------------------------
 

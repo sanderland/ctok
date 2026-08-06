@@ -151,6 +151,11 @@ class TokenizerModel:
         # Whether a Myanmar killer keeps its run open when the NEXT character is also a Myanmar
         # killer. Per-family because the families genuinely disagree — see `normalize._runs`.
         self.myanmar_stacked_killer = meta.get("myanmar_stacked_killer", False)
+        # Whether the measured ABSORB-set killers let a following single space fold into the seam
+        # (`normalize._seam_sub`). The GRID reads identically in both families, but v3's vocabulary
+        # was mined against kept spaces at every level and its corpus lines reject the translation,
+        # so the flag ships on for v4.7/v5 and off for v3 — meta-rule 1, spelled as a flag.
+        self.killer_seam_absorb = meta.get("killer_seam_absorb", False)
         # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
         # measured different at BOTH edges, which is why these are family scalars and not constants.
         #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is

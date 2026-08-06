@@ -147,5 +147,14 @@ def places(key: str, probe: str, model) -> bool:
     if pos in ("bow", "mid") and (not right or right.startswith(EOW_G)):
         return False
     if pos in ("eow", "mid") and (not left or left.endswith(BOW_G)):
-        return False
+        # EXCEPT a killer-final suffix piece whose probe is its own bare message: the stream is
+        # exactly ⟨bow⟩ + the piece, no other instrument reaches a mark-bearing piece at all, and
+        # the reading is the region's — the same attribution ambiguity every ヲ cell carries. Any
+        # OTHER left context keeps the veto, and so does a plain-letter suffix piece, whose word
+        # form really would be measured instead (that mistake refuted 2,317 good prefixes).
+        from .normalize import is_killer
+        body = surface(key)
+        if not (pos == "eow" and left == BOW_G and s == left + key
+                and body and is_killer(body[-1])):
+            return False
     return True

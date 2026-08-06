@@ -114,8 +114,10 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             named = w["kind"].removeprefix("cased_").removeprefix("digit_")
             # A contraction is stored bare (`'s`) and tiled glued (`'s⟨eow⟩`), so its stored form
             # reads `mid` while the piece it stands for closes a word.
+            # `final` is the killer-final bare message: the piece closes a word, so it sits at eow.
             expect = {"raw": ("word", "bow"), "word": ("word",), "char": ("mid",),
-                      "glued": ("mid", "word"), "contraction": ("mid",)}.get(w["kind"], (named,))
+                      "glued": ("mid", "word"), "contraction": ("mid",),
+                      "final": ("eow",)}.get(w["kind"], (named,))
             assert pos in expect, f"{piece} sits at {pos} but is witnessed as {w['kind']}"
 
 

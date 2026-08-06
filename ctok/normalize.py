@@ -13,8 +13,8 @@ import unicodedata
 
 from .constants import (
     BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, EXTRA_KILLERS, FUNNY_SPACE,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
+    HARD, JEOW_G, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL,
+    STRIP_PRIVATE, SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 
@@ -100,18 +100,42 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
 # ---- the marked stream --------------------------------------------------------------------------
 
 
-def _seam_sub(match) -> str:
-    """The seam law, minus the two places a real space is NOT absorbable.
+def _seam_sub(match, absorb: bool = False) -> str:
+    """The seam law, minus the places a real space is NOT absorbable.
 
-    A killer is the second: it has already put an ``⟨eow⟩⟨bow⟩`` there by closing its word (see
-    :func:`_runs`), and one boundary cannot encode two things. Absorbing the space here would make
-    ``ᨠ᩠ᨦ`` and ``ᨠ᩠ ᨦ`` the same stream, which no decoder could tell apart — and the oracle prices
-    them one token apart, so they are not the same string to it either.
+    A charging mark is one. A KILLER is one only where it is MEASURED to keep the charge, and the
+    split is per killer codepoint, not per script: the own-script grid ``{C·killer} {D}`` against
+    the ``{C} {D}`` baseline (7 hosts per killer, both families identical,
+    ``mined/textfinal.jsonl.gz``, 2026-08-06) reads the killer-final increment as the base
+    increment — an ordinary absorbed seam — for the ``_KILLER_SEAM_ABSORB`` set below, and as
+    base+1 — a kept, charged space — for every other killer measured: the Bengali, Telugu,
+    Kannada, Gujarati, Gurmukhi and Oriya viramas, the Devanagari and Gurmukhi nuktas, the Myanmar
+    dot-below and stacked virama, the Khmer bantoc, the Thai and Lao tone marks, and the Latin
+    combining killers. Bengali splits within one script — its virama keeps, its nukta absorbs —
+    which is what rules out any per-script or per-class shortcut. Unmeasured killers stay on the
+    KEEP side, which is the behaviour this rule replaced.
+
+    One blanket killer exception here is what the five ``killer⟨eow⟩space`` line pieces existed to
+    paper over: every one of them is spelled with an ABSORB-set killer. The old worry that
+    absorbing makes ``ᨠ᩠ᨦ`` and ``ᨠ᩠ ᨦ`` the same stream no longer holds: an intra-word junction
+    closes on ``⟨jeow⟩`` and an absorbed seam on ``⟨eow⟩⟨bow⟩``, so the two are different strings
+    to the decoder as well as to the oracle.
+
+    ``absorb`` is the family's ``killer_seam_absorb`` flag: the grid reads the same in both
+    families, but v3's vocabulary was mined against kept spaces at every level and its corpus
+    lines reject the translation, so only v4.7/v5 stream the absorption (meta-rule 1).
     """
     ch, case_markers = match.group(1), match.group(2)
-    if CHARGING_MARK.fullmatch(ch) or is_killer(ch):
+    if CHARGING_MARK.fullmatch(ch) or (is_killer(ch)
+                                       and not (absorb and ch in _KILLER_SEAM_ABSORB)):
         return match.group(0)
     return ch + EOW_G + case_markers + BOW_G
+
+
+# The killers whose word absorbs a following single space like any other word does. MEASURED
+# per codepoint — see `_seam_sub`; never add an unprobed cousin. Deva/Taml/Mlym/Sinh viramas,
+# the Bengali nukta, the Myanmar asat, and the four Shan tone marks.
+_KILLER_SEAM_ABSORB = frozenset("়्்്්်ႇႈႉႊ")
 
 
 def _is_punct_text(body: str) -> bool:
@@ -353,7 +377,12 @@ def stream_norm(norm: str, model) -> str:
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
-            out.append(pre + bow + n + EOW_G)
+            # A run a KILLER closed, with the word continuing right after it, closes on ⟨jeow⟩
+            # rather than ⟨eow⟩: the internal junction and the word end are different positions,
+            # and writing them as one glyph made every `mark⟨eow⟩` piece match both. A killer at
+            # the true word end — before a space, punctuation or the message edge — keeps ⟨eow⟩.
+            junction = (is_killer(body[-1]) and i + 1 < n_runs and runs[i + 1][0] == WORDY)
+            out.append(pre + bow + n + (JEOW_G if junction else EOW_G))
         elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
@@ -371,4 +400,5 @@ def stream_norm(norm: str, model) -> str:
             out.append((BOW_G if takes_bow and borders_space(i, -1) else "") + body)
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
-    return SEAM_RE.sub(_seam_sub, "".join(out))
+    absorb = getattr(model, "killer_seam_absorb", False)
+    return SEAM_RE.sub(lambda m: _seam_sub(m, absorb), "".join(out))
