@@ -79,22 +79,21 @@ languages, which varies everything at once.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
-| UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
-| UDHR | v5 | 0.107% | 0.090% | 298/501 | 98.0% |
-| MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
+| UDHR (501 languages) | v3 | 0.149% | 0.102% | 297/501 | 97.4% |
+| UDHR | v4.7 | 0.075% | 0.068% | 311/501 | 98.4% |
+| UDHR | v5 | 0.075% | 0.068% | 311/501 | 98.4% |
+| MultiPL-E (22 languages) | v3 | 0.016% | 0.014% | 18/22 | 100% |
 | MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
 | MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
-| Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
+| Rosetta Code (1,741 docs) | v3 | 0.000% | 0.000% | 1740/1741 | 100% |
 | Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code | v5 | 0.000% | 0.000% | 1741/1741 | 100% |
 | Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.006% | 0.007% | 249/250 | 99.6% |
 
-No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
-1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
-languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.050% (v3) and 0.067% (v4.7).
+No document in either family is over 5% error. Thirteen v3 documents and eight v4.7 ones remain in
+the 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%).
+Weighted by speakers rather than by document, the error is 0.045% (v3) and 0.036% (v4.7).
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
@@ -105,9 +104,44 @@ decides which candidate gets asked.
 
 No document in either family is now more than 5% off; 15 in each were, before the akshara law (a
 mark that closes its orthographic syllable also closes the word, so a conjunct is two words and
-carries the boundary markers that say so). What is left is vocabulary rather than structure — the
-residual is spread in both directions instead of being a one-sided under-count — and the largest
-remaining piece of it is Brahmic and South-East Asian clusters that have not been mined yet.
+carries the boundary markers that say so).
+
+## Where the residual actually is
+
+Every corpus above is scored, not diagnosed: a gate says a document is wrong, never why. So the
+questions are asked on **external** text instead — real corpora in the same languages, priced by
+`count_tokens` directly — which is both sharper and the only way to touch a held-out gate's
+languages without spending it.
+
+Two things that reading fixed, and one it ruled out:
+
+- **Rosetta's v3 tail was punctuation, not words.** 129 documents over-counted and none
+  under-counted. Probing every distinct *word* of those documents found four disagreements in
+  2,717; probing them line by line found `+:=`, `{:>14}`, `⟨bow⟩×⟨eow⟩`, APL glyphs, and long
+  `-----` / `#####` rules whose run ladders were sampled with holes — a 40-hyphen rule tiled as
+  32+8 where the oracle spends one token. 64 pieces took 1,612 exact documents to 1,740. v4.7's
+  ladders were already complete: 7,833 rungs probed, none of them a token.
+- **Brahmic and South-East Asian clusters were the UDHR residual, as the file said.** Glot500
+  slices of thirteen languages, scored against the oracle, over-charge for Burmese, Odia, Tamil,
+  Malayalam, Khmer, Lao, Thai and Hungarian. Those clusters usually open on a combining mark, so
+  no template in the inventory can isolate one — an anchor becomes the mark's base — and they are
+  mined and witnessed by ablation in natural text instead (`kind: "ownscript"`).
+- **Shipibo-Konibo is not a vocabulary gap.** It is the worst document in both families, and the
+  standing note said no marked-text source had been found. One exists: the PUCP corpus behind
+  [Galarreta et al. (RANLP 2017)](https://doi.org/10.26615/978-954-452-049-6_033), shipped as the
+  [AmericasNLP 2021](https://github.com/AmericasNLP/americasnlp2021) shared-task data — 15,588
+  sentences. This tokenizer reproduces it **exactly**, in both families, and still does after
+  transliterating it into the modern `w`/`k` orthography. Whatever the UDHR document costs, it is
+  not Shipibo-Konibo vocabulary as either orthography writes it.
+
+What is left is spread in both directions rather than being a one-sided under-count, and the
+under-counting half is now the sharper one. It localizes: on Ewe, `ɔ` + U+0303 COMBINING TILDE
+costs us one token less than the oracle, while U+0303 standing alone costs exactly the one token
+its witness records. The mark is a token in one context and two bytes in another, which a
+context-free tiling cannot express — the same shape as the held-out Rosetta document that costs
+3 after a word boundary and 2 after a symbol's last byte. That is a model change, not a piece,
+and it is what the remaining Dhivehi (−1.31%), Ewe (−0.44%) and Sinhala (−0.67%) readings are
+made of.
 
 ## What each piece rests on
 
@@ -120,7 +154,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix'}
-len(pieces(4.7))                # 16413
+len(pieces(4.7))                # 15549
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own

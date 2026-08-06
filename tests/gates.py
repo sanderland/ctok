@@ -52,17 +52,21 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-08-01, after the akshara law and the cluster re-spelling. The law took the
-        # Brahmic/South-East-Asian under-count out structurally — no document in either family is
-        # over 5% now, where 15 in each were — and the re-spelling took most of what was left. These
-        # are four times tighter than the thresholds that preceded both, and a revert of either
-        # trips every one of them. What remains is unmined vocabulary.
+        # Re-measured 2026-08-06, after the external-corpus cluster campaign. The akshara law had
+        # already taken the Brahmic/South-East-Asian under-count out structurally — no document in
+        # either family is over 5%, where 15 in each were — and this campaign bought the vocabulary
+        # the law left exposed: 481 cluster pieces mined from Glot500 slices of Burmese, Tamil,
+        # Malayalam, Odia, Khmer, Lao, Thai and Hungarian.
+        #
+        # NOTHING here was chosen by this corpus, and it must stay that way. The campaign picked
+        # its languages by scoring EXTERNAL text against `count_tokens` and mining wherever we
+        # over-charged, so UDHR was read once, at the end, to find out whether it had worked.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
-            "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            "v3": {"version": 3.0, "mean": 0.0011, "within1": 0.965, "exact": 0.575},
+            "v4.7": {"version": 4.7, "mean": 0.0008, "within1": 0.975, "exact": 0.605},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            "v5": {"version": 5.0, "mean": 0.0008, "within1": 0.975, "exact": 0.605},
         },
     },
     "rosetta": {
@@ -71,10 +75,13 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # Measured 2026-08-01. v4.7 reproduces every document; the floor is set just under so that
-        # a single regressing document trips it. v3 still carries a vocabulary tail.
+        # Measured 2026-08-01, v3 re-measured 2026-08-06. Both families now reproduce essentially
+        # every document; the floor is set just under so that a single regressing document trips
+        # it. v3's vocabulary tail was punctuation, not words: 129 documents over-counted and none
+        # under-counted, and 64 pieces — operator runs like `+:`, `{:`, `⟨bow⟩×⟨eow⟩`, and the
+        # missing rungs of the `-` `#` `=` run ladders — took 1,612 exact documents to 1,740.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
+            "v3": {"version": 3.0, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
             "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
             # v5 reproduces every document too, once its own frame rules are modelled — the two
             # families differ at the message edges and nowhere else this corpus can see.
@@ -109,10 +116,15 @@ GATES: dict[str, dict] = {
         # Measured 2026-08-01. v4.7 reproduces all 22 files exactly since the word-opening
         # apostrophe, the contraction's word-side anchor and the space-spelled punct duplicates
         # landed, so ``exact`` is asserted there — it used to be one file, where asserting it would
-        # have measured luck. v3 (15/22) still carries a vocabulary tail. Thresholds are compared
-        # with a STRICT >, so a perfect corpus cannot be gated at 1.0.
+        # have measured luck. Thresholds are compared with a STRICT >, so a perfect corpus cannot
+        # be gated at 1.0.
+        #
+        # v3's thresholds are re-cut at 18/22 on 2026-08-06. It was ALREADY at 18/22 before the
+        # punctuation campaign — the FineWeb-2/Goldfish campaign had moved it there and left the
+        # floor where 15/22 put it — and the campaign left it exactly there. Recorded that way
+        # rather than as a win: a held-out gate that did not move is the reading, not a footnote.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
+            "v3": {"version": 3.0, "mean": 0.0004, "within1": 0.95, "exact": 0.75},
             "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
             "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
         },
