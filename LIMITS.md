@@ -72,15 +72,25 @@ absorbing it, this question is open and the honest answer is that we do not know
 ## 3. Greedy cluster mining is only as safe as its validation set
 
 The cluster campaign accepts a piece when it takes some word's count down by one and takes no word
-below the oracle's reading of it. That second condition is only checked against the words the
-campaign priced. A piece mined from Odia is never asked what it does to Tamil.
+below the oracle's reading of it. The second condition is the important one, and it is only checked
+against the words the campaign happened to price. A piece mined from Odia is never asked what it
+does to Tamil, because no Tamil word had a recorded count on that family.
 
-It does something. After the first cluster campaign, UDHR Tamil moved from +1.56% (v3) to −0.55%
-(v4.7) — over-counting to under-counting, straight past exact. The fix is not cleverer mining, it
-is a wider validation set: price the words of every language the pieces can reach, and drop
-anything that pushes one below its recorded count. `scripts` for this live in the mining repo; the
-shipped consequence is that a family's pieces are only as trustworthy as the breadth of text that
-was priced when they were accepted.
+This is not hypothetical, and the demonstration is cheap. A corpus sweep over FineWeb and the Stack
+proposed eight pieces from documents it over-charged; each one satisfied the guard against its own
+sample. Re-checked against a validation set that included Thai, Odia, Khmer, Lao, Hungarian and
+Tamil words, seven of the eight took **305** already-priced texts below their recorded counts, and
+one broke the ablation witness of `วัน`, a piece that was already in the file. One survived.
+
+The fix is not cleverer mining. It is to price the words of every language the pieces can reach
+before accepting any of them, and to run `witness.verify` over the whole file afterwards — adding a
+piece re-tiles the words *other* pieces are witnessed in, so a batch can leave every accuracy gate
+green and still invalidate a witness.
+
+A caution on reading the gate for evidence of this: UDHR Tamil sits at −0.55% on v4.7 and +1.56% on
+v3, which looks like a campaign having pushed it past exact. It is not — Tamil read −0.55% on v4.7
+*before* any cluster piece was mined, and the two numbers are different families, not a before and
+after. The families disagree about Tamil on their own.
 
 ## 4. Two UDHR documents have no reachable source
 
