@@ -32,7 +32,7 @@
         "contraction": ["a{}", 1]
       },
       "coverage": {
-        "bow": 3262,
+        "bow": 3263,
         "cased_bow": 201,
         "char": 2355,
         "context-bound": 10,
@@ -13559,7 +13559,8 @@
       "លិនក": {"probe": "ក្លិនក្លៀកប្លែកឆួលច្រមុះ", "raw": 39, "without": 40, "kind": "ownscript"},
       "នវិ": {"probe": "តែខេមរាមានវិធីសាស្រ្តអាច", "raw": 35, "without": 36, "kind": "ownscript"},
       "គួច": {"probe": "គួច", "raw": 14, "without": 15, "kind": "ownscript"},
-      "នគយ": {"probe": "របស់អគ្គនាយកដ្ឋានគយ", "raw": 33, "without": 34, "kind": "ownscript"}
+      "នគយ": {"probe": "របស់អគ្គនាយកដ្ឋានគយ", "raw": 33, "without": 34, "kind": "ownscript"},
+      "⟨bow⟩committ": {"probe": ".committヲ.", "raw": 17, "kind": "bow"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
