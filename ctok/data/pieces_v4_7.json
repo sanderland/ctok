@@ -43,10 +43,11 @@
         "eow": 2650,
         "glued": 1110,
         "mid": 2089,
-        "no-instrument": 806,
+        "no-instrument": 805,
         "prefix": 467,
         "raw": 2092,
-        "special": 4
+        "special": 4,
+        "unmeasured": 13
       }
     }
   },
@@ -12982,7 +12983,6 @@
       "⟨bow⟩Р": {"probe": "РController", "raw": 13, "kind": "cased_bow"},
       "⟨bow⟩С": {"probe": "СController", "raw": 13, "kind": "cased_bow"},
       "⟨bow⟩У": {"probe": "УController", "raw": 13, "kind": "cased_bow"},
-      "্⟨eow⟩": {"kind": "no-instrument"},
       "̂": {"kind": "no-instrument"},
       "̃": {"kind": "no-instrument"},
       "̄": {"kind": "no-instrument"},
@@ -13434,7 +13434,20 @@
       "į́": {"kind": "no-instrument"},
       "ę́": {"kind": "no-instrument"},
       "hį́": {"kind": "no-instrument"},
-      "tį́": {"kind": "no-instrument"}
+      "tį́": {"kind": "no-instrument"},
+      "ক্": {"kind": "unmeasured"},
+      "ড্": {"kind": "unmeasured"},
+      "ত্": {"kind": "unmeasured"},
+      "ন্": {"kind": "unmeasured"},
+      "প্⟨eow⟩": {"kind": "unmeasured"},
+      "ম্": {"kind": "unmeasured"},
+      "য্⟨eow⟩": {"kind": "unmeasured"},
+      "র্⟨eow⟩": {"kind": "unmeasured"},
+      "স্⟨eow⟩": {"kind": "unmeasured"},
+      "⟨bow⟩্": {"kind": "unmeasured"},
+      "⟨bow⟩੍": {"kind": "unmeasured"},
+      "⟨bow⟩્": {"kind": "unmeasured"},
+      "⟨bow⟩್": {"kind": "unmeasured"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},

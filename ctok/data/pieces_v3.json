@@ -49,6 +49,7 @@
     "prefix": 467,
     "raw": 6409,
     "special": 4,
+    "unmeasured": 4,
     "word": 13185
    }
   }
@@ -38713,6 +38714,7 @@
    "⟨bow⟩স⟨eow⟩": {"probe": "স", "raw": 8, "kind": "raw"},
    "⟨bow⟩হ": {"probe": "হNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩া⟨eow⟩": {"kind": "no-instrument"},
+   "⟨bow⟩੍": {"kind": "unmeasured"},
    "⟨bow⟩અ": {"probe": ".અヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩આ": {"probe": ".આヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩એ": {"probe": ".એヲ.", "raw": 13, "kind": "bow"},
@@ -38734,6 +38736,7 @@
    "⟨bow⟩શ": {"probe": "શNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩સ": {"probe": "સNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩હ": {"probe": "હNotFoundException", "raw": 9, "kind": "cased_bow"},
+   "⟨bow⟩્": {"kind": "unmeasured"},
    "⟨bow⟩କ": {"probe": "କNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩அ": {"probe": ".அヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩இ": {"probe": ".இヲ.", "raw": 13, "kind": "bow"},
@@ -38796,6 +38799,7 @@
    "⟨bow⟩స": {"probe": "సNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩స⟨eow⟩": {"probe": "స", "raw": 8, "kind": "raw"},
    "⟨bow⟩హ": {"probe": "హNotFoundException", "raw": 9, "kind": "cased_bow"},
+   "⟨bow⟩್": {"kind": "unmeasured"},
    "⟨bow⟩അ": {"probe": ".അヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩എ": {"probe": ".എヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩ക": {"probe": "കNotFoundException", "raw": 9, "kind": "cased_bow"},
@@ -38809,6 +38813,7 @@
    "⟨bow⟩റ": {"probe": "റNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩വ": {"probe": "വNotFoundException", "raw": 9, "kind": "cased_bow"},
    "⟨bow⟩സ": {"probe": "സNotFoundException", "raw": 9, "kind": "cased_bow"},
+   "⟨bow⟩്": {"kind": "unmeasured"},
    "⟨bow⟩අ": {"probe": ".අヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩උ": {"probe": ".උヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩එ": {"probe": ".එヲ.", "raw": 13, "kind": "bow"},
