@@ -181,3 +181,9 @@ def test_a_witness_is_readable_without_reading_the_file():
     assert witness("e0a4", 4.7)["kind"] == "prefix"
     with pytest.raises(KeyError):
         witness("this is not a piece", 4.7)
+
+
+def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
+    """The terminal consonant is one measured suffix, not a family of count-equivalent patches."""
+    assert witness("ங⟨eow⟩", 4.7) == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
+    assert {piece for piece in pieces(4.7) if "ங" in piece} == {"ங⟨eow⟩"}
