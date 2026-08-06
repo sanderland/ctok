@@ -134,6 +134,9 @@ Two things that reading fixed, and one it ruled out:
   transliterating it into the modern `w`/`k` orthography. Whatever the UDHR document costs, it is
   not Shipibo-Konibo vocabulary as either orthography writes it.
 
+What each of these costs, with the probe that measured it, is in [LIMITS.md](LIMITS.md) — including
+the two things no amount of mining will fix.
+
 What is left is spread in both directions rather than being a one-sided under-count, and the
 under-counting half is now the sharper one. It localizes: on Ewe, `ɔ` + U+0303 COMBINING TILDE
 costs us one token less than the oracle, while U+0303 standing alone costs exactly the one token
