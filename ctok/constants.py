@@ -54,8 +54,7 @@ SYMBOL_LETTERS = (
 # selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
-# Marks that separate word runs the way a virama does, but that Unicode does not give combining
-# class 9.
+# Marks that close the word the way a virama does, but that Unicode does not give combining class 9.
 # NOT only Brahmic: the U+0300 Latin combining block is here too, measured the same way on
 # byte-floor bases (ọ ẹ ṣ ị ǫ) — 41 of 45 cells split, and the four that do not are hosts where a
 # precomposed piece hides the boundary. That is 45 UDHR documents and was a third of the residual.

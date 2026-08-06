@@ -103,12 +103,13 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
 def _seam_sub(match) -> str:
     """The seam law, minus the two places a real space is NOT absorbable.
 
-    A terminal mark is its own unmarked run (see :func:`_runs`), so it cannot occur immediately
-    before this seam: the preceding word has already closed on the other side of the mark. A
-    combining mark that remains inside a word is the one measured exception here.
+    A killer is the second: it has already put an ``⟨eow⟩⟨bow⟩`` there by closing its word (see
+    :func:`_runs`), and one boundary cannot encode two things. Absorbing the space here would make
+    ``ᨠ᩠ᨦ`` and ``ᨠ᩠ ᨦ`` the same stream, which no decoder could tell apart — and the oracle prices
+    them one token apart, so they are not the same string to it either.
     """
     ch, case_markers = match.group(1), match.group(2)
-    if CHARGING_MARK.fullmatch(ch):
+    if CHARGING_MARK.fullmatch(ch) or is_killer(ch):
         return match.group(0)
     return ch + EOW_G + case_markers + BOW_G
 
@@ -209,7 +210,7 @@ def _nonascii_digits(body: str) -> bool:
 
 
 def is_killer(c: str) -> bool:
-    """A mark that terminates the orthographic syllable, and so separates word runs.
+    """A mark that terminates the orthographic syllable, and so closes the word.
 
     Two populations, and the split between them is the honest part. **Viramas** — the Brahmic sign
     that suppresses a consonant's inherent vowel so it can join the next one — are all canonical
@@ -224,31 +225,46 @@ def is_killer(c: str) -> bool:
     return unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
 
 
-_KILLER = "killer"
+def _myanmar(c: str) -> bool:
+    return "က" <= c <= "႟"
 
 
-def _runs(norm: str) -> list[tuple[str, str]]:
-    """The text split into maximal same-class runs, with terminal marks as unmarked separators.
+def _runs(norm: str, stacked_killer: bool = False) -> list[tuple[str, str]]:
+    """The text split into maximal same-class runs — and a run also ends after a killer.
 
-    A killer does not close a word *after itself*. It stands outside the word: the preceding WORDY
-    run closes before the mark and a following WORDY run opens after it. Thus ``C killer X`` is
-    written ``⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩``. This is the same factorization measured by the old
-    akshara law, but it also explains word-final and standalone marks without ``killer⟨eow⟩``
-    pieces or a stacked-killer exception.
+    **The akshara law.** A killer closes its word: what follows it starts a new one. So a conjunct
+    is two words, not one, and the oracle charges the ⟨eow⟩⟨bow⟩ that says so.
 
-    ``_KILLER`` is deliberately a stream class rather than ``HARD``. The output is unmarked in both
-    cases, but keeping the class distinct prevents a neighbouring punctuation or symbol run from
-    inheriting the mark and losing its own boundary treatment.
+    Measured live on v4.7 as ``cost(C killer X) == cost(C killer) + cost(X)`` — the two halves
+    priced as independent words — for 198 of 198 random consonant pairs across nine scripts, 25 of
+    26 real words (the exception has a ZWJ, which asks for the join back), and in 18 of the 19
+    scripts that have a killer at all. Thai phinthu is the one that does not split; it is also the
+    one that is not a conjunct-former in modern orthography.
+
+    This is why Brahmic and South-East Asian text used to under-count: the byte floor priced the
+    letters correctly all along, and every conjunct was missing its two boundary markers.
+
+    **STACKED KILLERS (v3 only).** The law over-fires where two Myanmar killers are adjacent. In
+    `ည့်` the dot-below is interior — it precedes the asat that actually closes the syllable — so
+    splitting after BOTH emits a run holding nothing but `်`, which costs ⟨bow⟩+char+⟨eow⟩ = 3
+    tokens for one character. Keeping the run open until the LAST killer of the stack is measured,
+    on 793 corpus lines holding the sequence, as v3 exact 87->103 and signed +3306->+2435.
+
+    It is family-conditional because the families disagree, which is `PROBES.md` meta-rule 1 with no
+    room left for interpretation: the identical rule reads UDHR Burmese +2.22% -> +0.80% in v3 and
+    +0.06% -> -1.65% in v4.7. Restricted to Myanmar because the unrestricted version regressed
+    Latin and Devanagari populations that have no stacked-killer orthography at all.
+
+    Note v4.7's WORD sample says the opposite of its own gate here (exact 27.7% -> 50.6%, signed
+    +300 -> +49) — the Thaana shape, and the reason the line check is what decides.
     """
     if not norm:
         return []
-    def run_class(ch: str) -> str:
-        return _KILLER if is_killer(ch) else classify(ch)
-
-    out, cur, cur_cls = [], norm[0], run_class(norm[0])
+    out, cur, cur_cls = [], norm[0], classify(norm[0])
     for ch in norm[1:]:
-        c = run_class(ch)
-        if c == cur_cls:
+        c = classify(ch)
+        held = stacked_killer and is_killer(ch) and _myanmar(ch) and _myanmar(cur[-1])
+        if c == cur_cls and (held or not is_killer(cur[-1])):
             cur += ch
         else:
             out.append((cur_cls, cur))
@@ -282,7 +298,7 @@ def stream_norm(norm: str, model) -> str:
     # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
     if model.frame_bow and norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
-    runs = _runs(norm)
+    runs = _runs(norm, getattr(model, "myanmar_stacked_killer", False))
     if not runs:
         return ""
     caps = model.allcaps_min
