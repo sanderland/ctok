@@ -8,15 +8,11 @@ new.
 Everything here is a measurement, with the probe that produced it. Nothing here is a guess about
 what the tokenizer "probably" does.
 
-## 1. A piece's cost depends on what precedes it
+## 1. Some clusters under-count, and the cause is a stream-spelling question
 
-This is the big one, and it is a *model* limitation, not a vocabulary gap.
-
-`engine.tile` is a min-cost segmentation over a context-free vocabulary: every piece costs exactly
-1, everywhere. That is false. The combining marks price differently depending on what they follow.
-
-The minimal case is Ewe's nasal vowel, `ɔ̃` — U+0254 LATIN SMALL LETTER OPEN O followed by U+0303
-COMBINING TILDE, which has no precomposed form, so NFC leaves it decomposed:
+Certain decomposed clusters cost the oracle more than we charge. The minimal case is Ewe's nasal
+vowel, `ɔ̃` — U+0254 LATIN SMALL LETTER OPEN O followed by U+0303 COMBINING TILDE, which has no
+precomposed form, so NFC leaves it decomposed:
 
 | message | ours | `count_tokens` |
 |---|---:|---:|
@@ -26,27 +22,27 @@ COMBINING TILDE, which has no precomposed form, so NFC leaves it decomposed:
 | `ɔ̃a` | 13 | **14** |
 | `ã` (precomposed by NFC) | 9 | 9 |
 
-(v3; v4.7 is the same shape at +4.) The mark alone costs one token — that is exactly what the
-shipped witness for the bare `̃` piece records, `{"probe": "̃", "raw": 10, "without": 11}`, and it
-holds. After a byte-floor character it costs two. Our vocabulary holds one `̃` at one price and
-uses it in both positions, so we under-count every such cluster by one.
+(v3; v4.7 is the same shape at +4.)
 
-The same shape is already recorded in `tests/gates.py` for the one held-out Rosetta document that
-does not reproduce: a marked span that "costs 3 after a word boundary and 2 after a symbol's last
-byte, which no single piece covers".
+**What this is not.** An earlier version of this file read that table as proof that a piece's cost
+depends on what precedes it — that `̃` is one token standing alone and two after a byte-floor
+character — and concluded no vocabulary could express it. That was a leap. A count mismatch says
+the total is wrong, not which part of the model is wrong, and the obvious other suspect was never
+ruled out: **where the boundary markers go**. A different stream spelling for a terminal mark
+produces a different tiling with the same context-free costs, and that is a vocabulary-and-encoder
+question, not a limitation of min-cost tiling.
 
-**Why no piece fixes it.** A piece is a (string → 1) entry. Expressing "this mark costs 1 here and
-2 there" needs either a context-dependent cost function in the tiler, or a vocabulary that
-enumerates every (preceding-context, mark) pair — and the second is not a vocabulary any probe in
-the inventory can measure, because the templates supply their own left context.
+That spelling is what PR #9 changes — a terminal orthographic mark becomes its own unmarked run
+between the marked letter runs rather than the last character of the word before it. So this entry
+records a *measured discrepancy* and defers the mechanism, instead of asserting one.
 
 **Where it shows.** Scored against `count_tokens` on external Glot500 text, the languages that
 under-count are Dhivehi −1.31% (v3), Sinhala −0.67% / −0.52%, Ewe −0.44% / −0.38%. On UDHR it is
-28 documents on v3 and 29 on v4.7 — including Evenki (−1.65%), Ditammari (−1.28%) and Assyrian
-Neo-Aramaic (−1.16%), which have sat in the worst-20 list across several campaigns. On FineWeb the
-aggregate sign is negative: a 550-document sample read 75.8% exact at a signed **−304** tokens.
+28 documents on v3 and v4.7 alike, including Evenki (−1.65%), Ditammari (−1.28%) and Assyrian
+Neo-Aramaic (−1.16%).
 
-Mining cannot touch any of it. Adding a piece only ever *lowers* our count.
+What is true regardless of mechanism: **mining cannot fix an under-count**, since adding a piece
+only ever lowers our number. These documents need the spelling settled, not more vocabulary.
 
 ## 2. The case markers have no instrument
 
