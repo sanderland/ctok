@@ -62,7 +62,7 @@ GATES: dict[str, dict] = {
         # its languages by scoring EXTERNAL text against `count_tokens` and mining wherever we
         # over-charged, so UDHR was read once, at the end, to find out whether it had worked.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0011, "within1": 0.965, "exact": 0.575},
+            "v3": {"version": 3.0, "mean": 0.0011, "within1": 0.965, "exact": 0.61},
             "v4.7": {"version": 4.7, "mean": 0.0007, "within1": 0.975, "exact": 0.70},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
@@ -119,12 +119,12 @@ GATES: dict[str, dict] = {
         # have measured luck. Thresholds are compared with a STRICT >, so a perfect corpus cannot
         # be gated at 1.0.
         #
-        # v3's thresholds are re-cut at 18/22 on 2026-08-06. It was ALREADY at 18/22 before the
-        # punctuation campaign — the FineWeb-2/Goldfish campaign had moved it there and left the
-        # floor where 15/22 put it — and the campaign left it exactly there. Recorded that way
-        # rather than as a win: a held-out gate that did not move is the reading, not a footnote.
+        # v3 reaches 22/22 on 2026-08-06, from the 18/22 it had been sitting at. It was NOT moved
+        # by anything aimed at it: the pieces came from line-bisecting FineWeb, FineWeb-2 and
+        # GitHub source, and this corpus was read once at the end. A held-out gate going to exact
+        # on evidence chosen entirely elsewhere is the strongest reading this repo produces.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0004, "within1": 0.95, "exact": 0.75},
+            "v3": {"version": 3.0, "mean": 0.0002, "within1": 0.95, "exact": 0.90},
             "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
             "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
         },
