@@ -172,6 +172,10 @@ class TokenizerModel:
         self.unit_pieces = {c for c in (parse_marked(p) for p in pieces)
                             if len(c) == 1 and c not in MARKER_GLYPHS}
         self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
+        # The byte prefixes alone, without whole-character vocabulary pieces folded into the floor.
+        # Stray combining-mark run heads use this: the same codepoint is a piece inside a letter
+        # run, but is byte-priced where the pretokenizer's letter alternative cannot claim it.
+        self.raw_bytes = ByteFloor(tokens["bytes_fallback"])
         self.vocab, self.max_piece_len = build_vocab(pieces, tokens)
 
         self._char_cost_cache: dict[str, int] = {}

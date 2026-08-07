@@ -39,7 +39,7 @@ from __future__ import annotations
 import copy
 
 from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
-from .normalize import nfc, stream_norm
+from .normalize import nfc, stream_norm, stream_plan
 
 # piece shape -> which position it occupies in a word, and so which templates can ask about it.
 POSITIONS = {(True, True): "word", (True, False): "bow", (False, True): "eow", (False, False): "mid"}
@@ -193,14 +193,27 @@ def _fitness_candidates(model, probe: str, raw: int) -> set[str]:
     norm = nfc(probe, fold_quotes=model.fold_quotes)
     if norm.endswith("\n"):
         return set()                    # fitness rows intentionally avoid frame-tail arithmetic
-    stream = stream_norm(norm, model)
+    stream, floor_positions = stream_plan(norm, model)
     n = len(stream)
+    floor_prefix = [0] * (n + 1)
+    for at in floor_positions:
+        floor_prefix[at + 1] = 1
+    for i in range(n):
+        floor_prefix[i + 1] += floor_prefix[i]
 
     def span_cost(j: int, i: int) -> int | None:
+        if floor_prefix[i] != floor_prefix[j]:
+            if i - j != 1 or j not in floor_positions:
+                return None
+            return model.raw_bytes.cost_char(stream[j])
         if stream[j:i] in model.vocab:
             return 1
         if i - j == 1:
-            return 1 if stream[j] in MARKER_GLYPHS else char_cost(model, stream[j])
+            if stream[j] in MARKER_GLYPHS:
+                return 1
+            if j in floor_positions:
+                return model.raw_bytes.cost_char(stream[j])
+            return char_cost(model, stream[j])
         return None
 
     inf = float("inf")

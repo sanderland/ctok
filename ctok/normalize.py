@@ -237,6 +237,10 @@ def is_terminal_separator(c: str) -> bool:
 
 
 _KILLER = "killer"
+_STRAY_MARK = "stray_mark"
+# Annotation used only while constructing a stream plan. It is removed before the stream reaches
+# the tiler or public API; the corresponding position is forced through the byte floor.
+_FLOOR_G = "\ufdd5"
 
 
 def _stray_mark(c: str) -> bool:
@@ -284,15 +288,19 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
 
     out, cur, cur_cls = [], norm[0], run_class(norm[0])
     if cur_cls == WORDY and _stray_mark(norm[0]):
-        cur_cls = PUNCT               # nothing in front of it at all, so no letter in front of it
+        cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = run_class(ch)
         legacy_killer = is_killer(cur[-1]) and not is_terminal_separator(cur[-1])
-        if c == cur_cls and not legacy_killer:
+        if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
+            # Consecutive unattached marks are one regex-style run. A legacy killer still resets
+            # piece eligibility after itself; the stream plan records that inside the run.
             cur += ch
-        elif c == WORDY and _stray_mark(ch) and cur_cls not in (WORDY, SPACE, _KILLER):
+        elif c == cur_cls and not legacy_killer:
+            cur += ch
+        elif c == WORDY and _stray_mark(ch) and (cur_cls != WORDY or legacy_killer):
             out.append((cur_cls, cur))
-            cur, cur_cls = ch, PUNCT
+            cur, cur_cls = ch, _STRAY_MARK
         else:
             out.append((cur_cls, cur))
             cur, cur_cls = ch, c
@@ -310,10 +318,17 @@ def stream(text: str, model) -> str:
     return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model)
 
 
-def stream_norm(norm: str, model) -> str:
-    """:func:`stream` over already-normalized text. Split out so a document is NFC-folded once and
-    the caller can read the content-final newline run — which ``rstrip`` below drops — off the same
-    string it streams (see ``engine.frame_tail``)."""
+def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
+    """The marked stream plus positions whose character must use the raw byte floor.
+
+    A bare combining-mark piece is measured inside a letter run. The first mark of an unattached
+    mark run is a different pretoken position and does not get to use that word-context piece.
+    ``floor_positions`` carries exactly that distinction without changing the public stream text.
+
+    This is :func:`stream` over already-normalized text. It is split out so a document is NFC-folded
+    once and the caller can read the content-final newline run — which ``rstrip`` below drops — off
+    the same string it streams (see ``engine.frame_tail``).
+    """
     # The frame's tail, for a family whose frame HAS one: `engine.tile` reads the run off the same
     # string before dropping it here. A "free" family is stripped on the raw text instead (see
     # `tile`), so there is nothing left to take off here and taking it would eat a folded NBSP.
@@ -327,7 +342,7 @@ def stream_norm(norm: str, model) -> str:
         norm = norm[1:]
     runs = _runs(norm, model)
     if not runs:
-        return ""
+        return "", frozenset()
     caps = model.allcaps_min
     n_runs = len(runs)
 
@@ -364,7 +379,7 @@ def stream_norm(norm: str, model) -> str:
     first = runs[0]
     head_quote = _opens_word(runs, 0)
     has_own_bow = not head_quote and (
-                   first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
+                   first[0] in (WORDY, PUNCT, _STRAY_MARK) or _is_punct_text(first[1])
                    or _is_symbol_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
@@ -381,6 +396,22 @@ def stream_norm(norm: str, model) -> str:
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
             out.append(pre + bow + n + EOW_G)
+        elif cls == _STRAY_MARK:
+            # A stray-mark pretoken owns an opening boundary even when it is adjacent to a symbol,
+            # digit or punctuation run. A legacy killer at the head instead closes that preceding
+            # run and shares its opening boundary; at the message edge or after whitespace there is
+            # no preceding run to share. The first mark byte-prices, as does every legacy killer in
+            # the run. That rule is stated on the killer itself because NFC canonically reorders
+            # marks: which character follows one in the input is not stable in the marked stream.
+            guarded = ""
+            for j, ch in enumerate(body):
+                if j == 0 or (is_killer(ch) and not is_terminal_separator(ch)):
+                    guarded += _FLOOR_G
+                guarded += ch
+            head_is_legacy_killer = is_killer(body[0]) and not is_terminal_separator(body[0])
+            shares_left_bow = i > 0 and runs[i - 1][0] not in (SPACE, WORDY, _KILLER)
+            bow = "" if head_is_legacy_killer and shares_left_bow else BOW_G
+            out.append(bow + guarded + (EOW_G if borders_space(i, +1) else ""))
         elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
@@ -398,4 +429,21 @@ def stream_norm(norm: str, model) -> str:
             out.append((BOW_G if takes_bow and borders_space(i, -1) else "") + body)
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
-    return SEAM_RE.sub(_seam_sub, "".join(out))
+    annotated = SEAM_RE.sub(_seam_sub, "".join(out))
+    clean, floor_positions = [], set()
+    force_next = False
+    for ch in annotated:
+        if ch == _FLOOR_G:
+            force_next = True
+            continue
+        if force_next:
+            floor_positions.add(len(clean))
+            force_next = False
+        clean.append(ch)
+    assert not force_next
+    return "".join(clean), frozenset(floor_positions)
+
+
+def stream_norm(norm: str, model) -> str:
+    """The public marked stream over normalized text; floor annotations stay internal to tiling."""
+    return stream_plan(norm, model)[0]

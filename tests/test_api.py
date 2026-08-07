@@ -77,6 +77,39 @@ def test_generic_combining_accents_close_the_word_after_the_mark(version: float)
     assert marked_stream("h\u0301b", version) == "⟨bow⟩h́⟨eow⟩⟨bow⟩b⟨eow⟩"
 
 
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_stray_mark_run_head_uses_the_raw_byte_floor(version: float):
+    """A mark piece is word-context vocabulary. At a stray run head the public marked stream is
+    unchanged, but tiling uses raw bytes; later non-killer marks can use their ordinary pieces.
+
+    These content costs are live-measured in both families. The mixed row also covers NFC's
+    canonical reordering: U+0302 U+05B0 streams as U+05B0 U+0302, and both the run head and the
+    legacy killer byte-price.
+    """
+    overhead = _model(_family(version)).message_overhead
+    rows = [
+        ("\u0302", "⟨bow⟩̂", 3),
+        ("\u05b0", "⟨bow⟩ְ", 3),
+        ("\u0302\u0302", "⟨bow⟩̂̂", 5),
+        ("\u05b0\u05b0", "⟨bow⟩ְְ", 4),
+        ("\u0302\u05b0", "⟨bow⟩ְ̂", 5),
+    ]
+    for text, stream, content in rows:
+        assert marked_stream(text, version) == stream
+        assert token_count(text, version) - overhead == content
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: float):
+    """A non-killer stray mark opens its own run after punctuation. A legacy killer shares the
+    punctuation run's opening boundary and then closes it. Both heads still use the byte floor."""
+    overhead = _model(_family(version)).message_overhead
+    assert marked_stream("!\u0302", version) == "⟨bow⟩!̂"
+    assert marked_stream("!\u05b0", version) == "⟨bow⟩!⟨bow⟩ְ"
+    assert token_count("!\u0302", version) - overhead == 3
+    assert token_count("!\u05b0", version) - overhead == 4
+
+
 def test_normalization_is_family_specific():
     # v3 folds the curly quotes to ASCII; v4.7 measured not to.
     assert normalize("don’t", version=3.0) == "don't"

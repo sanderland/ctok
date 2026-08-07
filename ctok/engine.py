@@ -12,7 +12,7 @@ tiles.
 from __future__ import annotations
 
 from .constants import EOW_G, MARKER_GLYPHS
-from .normalize import nfc, stream_norm
+from .normalize import nfc, stream_plan
 from .notation import parse_marked
 
 
@@ -164,11 +164,16 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # of the Rosetta corpus, which is how this was found.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
-    s = stream_norm(norm, model)
+    s, floor_positions = stream_plan(norm, model)
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
+    floor_prefix = [0] * (len(s) + 1)
+    for at in floor_positions:
+        floor_prefix[at + 1] = 1
+    for i in range(len(s)):
+        floor_prefix[i + 1] += floor_prefix[i]
 
     def unit_floor(j: int) -> int:
         """What one character costs where no piece covers it — a marker is a token, anything else
@@ -177,9 +182,18 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # A marker the vocabulary somehow does not hold still costs one token — it is structure, not
         # text, and the byte floor would price its three UTF-8 bytes. The `markers` group means this
         # never fires in practice; it stays as the floor under a file that lost one.
-        return 1 if ch in MARKER_GLYPHS else char_cost(model, ch)
+        if ch in MARKER_GLYPHS:
+            return 1
+        if j in floor_positions:
+            return model.raw_bytes.cost_char(ch)
+        return char_cost(model, ch)
 
     def cost_fn(j: int, i: int) -> int | None:
+        # A forced-floor codepoint is outside the context where ordinary vocabulary pieces were
+        # measured. No piece may span across it; its one-character raw-byte tiling is the only edge
+        # offered to the DP.
+        if floor_prefix[i] != floor_prefix[j]:
+            return unit_floor(j) if i - j == 1 and j in floor_positions else None
         if s[j:i] in pieces:
             return 1
         return unit_floor(j) if i - j == 1 else None
@@ -191,10 +205,12 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]
-        if seg in pieces or unit_floor(j) == 1:
+        if j not in floor_positions and (seg in pieces or unit_floor(j) == 1):
             out.append(seg)
         else:
-            out.extend(model.bytes.chunks(seg.encode()))
+            floor = model.raw_bytes if j in floor_positions else model.bytes
+            chunks = floor.chunks(seg.encode())
+            out.extend(chunks if len(chunks) > 1 else [seg])
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out
