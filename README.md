@@ -85,21 +85,22 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.154% | 0.110% | 313/501 | 97.0% |
-| UDHR | v4.7 | 0.073% | 0.064% | 361/501 | 98.0% |
-| UDHR | v5 | 0.073% | 0.064% | 361/501 | 98.0% |
-| Rosetta Code, held out (250) | v4.7 | 0.002% | 0.002% | 249/250 | 99.6% |
-| Rosetta Code, held out (250) | v5 | 0.002% | 0.002% | 249/250 | 99.6% |
+| UDHR (501 languages) | v3 | 0.147% | 0.107% | 313/501 | 97.0% |
+| UDHR | v4.7 | 0.074% | 0.064% | 363/501 | 98.0% |
+| UDHR | v5 | 0.074% | 0.064% | 363/501 | 98.0% |
+| Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
+| Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
 No document in either family is over 5% error. Fifteen v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
 languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.059% (v3) and 0.032% (v4.7).
+document, the error is 0.058% (v3) and 0.031% (v4.7).
 
 The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
-a combining mark sits on U+25CC DOTTED CIRCLE. That is a question about how the stream spells a mark
-whose base is not a letter, not a missing piece — [LIMITS.md](LIMITS.md) has the measurements and
-says what is still open about it.
+a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
+piece. [LIMITS.md](LIMITS.md) records what is still open, and what a campaign should not bother
+trying: the whole of the remaining error is Brahmic and South-East Asian clusters, and the
+instruments that mine everything else measure those wrong.
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
@@ -127,7 +128,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15297
+len(pieces(4.7))                # 15220
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own

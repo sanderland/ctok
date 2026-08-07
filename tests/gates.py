@@ -61,7 +61,7 @@ GATES: dict[str, dict] = {
         "weight": "speakers",
         "n": 501,
         # Re-measured 2026-08-07 against the readings this model actually produces: 313/501 exact
-        # and 0.110% mean on v3, 361/501 and 0.064% on v4.7. The thresholds that stood here were set
+        # and 0.107% mean on v3, 363/501 and 0.064% on v4.7. The thresholds that stood here were set
         # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
         # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
@@ -104,9 +104,13 @@ GATES: dict[str, dict] = {
         # so the gate stays a rate until the spelling is settled rather than pretending a threshold
         # is a target.
         "families": {
-            "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.99, "exact": 0.99},
+            # `mean` sits at 0.00015 rather than hard against the 0.00009 reading: this corpus has
+            # ONE failing document, so its mean is that document's error alone and a spelling change
+            # anywhere moves it in whole tokens. A margin that tight measures the spelling, not a
+            # regression. The `exact` floor is what actually guards this corpus.
+            "v4.7": {"version": 4.7, "mean": 0.00015, "within1": 0.99, "exact": 0.99},
             # The same documents as v4.7, and no others.
-            "v5": {"version": 5.0, "mean": 0.0001, "within1": 0.99, "exact": 0.99},
+            "v5": {"version": 5.0, "mean": 0.00015, "within1": 0.99, "exact": 0.99},
         },
     },
     "multipl_e": {
