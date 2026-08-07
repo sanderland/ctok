@@ -26,7 +26,7 @@ from ctok.notation import parse_marked
 from ctok.witness import cost, places, position, surface, verify
 
 FILES = sorted({fam.pieces for fam in FAMILIES.values() if fam.pieces})
-GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "context-bound", "special"}
+GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "special"}
 
 
 def _doc(name):
@@ -43,7 +43,9 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     doc = _doc(name)
     # `prefix` is a witness but not a template: a byte prefix is verified by the floor
     # reproducing a character it predicts, not by a probe costing one token.
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix"}
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {
+        "prefix", "ownscript", "fitness"
+    }
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
         for piece, w in entries.items():
@@ -105,8 +107,8 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
-            if w["kind"] == "prefix":
-                continue                     # a byte prefix has no position in a word
+            if w["kind"] in ("prefix", "ownscript", "fitness"):
+                continue                     # these kinds validate placement in their own verifier
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
             # its own — so the glued frame that pins it reads at `mid`. Every other template names
@@ -132,26 +134,22 @@ def test_the_witness_reader_serves_a_borrowing_family():
     assert _family(5.0) == "v5"
 
 
-# Measured 2026-08-05: v3 96.4%, v4.7 91.3%. The floor carries margin so ordinary churn passes,
-# and the thing it exists to catch is a campaign that ships pieces with no evidence behind them —
-# the error gates cannot see that, because an unwitnessed piece counts exactly like a witnessed one.
-WITNESSED_FLOOR = {"v3": 0.95, "v4.7": 0.88}
-
-
 @pytest.mark.parametrize("name", FILES)
-def test_the_vocabulary_stays_backed_by_measurements(name):
-    """What share of each vocabulary has a probe behind it, asserted rather than only reported."""
-    from tests.gates import GAP_KINDS, totals, witness_coverage, witnessed
+def test_every_vocabulary_piece_is_witnessed_or_special(name):
+    """CI's target is literal: every shipped text piece has evidence; only structure is special."""
+    from tests.gates import MISSING, UNRESOLVED
 
-    family = _family_of(name)
-    counts = totals(witness_coverage()[family])
-    total, backed = sum(counts.values()), witnessed(counts)
-    share = backed / total
-    assert share >= WITNESSED_FLOOR[family], (
-        f"{family}: only {backed:,} of {total:,} pieces ({share:.1%}) carry a witness, under the "
-        f"{WITNESSED_FLOOR[family]:.0%} floor — run scripts/witness_pieces.py --live in the mining "
-        f"repo, or lower the floor deliberately. Gaps: "
-        f"{ {k: counts.get(k, 0) for k in GAP_KINDS if counts.get(k)} }")
+    gaps = {group: {kind: [piece for piece, witness in entries.items()
+                           if witness.get("kind") == kind]
+                    for kind in MISSING + UNRESOLVED
+                    if any(witness.get("kind") == kind for witness in entries.values())}
+            for group, entries in _doc(name)["tokens"].items()
+            if any(witness.get("kind") in MISSING + UNRESOLVED
+                   for witness in entries.values())}
+    missing = sum(len(pieces) for kinds in gaps.values() for pieces in kinds.values())
+    assert not missing, (
+        f"{_family_of(name)}: {missing} shipped pieces are neither witnessed nor special: {gaps}. "
+        "Find a witness or remove the piece; lowering a percentage floor is no longer an option.")
 
 
 @pytest.mark.parametrize("name", FILES)
@@ -181,3 +179,9 @@ def test_a_witness_is_readable_without_reading_the_file():
     assert witness("e0a4", 4.7)["kind"] == "prefix"
     with pytest.raises(KeyError):
         witness("this is not a piece", 4.7)
+
+
+def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
+    """The terminal consonant is one measured suffix, not a family of count-equivalent patches."""
+    assert witness("ங⟨eow⟩", 4.7) == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
+    assert {piece for piece in pieces(4.7) if "ங" in piece} == {"ங⟨eow⟩"}

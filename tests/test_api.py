@@ -62,6 +62,21 @@ def test_marked_stream_is_the_one_intermediate():
     assert marked_stream("hello, world") == "⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩"
 
 
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_terminal_marks_stand_outside_word_boundaries(version: float):
+    """A terminal mark is an unmarked separator, not the last character of the left word."""
+    assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
+    assert marked_stream("क्ष", version) == "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩"
+    assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩् ⟨bow⟩ष⟨eow⟩"
+    assert marked_stream("्", version) == "⟨bow⟩्"
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_generic_combining_accents_close_the_word_after_the_mark(version: float):
+    """A Latin accent is a run terminator, not an orthographic separator like a virama."""
+    assert marked_stream("h\u0301b", version) == "⟨bow⟩h́⟨eow⟩⟨bow⟩b⟨eow⟩"
+
+
 def test_normalization_is_family_specific():
     # v3 folds the curly quotes to ASCII; v4.7 measured not to.
     assert normalize("don’t", version=3.0) == "don't"

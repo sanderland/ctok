@@ -256,19 +256,19 @@ def report_vocabulary(markdown: bool = False) -> None:
         bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
                   "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
                   "special": sum(counts.get(k, 0) for k in SPECIAL)}
-        return total, w, (f"{100 * w / total:.1f}%" if total else "n/a"), bucket
+        pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
+        return total, w, pct, bucket
 
     refuted = _breaches(cov, "refuted")
-    bound = _breaches(cov, "context-bound")
 
     if markdown:
         print("\n## Vocabulary and witness coverage\n")
-        print("Every piece carries the probe that pins it at one token "
-              "(`cost = raw − base + 1 − overhead`, and `cost == 1` is membership). See PROBES.md.\n")
+        print("Every piece must be witnessed or structural-special. Token witnesses carry the "
+              "measurements that pin them; specials are reported separately. See PROBES.md.\n")
         for fam, by_group in cov.items():
             total, w, pct, bucket = cells(totals(by_group))
-            print(f"### {fam} — {w:,} of {total:,} witnessed ({pct})\n")
-            print("| group | pieces | witnessed | " + " | ".join(cols) + " |")
+            print(f"### {fam} — {w:,} of {total:,} witnessed or special ({pct})\n")
+            print("| group | pieces | witnessed or special | " + " | ".join(cols) + " |")
             print("|---" * (len(cols) + 3) + "|")
             for g in groups:
                 if g not in by_group:
@@ -284,21 +284,17 @@ def report_vocabulary(markdown: bool = False) -> None:
     print("Vocabulary and witness coverage by group\n")
     for fam, by_group in cov.items():
         total, w, pct, _ = cells(totals(by_group))
-        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed ({pct})")
+        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed or special ({pct})")
         for g in groups:
             if g not in by_group:
                 continue
             total, w, pct, bucket = cells(by_group[g])
             gaps = "  ".join(f"{c}={n:,}" for c, n in bucket.items() if n)
-            print(f"    {g:16} {total:>7,}  witnessed {w:>7,} ({pct:>6})   {gaps}")
+            print(f"    {g:16} {total:>7,}  accounted {w:>7,} ({pct:>6})   {gaps}")
     if refuted:
         print(f"\n  !! {sum(n for *_, n in refuted)} pieces REFUTED by their own probe:")
         for fam, g, n in refuted:
             print(f"       {fam} {g} ({n})   -> scripts/retire_refuted.py --leave-one-out")
-    if bound:
-        print(f"\n  ** {sum(n for *_, n in bound)} pieces have an inconsistent cost:")
-        for fam, g, n in bound:
-            print(f"       {fam} {g} ({n})")
     for line in _borrowers():
         print(f"  {line}")
     print()
@@ -338,20 +334,19 @@ def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
 # MISSING is an absence of evidence: nobody has bought the measurement (`unmeasured`) or no template
 # in the inventory reaches the piece (`no-instrument`). Both are work.
 #
-# UNRESOLVED is a CONFLICT of evidence: the probe prices the piece at more than one token while the
-# corpus gets worse without it (`context-bound`), or the probe refuses it outright and nothing has
-# retired it yet (`refuted`). Both mean a second error is hiding nearby, which is why they are not
-# folded in with the merely unmeasured.
+# UNRESOLVED is a CONFLICT of evidence: the probe refuses a piece outright and nothing has retired
+# it yet (`refuted`). That means a second error is hiding nearby, which is why it is not folded in
+# with the merely unmeasured.
 # Neither evidence nor a gap: a marker atom (`⟨bow⟩`) is not text, so no probe can contain it.
 SPECIAL = ("special",)
 MISSING = ("unmeasured", "no-instrument")
-UNRESOLVED = ("context-bound", "refuted")
+UNRESOLVED = ("refuted",)
 GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
 
 def witnessed(counts: dict[str, int]) -> int:
-    """How many of ``counts`` carry a probe."""
-    return sum(counts.values()) - sum(counts.get(k, 0) for k in GAP_KINDS)
+    """How many of ``counts`` are witnessed text pieces or explicitly structural-special."""
+    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED)
 
 
 def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:

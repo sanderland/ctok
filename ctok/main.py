@@ -148,9 +148,6 @@ class TokenizerModel:
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
-        # Whether a Myanmar killer keeps its run open when the NEXT character is also a Myanmar
-        # killer. Per-family because the families genuinely disagree — see `normalize._runs`.
-        self.myanmar_stacked_killer = meta.get("myanmar_stacked_killer", False)
         # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
         # measured different at BOTH edges, which is why these are family scalars and not constants.
         #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is
