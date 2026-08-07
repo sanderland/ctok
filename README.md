@@ -77,24 +77,29 @@ is 25 HumanEval problems in 22 programming languages. The third is the opposite:
 [Rosetta Code](https://huggingface.co/datasets/christopher/rosetta-code) source in hundreds of
 languages, which varies everything at once.
 
+**Two of the three corpora are finished and have left the table.** Rosetta Code (1,741 documents)
+and MultiPL-E (22 languages) reproduce *every* document exactly, on v3, v4.7 and v5 alike. They are
+still gated — asserted at every document rather than at a rate, so the first regression names the
+file it broke — but a row of zeroes is not a measurement, and keeping one invites reading a finished
+corpus as evidence about an unfinished model. Code is done; what follows is about natural language.
+
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.158% | 0.112% | 282/501 | 97.8% |
-| UDHR | v4.7 | 0.107% | 0.090% | 298/501 | 98.0% |
-| UDHR | v5 | 0.107% | 0.090% | 298/501 | 98.0% |
-| MultiPL-E (22 languages) | v3 | 0.059% | 0.061% | 15/22 | 100% |
-| MultiPL-E | v4.7 | 0.000% | 0.000% | 22/22 | 100% |
-| MultiPL-E | v5 | 0.000% | 0.000% | 22/22 | 100% |
-| Rosetta Code (1,741 docs) | v3 | 0.065% | 0.073% | 1552/1741 | 97.7% |
-| Rosetta Code | v4.7 | 0.000% | 0.000% | 1741/1741 | 100% |
-| Rosetta Code | v5 | 0.000% | 0.000% | 1741/1741 | 100% |
-| Rosetta Code, held out (250) | v4.7 | 0.006% | 0.007% | 249/250 | 99.6% |
-| Rosetta Code, held out (250) | v5 | 0.006% | 0.007% | 249/250 | 99.6% |
+| UDHR (501 languages) | v3 | 0.154% | 0.110% | 313/501 | 97.0% |
+| UDHR | v4.7 | 0.073% | 0.064% | 361/501 | 98.0% |
+| UDHR | v5 | 0.073% | 0.064% | 361/501 | 98.0% |
+| Rosetta Code, held out (250) | v4.7 | 0.002% | 0.002% | 249/250 | 99.6% |
+| Rosetta Code, held out (250) | v5 | 0.002% | 0.002% | 249/250 | 99.6% |
 
-No document in either family is over 5% error. Eleven v3 documents and ten v4.7 ones remain in the
+No document in either family is over 5% error. Fifteen v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
 languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.050% (v3) and 0.067% (v4.7).
+document, the error is 0.059% (v3) and 0.032% (v4.7).
+
+The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
+a combining mark sits on U+25CC DOTTED CIRCLE. That is a question about how the stream spells a mark
+whose base is not a letter, not a missing piece — [LIMITS.md](LIMITS.md) has the measurements and
+says what is still open about it.
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
@@ -103,11 +108,13 @@ and the 250 are drawn from blocks that sample never touched, so the second rate 
 anything the first chose. A piece is accepted on a membership probe either way; the corpus only ever
 decides which candidate gets asked.
 
-No document in either family is now more than 5% off; 15 in each were, before the akshara law (a
-mark that closes its orthographic syllable also closes the word, so a conjunct is two words and
-carries the boundary markers that say so). What is left is vocabulary rather than structure — the
-residual is spread in both directions instead of being a one-sided under-count — and the largest
-remaining piece of it is Brahmic and South-East Asian clusters that have not been mined yet.
+Nothing in either family is over 5% off now; 15 in each were, before the akshara law (a mark that
+closes its orthographic syllable also closes the word, so a conjunct is two words and carries the
+boundary markers that say so). What is left is vocabulary rather than structure — the residual is
+spread in both directions instead of being a one-sided under-count — and the largest remaining piece
+of it is Brahmic and South-East Asian clusters that have not been mined. Measured on FineWeb-2, that
+is the whole of the error: Thai and Tamil reproduce ~5% of documents against 99–100% for English,
+German, Hindi and code, and carry 1.36% of the error mass against everyone else's 0.02%.
 
 ## What each piece rests on
 
@@ -119,8 +126,8 @@ from ctok import witness, pieces
 
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
-witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix'}
-len(pieces(4.7))                # 16413
+witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
+len(pieces(4.7))                # 15297
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -149,14 +156,12 @@ A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word,
 probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
 that probe — and `tests/test_witness.py` runs it over every witness in the file.
 
-Three kinds are gaps in the evidence rather than witnesses, and the file says which:
-
-- `{"kind": "unmeasured"}` — a template applies and nobody has spent the API call yet.
-- `{"kind": "no-instrument"}` — nothing in the inventory reaches this piece. Whitespace runs, bare
-  punctuation and lone combining marks are the bulk of it.
-- `{"kind": "refuted", "refused": [...]}` — its own allowed probe priced it above one token, with
-  the reading kept. Those pieces are still shipped: what removes one is a campaign that re-judges the
-  corpus, not an audit.
+**Every piece in both files now carries one.** 48,557 on v3 and 15,297 on v4.7, with no piece left
+at `unmeasured` (a template applies and nobody spent the API call), `no-instrument` (nothing in the
+inventory reaches it) or `refuted` (its own probe priced it above one token). Four marker atoms are
+`special` — `⟨bow⟩` is not text, so no probe can contain it — and that is the whole of what is not a
+measurement. `tests/gates.py` reports the coverage per group, so a piece added without evidence shows
+up as a gap rather than passing quietly.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.

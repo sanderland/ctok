@@ -45,6 +45,14 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 # Thresholds carry margin so ordinary per-piece churn passes but a real regression trips. ``None``
 # means the metric is reported but not asserted.
+#
+# ``"exact": ALL`` is not a threshold at all — it asserts that EVERY document reproduces, and it is
+# the right gate once a corpus is finished. A fraction, however tight, has to sit strictly below the
+# real rate to leave room for churn, which means it silently permits the first regression it was
+# meant to catch. Nothing to spare is the whole point: a corpus at 100% has one failure mode, and it
+# is any document at all. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
+# error has nothing left for them to measure.
+ALL = "all"
 GATES: dict[str, dict] = {
     "udhr": {
         "title": "UDHR",
@@ -52,17 +60,17 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-08-01, after the akshara law and the cluster re-spelling. The law took the
-        # Brahmic/South-East-Asian under-count out structurally — no document in either family is
-        # over 5% now, where 15 in each were — and the re-spelling took most of what was left. These
-        # are four times tighter than the thresholds that preceded both, and a revert of either
-        # trips every one of them. What remains is unmined vocabulary.
+        # Re-measured 2026-08-07 against the readings this model actually produces: 313/501 exact
+        # and 0.110% mean on v3, 361/501 and 0.064% on v4.7. The thresholds that stood here were set
+        # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
+        # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
+        # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
-            "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.96, "exact": 0.61},
+            "v4.7": {"version": 4.7, "mean": 0.0007, "within1": 0.97, "exact": 0.71},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            "v5": {"version": 5.0, "mean": 0.0007, "within1": 0.97, "exact": 0.71},
         },
     },
     "rosetta": {
@@ -71,14 +79,15 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # Measured 2026-08-01. v4.7 reproduces every document; the floor is set just under so that
-        # a single regressing document trips it. v3 still carries a vocabulary tail.
+        # FINISHED, 2026-08-07: all three families reproduce all 1,741 documents, so the gate is
+        # every document rather than a rate. v3 was the last to close — it carried a vocabulary tail
+        # through the apostrophe and akshara work and reads exact since the terminal-mark spelling.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
-            "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
             # v5 reproduces every document too, once its own frame rules are modelled — the two
             # families differ at the message edges and nowhere else this corpus can see.
-            "v5": {"version": 5.0, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+            "v5": {"version": 5.0, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta_holdout": {
@@ -88,16 +97,16 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # Measured 2026-08-01 at 99.6% exact / 0.006% mass, against 89.6% / 0.096% for the model
-        # shipped before the apostrophe work. v3 has no held-out sample measured yet. The akshara
-        # law moved this by exactly one document, which is all it could move: two of the 250 hold a
-        # killer at all, and one of those two is the document that flipped. `►⟨eow⟩` took the
-        # second, leaving one — a Unicode-notation file where the same marked span costs 3 after a
-        # word boundary and 2 after a symbol's last byte, which no single piece covers.
+        # 249 of 250 since the apostrophe work, against 89.6% for the model before it; v3 has no
+        # held-out sample measured yet. This is the one corpus NOT gated at every document, and the
+        # remaining one is a Swift file of Unicode escapes where a combining mark sits on U+25CC
+        # DOTTED CIRCLE. That is a stream-spelling question, not a missing piece — see LIMITS.md —
+        # so the gate stays a rate until the spelling is settled rather than pretending a threshold
+        # is a target.
         "families": {
-            "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
+            "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.99, "exact": 0.99},
             # The same documents as v4.7, and no others.
-            "v5": {"version": 5.0, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
+            "v5": {"version": 5.0, "mean": 0.0001, "within1": 0.99, "exact": 0.99},
         },
     },
     "multipl_e": {
@@ -106,15 +115,14 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # Measured 2026-08-01. v4.7 reproduces all 22 files exactly since the word-opening
-        # apostrophe, the contraction's word-side anchor and the space-spelled punct duplicates
-        # landed, so ``exact`` is asserted there — it used to be one file, where asserting it would
-        # have measured luck. v3 (15/22) still carries a vocabulary tail. Thresholds are compared
-        # with a STRICT >, so a perfect corpus cannot be gated at 1.0.
+        # FINISHED, 2026-08-07: every family reproduces all 22 files, so the gate is every file.
+        # v4.7 closed first, with the word-opening apostrophe, the contraction's word-side anchor
+        # and the space-spelled punct duplicates; v3 followed on the same vocabulary work that
+        # closed Rosetta for it.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
-            "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
-            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
+            "v5": {"version": 5.0, "mean": None, "within1": None, "exact": ALL},
         },
     },
 }
@@ -172,6 +180,13 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
     assert agg["n"] == cfg["n"], f"[{name}/{family}] corpus size changed: {agg['n']} != {cfg['n']}"
     assert agg["exact"] + agg["under1"] + agg["mid"] + agg["over5"] == agg["n"], "buckets must partition"
     exact, within1 = agg["exact"] / agg["n"], (agg["exact"] + agg["under1"]) / agg["n"]
+    if limits["exact"] is ALL:
+        # Named rather than counted: "3 of 1741 documents regressed" is the report a reader wants,
+        # and an exact-rate percentage rounds the first regression out of sight.
+        bad = [str(r.get("name") or r[cfg["key"]]) for r in agg["rows"] if r["rel"]]
+        assert not bad, (f"[{name}/{family}] {len(bad)} of {agg['n']} documents no longer "
+                         f"reproduce: {', '.join(bad[:8])}{' …' if len(bad) > 8 else ''}")
+        return
     if limits["mean"] is not None:
         assert agg["mean"] < limits["mean"], \
             f"[{name}/{family}] mean |rel err| regressed to {100 * agg['mean']:.3f}%"
