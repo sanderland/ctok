@@ -92,7 +92,27 @@ v3, which looks like a campaign having pushed it past exact. It is not — Tamil
 *before* any cluster piece was mined, and the two numbers are different families, not a before and
 after. The families disagree about Tamil on their own.
 
-## 4. Two UDHR documents have no reachable source
+## 4. Two synthetic templates agreeing is not enough for a combining mark
+
+Both `a{X}a` and `.ヲ{X}ヲ.` supply their own anchor, and for a combining mark that anchor BECOMES
+the mark's base. So the two probes are not independent evidence about a mark — they share the same
+bias, and they can agree on a reading that is wrong in the mark's own script.
+
+Measured: a sweep of all 52,741 BMP characters the v4.7 byte floor charges two or more tokens for
+found 513 that read cheaper on `a{X}a`. The ヲ grid rejected 471 of them, and fifteen survived both
+at exactly one token. Three of those fifteen were Oriya vowel signs — U+0B3E, U+0B3F, U+0B47 — and
+shipping them made real Oriya words count LOW against their recorded values, breaking a run of
+Oriya ablation witnesses that had held before. Both templates had measured the mark sitting on a
+Latin or katakana base, which is not where Oriya puts it.
+
+For a mark, only natural-text ablation decides (`kind: "ownscript"`). The character sweep therefore
+ships non-combining characters only: `µ`, `º`, `ａ` on v4.7 and `ａ` on v3.
+
+The other trap in that sweep is NFC. Nine of the survivors were characters NFC normalizes away —
+U+1F71 GREEK SMALL LETTER ALPHA WITH OXIA becomes U+03AC, U+212A KELVIN SIGN becomes `K`. The probe
+measured the normalized form, so the piece would be one the encoder can never write.
+
+## 5. Two UDHR documents have no reachable source
 
 - **Shipibo-Conibo** (+4.38% v3, +3.14% v4.7 — the worst document in both families) is *not* a
   vocabulary gap, and this is now measured rather than assumed. The PUCP corpus behind
@@ -105,7 +125,7 @@ after. The families disagree about Tamil on their own.
   `lns`, the Wikimedia Incubator has no `Wp/lns`, and SIL's Bloom Library has it behind a gate.
   Without external text there is no way to ask the question without spending the held-out gate.
 
-## 5. Access and scale
+## 6. Access and scale
 
 - **StarCoder is gated.** `bigcode/starcoderdata` and `bigcode/the-stack-dedup` both require
   authentication. The corpus sweep uses `bigcode/the-stack-smol-xs` (same Stack lineage, open) and
