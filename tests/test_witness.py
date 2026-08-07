@@ -134,26 +134,22 @@ def test_the_witness_reader_serves_a_borrowing_family():
     assert _family(5.0) == "v5"
 
 
-# Measured 2026-08-05: v3 96.4%, v4.7 91.3%. The floor carries margin so ordinary churn passes,
-# and the thing it exists to catch is a campaign that ships pieces with no evidence behind them —
-# the error gates cannot see that, because an unwitnessed piece counts exactly like a witnessed one.
-WITNESSED_FLOOR = {"v3": 0.95, "v4.7": 0.88}
-
-
 @pytest.mark.parametrize("name", FILES)
-def test_the_vocabulary_stays_backed_by_measurements(name):
-    """What share of each vocabulary has a probe behind it, asserted rather than only reported."""
-    from tests.gates import GAP_KINDS, totals, witness_coverage, witnessed
+def test_every_vocabulary_piece_is_witnessed_or_special(name):
+    """CI's target is literal: every shipped text piece has evidence; only structure is special."""
+    from tests.gates import MISSING, UNRESOLVED
 
-    family = _family_of(name)
-    counts = totals(witness_coverage()[family])
-    total, backed = sum(counts.values()), witnessed(counts)
-    share = backed / total
-    assert share >= WITNESSED_FLOOR[family], (
-        f"{family}: only {backed:,} of {total:,} pieces ({share:.1%}) carry a witness, under the "
-        f"{WITNESSED_FLOOR[family]:.0%} floor — run scripts/witness_pieces.py --live in the mining "
-        f"repo, or lower the floor deliberately. Gaps: "
-        f"{ {k: counts.get(k, 0) for k in GAP_KINDS if counts.get(k)} }")
+    gaps = {group: {kind: [piece for piece, witness in entries.items()
+                           if witness.get("kind") == kind]
+                    for kind in MISSING + UNRESOLVED
+                    if any(witness.get("kind") == kind for witness in entries.values())}
+            for group, entries in _doc(name)["tokens"].items()
+            if any(witness.get("kind") in MISSING + UNRESOLVED
+                   for witness in entries.values())}
+    missing = sum(len(pieces) for kinds in gaps.values() for pieces in kinds.values())
+    assert not missing, (
+        f"{_family_of(name)}: {missing} shipped pieces are neither witnessed nor special: {gaps}. "
+        "Find a witness or remove the piece; lowering a percentage floor is no longer an option.")
 
 
 @pytest.mark.parametrize("name", FILES)
