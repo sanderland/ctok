@@ -259,7 +259,6 @@ def report_vocabulary(markdown: bool = False) -> None:
         return total, w, (f"{100 * w / total:.1f}%" if total else "n/a"), bucket
 
     refuted = _breaches(cov, "refuted")
-    bound = _breaches(cov, "context-bound")
 
     if markdown:
         print("\n## Vocabulary and witness coverage\n")
@@ -295,10 +294,6 @@ def report_vocabulary(markdown: bool = False) -> None:
         print(f"\n  !! {sum(n for *_, n in refuted)} pieces REFUTED by their own probe:")
         for fam, g, n in refuted:
             print(f"       {fam} {g} ({n})   -> scripts/retire_refuted.py --leave-one-out")
-    if bound:
-        print(f"\n  ** {sum(n for *_, n in bound)} pieces have an inconsistent cost:")
-        for fam, g, n in bound:
-            print(f"       {fam} {g} ({n})")
     for line in _borrowers():
         print(f"  {line}")
     print()
@@ -338,14 +333,13 @@ def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
 # MISSING is an absence of evidence: nobody has bought the measurement (`unmeasured`) or no template
 # in the inventory reaches the piece (`no-instrument`). Both are work.
 #
-# UNRESOLVED is a CONFLICT of evidence: the probe prices the piece at more than one token while the
-# corpus gets worse without it (`context-bound`), or the probe refuses it outright and nothing has
-# retired it yet (`refuted`). Both mean a second error is hiding nearby, which is why they are not
-# folded in with the merely unmeasured.
+# UNRESOLVED is a CONFLICT of evidence: the probe refuses a piece outright and nothing has retired
+# it yet (`refuted`). That means a second error is hiding nearby, which is why it is not folded in
+# with the merely unmeasured.
 # Neither evidence nor a gap: a marker atom (`⟨bow⟩`) is not text, so no probe can contain it.
 SPECIAL = ("special",)
 MISSING = ("unmeasured", "no-instrument")
-UNRESOLVED = ("context-bound", "refuted")
+UNRESOLVED = ("refuted",)
 GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
 

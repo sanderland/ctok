@@ -26,7 +26,7 @@ from ctok.notation import parse_marked
 from ctok.witness import cost, places, position, surface, verify
 
 FILES = sorted({fam.pieces for fam in FAMILIES.values() if fam.pieces})
-GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "context-bound", "special"}
+GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "special"}
 
 
 def _doc(name):
