@@ -239,51 +239,29 @@ def is_terminal_separator(c: str) -> bool:
 _KILLER = "killer"
 
 
-def _rides(c: str, model) -> bool:
-    """A combining mark that stays with the character before it rather than opening a run.
+def _stray_mark(c: str) -> bool:
+    r"""A combining mark, asked at a position where nothing before it can be its base.
 
-    Measured on the ``base`` × ``context`` grid (v4.7, 2026-08-07): adding U+0302 after `1`, `·`,
-    `◌`, `€`, `文`, `½`, `😀`, `!`, `~` costs the oracle exactly **two** tokens in every framing —
-    alone, `x{}x`, `a{}b`, `[{}]`, doubled — where a mark opening its own ⟨bow⟩…⟨eow⟩ run costs
-    three. Two is the mark plus ONE marker, and the marker is the ⟨eow⟩ the mark's presence puts on
-    the end of the base's run: `x◌̂x` = `⟨bow⟩x⟨eow⟩` + `◌̂⟨eow⟩` + `⟨bow⟩x⟨eow⟩` reproduces 17,
-    which no spelling that also writes a ⟨bow⟩ can.
+    The letter alternative in a pretokenizer regex is conventionally ``\p{L}\p{M}*`` — a letter and
+    the marks that hang off it — not ``\p{L}+``. Read literally, that alternative cannot match a
+    mark with no letter in front of it, so such a mark is left to the catch-all class
+    ``[^\s\p{L}\p{N}]+`` along with the punctuation and symbols. That is the whole rule, and it
+    fires only where a mark's base is not a letter: after a symbol, a digit, punctuation, an
+    ideograph, an emoji, or at the very start of the text.
 
-    Terminal separators are excluded — those stand outside the word by the akshara law and are the
-    one population measured NOT to ride (see :func:`is_terminal_separator`).
+    Measured against the alternatives on the corpora (v4.7 / v3 UDHR mean, 2026-08-07):
 
-    An ASTRAL mark is excluded too, and by the same measurement rather than by fiat: it classifies
-    HARD, so it is already inside its base's run and there is no boundary for it to cross. Writing
-    the ⟨eow⟩ anyway costs Chakma 75 tokens and Adlam 124 on UDHR — the two documents in the corpus
-    that are written in an astral script with its own marks.
+        this rule                                       0.0643% / 0.1094%   362 / 314 exact
+        a mark opens a word of its own (what preceded)  0.0644% / 0.1096%   361 / 313
+        a mark is an unmarked separator                 0.1403% / 0.1932%   361 / 315
+        a mark is NOT in the letter class at all        1.5416% / 1.5842%   329 / 293
 
-    **Only a mark the vocabulary holds WHOLE rides.** This is the one place a stream rule consults
-    the vocabulary, and it is not a preference: on the same grid, the 258 marks the byte floor has
-    to spell out keep both of their own markers, and riding them under-counts every one of them by
-    exactly one. A mark that is a token joins its base; a mark that is a string of bytes does not.
-    Why the two differ is not settled — LIMITS.md carries the open reading — but which do is
-    measured over all 1,307 marks, on six base classes each.
+    The last row is the same idea with ``\p{M}`` simply dropped rather than tied to a preceding
+    letter, and it is off by a factor of 24: marks manifestly ARE letters when they follow one, and
+    treating them as punctuation shatters every accented word. The distinction this predicate draws
+    is the only one the corpora support.
     """
-    if not c or is_terminal_separator(c) or classify(c) != WORDY or c not in model.unit_pieces:
-        return False
-    # Unicode's FIXED POSITION classes, 10..199: the Hebrew points, the Arabic harakat, the Syriac,
-    # Thai, Lao and Tibetan vowel signs. Those are script-internal — they order against their own
-    # script's other marks rather than attaching to whatever precedes — and they are the whole of
-    # what riding gets wrong: seventeen marks, every one of them in this band, under-count by one on
-    # every foreign base. Class 1 (the overlays) and 200+ (attached, above, below — the generic
-    # diacritics) ride; class 0 is not a mark's attachment at all and does not.
-    ccc = unicodedata.combining(c)
-    return ccc == 1 or ccc >= 200
-
-
-def _core(body: str, model) -> str:
-    """A run's body with the ridden marks taken off, for the class predicates below.
-
-    `_is_punct_text('!̂')` is False and must not be: the run is still the punctuation run it was,
-    and it takes punctuation's markers. Only the trailing ⟨eow⟩ is new.
-    """
-    stripped = body.rstrip("".join(c for c in set(body) if _rides(c, model)))
-    return stripped or body
+    return unicodedata.combining(c) != 0 and not is_terminal_separator(c)
 
 
 def _runs(norm: str, model) -> list[tuple[str, str]]:
@@ -305,13 +283,16 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         return _KILLER if is_terminal_separator(ch) else classify(ch)
 
     out, cur, cur_cls = [], norm[0], run_class(norm[0])
+    if cur_cls == WORDY and _stray_mark(norm[0]):
+        cur_cls = PUNCT               # nothing in front of it at all, so no letter in front of it
     for ch in norm[1:]:
         c = run_class(ch)
         legacy_killer = is_killer(cur[-1]) and not is_terminal_separator(cur[-1])
         if c == cur_cls and not legacy_killer:
             cur += ch
-        elif _rides(ch, model) and cur_cls not in (SPACE, _KILLER) and not legacy_killer:
-            cur += ch                   # the mark rides its base, whatever class the base is
+        elif c == WORDY and _stray_mark(ch) and cur_cls not in (WORDY, SPACE, _KILLER):
+            out.append((cur_cls, cur))
+            cur, cur_cls = ch, PUNCT
         else:
             out.append((cur_cls, cur))
             cur, cur_cls = ch, c
@@ -383,17 +364,14 @@ def stream_norm(norm: str, model) -> str:
     first = runs[0]
     head_quote = _opens_word(runs, 0)
     has_own_bow = not head_quote and (
-                   first[0] in (WORDY, PUNCT) or _is_punct_text(_core(first[1], model))
-                   or _is_symbol_text(_core(first[1], model))
-                   or (first[0] in (DIGIT, HARD) and _nonascii_digits(_core(first[1], model)))
+                   first[0] in (WORDY, PUNCT) or _is_punct_text(first[1])
+                   or _is_symbol_text(first[1])
+                   or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
     # message pays for no marker, which is exactly where v5 counts one token under v4.7.
     out = [] if has_own_bow or not model.frame_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
-        # A ridden mark closes the run it rides, whatever that run's own markers are.
-        rides = cls != WORDY and _rides(body[-1:], model)
-        core = _core(body, model) if rides else body
         if cls == WORDY:
             # A wordy span is flanked on both sides, always — except where a contraction apostrophe
             # is already its opening boundary (see `_contraction_seam`).
@@ -403,24 +381,21 @@ def stream_norm(norm: str, model) -> str:
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
             out.append(pre + bow + n + EOW_G)
-        elif cls == PUNCT or _is_punct_text(core) or _is_symbol_text(core):
+        elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.
             takes_bow = borders_space(i, -1) and not _opens_word(runs, i)
             out.append((BOW_G if takes_bow else "") + body
-                       + (EOW_G if rides or borders_space(i, +1) else ""))
-        elif (_is_nd_run(core) or _is_no_run(core)) and cls in (DIGIT, HARD):
+                       + (EOW_G if borders_space(i, +1) else ""))
+        elif (_is_nd_run(body) or _is_no_run(body)) and cls in (DIGIT, HARD):
             # A digit run takes a leading ⟨bow⟩ when it borders a space — the same rule punct has.
             # The population is measured: every non-ASCII Nd run at any space border, every No run
             # (see `_is_no_run`), plus an ASCII run only against a non-ASCII digit neighbour across
             # the space. No ⟨eow⟩ is ever written, since the message end is not a space.
-            takes_bow = _nonascii_digits(core) or (
+            takes_bow = _nonascii_digits(body) or (
                 i >= 2 and _nonascii_digits(runs[i - 2][1]) and runs[i - 2][0] in (DIGIT, HARD))
-            out.append((BOW_G if takes_bow and borders_space(i, -1) else "") + body
-                       + (EOW_G if rides else ""))
+            out.append((BOW_G if takes_bow and borders_space(i, -1) else "") + body)
         else:
-            # HARD letter scripts and whitespace: no markers of their own, but a ridden mark still
-            # closes the run.
-            out.append(body + (EOW_G if rides else ""))
+            out.append(body)                      # HARD letter scripts and whitespace: no markers
     return SEAM_RE.sub(_seam_sub, "".join(out))
