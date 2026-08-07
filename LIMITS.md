@@ -38,10 +38,38 @@ with the seven      over-charge 10,200   under-count 12,253   total |err| 22,453
 They remove 7,528 tokens of over-charge and introduce 8,469 tokens of under-count. Every one is
 individually well-witnessed and the batch is a net loss. They were discarded.
 
-The cause is the one §3 names: `.ヲXヲ.` supplies a katakana anchor that becomes the cluster's base,
-and Thai does not put it there. A piece measured on that scaffold is measured in a context the
-script never produces. **Cluster mining needs an instrument that is not a synthetic anchor** — an
-ablation in running text of the cluster's own script — before any of it can be trusted.
+The obvious reading is that the scaffold is at fault: `.ヲXヲ.` supplies a katakana anchor that
+becomes the cluster's base, and Thai does not put it there. So the campaign was re-run with the
+scaffold removed entirely.
+
+**The own-script instrument fails harder.** `witness._fitness_candidates` needs no anchor at all: it
+takes a Thai line and its recorded count and enumerates, from the tiling DP, every single piece
+whose addition would make that line reproduce. The probe is the Thai. Requiring at least two
+independent lines to agree on exactly one piece — `_verify_fitness`, the strictest test in the
+repo — yields 175 pieces from 1,200 lines. On 17,962 lines of FineWeb-2 Thai and Tamil:
+
+| vocabulary | over-charge | under-count | total \|err\| | exact |
+|---|---:|---:|---:|---:|
+| shipped | 17,620 | 3,778 | 21,398 | 8,927 |
+| + 99 own-script pieces (≤2 chars) | 10,108 | 85,759 | 95,867 | 6,415 |
+| + 175 own-script pieces | 10,057 | **139,735** | 149,792 | 6,167 |
+| + 7 ヲ-grid pieces | 10,200 | 12,253 | 22,453 | — |
+
+**Read the over-charge column.** Three unrelated instruments — a katakana scaffold, an own-script
+fitness proof, and a length-restricted subset of the same — all stop at ≈10,100 and cannot go
+below it, while the under-count they create ranges over an order of magnitude. A missing-vocabulary
+residual does not behave like that: the right pieces would drive over-charge toward zero without
+manufacturing under-count. A piece that fixes one line and breaks thirty is not a piece the
+tokenizer has; it is a patch over a tiling that is wrong somewhere else.
+
+So the conclusion is the opposite of where this started. **Thai's residual is structural, not
+lexical**, and roughly 10,000 of the 17,620 tokens of over-charge on this corpus are reachable by
+vocabulary while the rest is not. Mining it is not merely difficult with the current instruments —
+it is the wrong tool, and every instrument built so far says so by hitting the same floor.
+
+The corollary is worth stating because it is tempting and wrong: *"every piece is witnessed, so a
+document we over-charge must be missing a piece"* holds only if the structure is right. Witness
+coverage certifies the vocabulary, not the encoder. Where the two disagree, this is how it shows.
 
 ## 2. An under-count cannot be mined away
 
