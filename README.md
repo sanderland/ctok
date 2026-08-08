@@ -85,9 +85,9 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.142% | 0.104% | 313/501 | 97.0% |
-| UDHR | v4.7 | 0.058% | 0.047% | 406/501 | 98.0% |
-| UDHR | v5 | 0.058% | 0.047% | 406/501 | 98.0% |
+| UDHR (501 languages) | v3 | 0.137% | 0.102% | 314/501 | 97.0% |
+| UDHR | v4.7 | 0.055% | 0.046% | 407/501 | 98.0% |
+| UDHR | v5 | 0.055% | 0.046% | 407/501 | 98.0% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
@@ -125,7 +125,7 @@ from 38/42 rows exact to 98/97, seven tokens of absolute error across all 200. W
 below it is ordinary missing vocabulary, and that is being mined a language at a time. Azerbaijani,
 Catalan, Lombard, Romanian, Ossetian and Abkhaz went from 79.9% of rows exact to 91.9% on 45 pieces
 — Catalan `-ància`/`-ències` suffixes, Romanian stems, and the Azerbaijani schwa bigram `ən` alone
-repairing 296 words. UDHR, which chose none of them, moved 365 → 406 documents exact in step.
+repairing 296 words. UDHR, which chose none of them, moved 365 → 407 documents exact in step.
 Bengali and Assamese are the largest pools still untouched.
 
 LIMITS.md records what the instruments can and cannot prove, including two pieces this campaign had

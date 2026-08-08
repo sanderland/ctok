@@ -94,7 +94,7 @@ thing.
 
 ```
 14,000 Goldfish rows, 14 languages    exact 79.9% -> 91.9%    error mass 5,122 -> 2,047
-UDHR (held out, chose nothing here)   exact 365/501 -> 406/501
+UDHR (held out, chose nothing here)   exact 365/501 -> 407/501
 ```
 
 Per language, rows exact out of 1,000: `aze_latn` 457 → 993, `azj_latn` 700 → 1,000, `aze_cyrl`
