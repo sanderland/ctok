@@ -122,7 +122,7 @@ all under-count.
 
 Syriac was structural and is now implemented: its mark-run law took two independent 100-row samples
 from 38/42 rows exact to 98/97, seven tokens of absolute error across all 200. What the sweep ranked
-below it is ordinary missing vocabulary, and that is being mined a language at a time: **33
+below it is ordinary missing vocabulary, and that is being mined a language at a time: **35
 languages, 35,000 rows, 88.1% of rows exact to 95.6% on 100 pieces**, with eight of them now
 reproducing 999 or 1,000 rows out of 1,000. The pieces are unremarkable — Catalan `-ància`/`-ències`
 suffixes, Czech and Hungarian stems, and the Azerbaijani schwa bigram `ən`, which repairs 296 words
@@ -173,12 +173,26 @@ A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word,
 probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
 that probe — and `tests/test_witness.py` runs it over every witness in the file.
 
-**Every piece in both files now carries one.** 48,472 on v3 and 15,288 on v4.7, with no piece left
-at `unmeasured` (a template applies and nobody spent the API call), `no-instrument` (nothing in the
-inventory reaches it) or `refuted` (its own probe priced it above one token). Four marker atoms are
-`special` — `⟨bow⟩` is not text, so no probe can contain it — and that is the whole of what is not a
-measurement. `tests/gates.py` reports the coverage per group, so a piece added without evidence shows
-up as a gap rather than passing quietly.
+**Every piece in both files carries evidence, but not all of it is a template.** No piece is left at
+`unmeasured` (a template applies and nobody spent the API call), `no-instrument` (nothing in the
+inventory reaches it) or `refuted` (its own probe priced it above one token), and four marker atoms
+are `special` because `⟨bow⟩` is not text. That leaves two tiers, and `tests/gates.py` reports them
+apart:
+
+| | on a fixed template | argued from natural text |
+|---|---:|---:|
+| v3 | 47,814 (98.64%) | 658 |
+| v4.7 | 14,746 (96.45%) | 542 |
+
+A template witness cannot be shaped to its piece: the probe string lives in `meta.witness.templates`,
+`verify` requires the recorded probe to be *that* template applied to *this* piece, and the
+arithmetic has to land on one token. The `ownscript` and `fitness` kinds are weaker — bespoke
+per-piece arguments over natural text, an ablation delta or an intersection of tiling candidates,
+each true only relative to the rest of the vocabulary rather than to the oracle alone. Asked on the
+approved template their own marked form selects, **430 of the 1,094 that a template can reach are
+refuted by it**. They are still counted, because the corpora say many are load-bearing — deleting
+v3's 287 costs 27,000 tokens of error across 9,000 Brahmic rows — but they are not the headline
+number. [LIMITS.md](LIMITS.md) §6 has the grid.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.

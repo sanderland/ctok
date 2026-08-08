@@ -299,33 +299,57 @@ A related trap in the same family: `a{X}a` and `.ヲXヲ.` both supply their own
 combining mark that anchor BECOMES the mark's base. They are not independent evidence — they share
 one bias and can agree on a reading that is wrong in the mark's own script.
 
-## 6. An ablation witness expires when the vocabulary grows, and can certify a piece that is not one
+## 6. An ablation witness makes two claims, and only one of them can expire
 
-An `ownscript` witness says: delete this piece, and a real word of its own script costs one token
-more. That is a sound argument only *relative to the rest of the vocabulary at the moment it is
-measured*. If the piece the encoder actually uses is missing, deleting a longer composite of it
-raises the count in exactly the same way — and the composite is recorded as a token it never was.
-
-**Measured 2026-08-08.** Buying `ià⟨eow⟩` and `ən` on Catalan and Azerbaijani invalidated two
-witnesses already in the file, and `tests/test_witness.py` caught both. Neither was merely stale:
+`_verify_ownscript` asserts two different things, and conflating them wastes a real signal:
 
 ```
-xià⟨eow⟩   ownscript 'xià'    13 vs 14      direct probe '.ヲxià.'   cost 2   REFUTED
-nə         ownscript 'ənənə'  15 vs 16      direct probe '.ヲnəヲ.'   cost 2   REFUTED
+with_n    == raw        the shipped vocabulary reproduces a RECORDED count_tokens value
+without_n == raw + 1    deleting this piece costs exactly one token
 ```
 
-Both were retracted. `xià⟨eow⟩` was never a token; `ià⟨eow⟩` is, and it explains the same evidence.
-The consequence for method: **an ablation witness is evidence about a vocabulary, not about the
-tokenizer**, and it must be re-run — not merely re-read — whenever pieces are added near it. The
-synthetic templates do not have this property, because they measure the span alone.
+The second is vocabulary-relative. It says the piece is *needed* by the model as it stands, which is
+not the same as saying the piece is a token: if the piece the encoder actually uses is missing,
+deleting a longer composite of it raises the count identically, and the composite gets recorded as a
+token it never was. Adding the real piece then makes the composite redundant and the claim lapses.
+**That failure means the instrument expired, not that anything is wrong.**
 
-A later Thai piece did the same thing on a larger scale. `ิน` is real (`.ヲินヲ.` prices it at one),
-and buying it invalidated **thirty** Thai ablation witnesses at once, each of which their own direct
-probe then priced at two, three or four tokens. Removing all thirty raised Thai from 511 to 520 rows
-exact out of 1,000 and cut its under-count from 130 to 96 — the signature of pieces that were making
-the tiler cheaper than the tokenizer — so those were retracted too. Retracting one changes the
-baseline for the next, so this has to run to a fixed point rather than once: `reaudit.py` sweeps
-until no witness is stale.
+The first is not relative to anything. `raw` is an oracle reading, fixed at the moment it was
+measured and true forever. When adding a piece breaks *that* check, the model has started counting
+a real message **below** what `count_tokens` returned for it, and something in the vocabulary is
+false. That failure is a defect report.
+
+**Measured 2026-08-08.** Both kinds occurred, and the arithmetic distinguishes them at a glance —
+the message names the check:
+
+```
+xià⟨eow⟩  "ablating the piece counts 'xià' at 13, not recorded 14"        <- expired
+งท        "the shipped vocabulary counts 'ของ…ได้' at 25, not recorded 26" <- defect
+```
+
+`xià⟨eow⟩` and `nə` lapsed against `ià⟨eow⟩` and `ən`; their own templates then priced them at two
+tokens, so both were retracted. `ิน` — real, `.ヲินヲ.` prices it at one — invalidated **thirty** Thai
+witnesses, and there the split was **17 defects, 8 expirations and 5 exposed only after the others
+went**. Seventeen recorded oracle counts that the vocabulary had begun to under-count is a much
+stronger statement than thirty stale instruments, and it is the one that justified acting.
+
+All thirty were priced at two to four tokens by their own direct probes, and the corpus agrees on
+1,000 Thai rows — every state measured, not just the one that was convenient:
+
+| | rows exact | over | under | abs |
+|---|---:|---:|---:|---:|
+| neither `ิน` nor the thirty | 506 | 602 | 86 | 688 |
+| the thirty, no `ิน` (as shipped) | 499 | 564 | 126 | 690 |
+| both | 511 | 521 | 130 | 651 |
+| **`ิน`, without the thirty** | **524** | **549** | **89** | **638** |
+
+Each change helps on its own and they are best together, so the thirty were retracted. Retracting
+one moves the baseline for the next — hence the five that only surfaced later — so `reaudit.py`
+sweeps to a fixed point rather than running once.
+
+The method consequence stands, narrowed: **an ablation witness must be re-run, not re-read**, and
+when it fails, read *which* of its two claims failed before deciding what that means. The synthetic
+templates carry only the first claim, which is why they do not go stale.
 
 ### The audit that follows from it, and why it did not end in deletions
 

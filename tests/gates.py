@@ -306,8 +306,11 @@ def report_vocabulary(markdown: bool = False) -> None:
 
     print("Vocabulary and witness coverage by group\n")
     for fam, by_group in cov.items():
-        total, w, pct, _ = cells(totals(by_group))
-        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed or special ({pct})")
+        tot = totals(by_group)
+        total, w, pct, _ = cells(tot)
+        argued = sum(tot.get(k, 0) for k in ARGUED)
+        print(f"  [{fam}] {w:,} of {total:,} pieces on a fixed template or special ({pct})"
+              + (f", plus {argued:,} argued from natural text (see LIMITS.md §6)" if argued else ""))
         for g in groups:
             if g not in by_group:
                 continue
@@ -366,10 +369,27 @@ MISSING = ("unmeasured", "no-instrument")
 UNRESOLVED = ("refuted",)
 GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
+# ARGUED is weaker than a witness and is reported apart from one.
+#
+# A template witness is a FIXED probe: `meta.witness.templates` holds the string, `verify` requires
+# the probe to be that template applied to this exact piece, and the arithmetic lands on one token.
+# There is nothing per-piece to choose, so a template witness cannot be shaped to fit its piece.
+#
+# `ownscript` and `fitness` are not that. Both are bespoke, per-piece arguments over natural text —
+# an ablation delta or an intersection of tiling candidates — and both are relative to the rest of
+# the vocabulary rather than to the oracle alone. Measured 2026-08-08 by asking every one of them on
+# the approved template its own marked form selects: **430 of the 1,094 that a template CAN reach
+# are refuted by it** (287 of 606 on v3, 143 of 488 on v4.7). A kind that fails its own cross-check
+# two times in five does not belong in the same column as one that cannot.
+#
+# They are not folded into MISSING either — the corpora say many of those pieces are load-bearing
+# (LIMITS.md §6) — so they are counted, named, and kept out of the headline number.
+ARGUED = ("ownscript", "fitness")
+
 
 def witnessed(counts: dict[str, int]) -> int:
-    """How many of ``counts`` are witnessed text pieces or explicitly structural-special."""
-    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED)
+    """Pieces resting on a fixed approved template, plus the structural-special marker atoms."""
+    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED + ARGUED)
 
 
 def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:
