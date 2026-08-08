@@ -7,7 +7,7 @@ a reader who hits one of these does not think it is new.
 Everything here is a measurement with the probe that produced it. Nothing here is a guess about what
 the tokenizer "probably" does.
 
-## 1. Brahmic and South-East Asian clusters are the whole remaining error, and mining them makes it worse
+## 1. Unconstrained Brahmic/SEA fragment mining manufactures pieces
 
 Replayed against recorded counts on external corpora (FineWeb, FineWeb-2, the Stack, github-code —
 none of them gates), documents reproducing exactly, v4.7:
@@ -55,17 +55,21 @@ repo — yields 175 pieces from 1,200 lines. On 17,962 lines of FineWeb-2 Thai a
 | + 175 own-script pieces | 10,057 | **139,735** | 149,792 | 6,167 |
 | + 7 ヲ-grid pieces | 10,200 | 12,253 | 22,453 | — |
 
-**Read the over-charge column.** Three unrelated instruments — a katakana scaffold, an own-script
-fitness proof, and a length-restricted subset of the same — all stop at ≈10,100 and cannot go
-below it, while the under-count they create ranges over an order of magnitude. A missing-vocabulary
-residual does not behave like that: the right pieces would drive over-charge toward zero without
-manufacturing under-count. A piece that fixes one line and breaks thirty is not a piece the
-tokenizer has; it is a patch over a tiling that is wrong somewhere else.
+**Correction, 2026-08-08.** The inference from that batch to “the residual is structural” was too
+strong. A candidate being one of the equal-cost explanations of two long lines is not a membership
+proof, and judging 175 such candidates as one set hides genuine pieces among the false ones. A
+candidate-by-candidate court exposed two ordinary Tamil suffix pieces at the virama/punctuation
+seam: `்,⟨eow⟩` and `்.⟨eow⟩`. Six consonant bases, three placements and both families agree; the
+parallel `? ! ; :` candidates are directly refuted. On the cached Thai/Tamil line set the two pieces
+move v4.7 from 529/906 to 744/906 exact and total absolute error from 720 to 292; v3 moves 265/680 to
+325/680 and 1,071 to 700. Some formerly exact lines become nonexact because this real token exposes
+an independent under-count that the missing token had masked.
 
-So the conclusion is the opposite of where this started. **Thai's residual is structural, not
-lexical**, and roughly 10,000 of the 17,620 tokens of over-charge on this corpus are reachable by
-vocabulary while the rest is not. Mining it is not merely difficult with the current instruments —
-it is the wrong tool, and every instrument built so far says so by hitting the same floor.
+What the failed 175-piece batch establishes is narrower: **fitness on long natural text proposes a
+piece but does not prove it**. A candidate still needs a minimal own-script grid and an individual
+corpus court. Thai remains open after that stricter pass: the highest-scoring post-correction
+candidate, `ึ⟨eow⟩้`, is refuted by a six-consonant grid whose rows are already exact without it.
+There is not yet evidence that the remaining Thai residual is structural rather than lexical.
 
 The corollary is worth stating because it is tempting and wrong: *"every piece is witnessed, so a
 document we over-charge must be missing a piece"* holds only if the structure is right. Witness

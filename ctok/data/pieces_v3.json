@@ -12559,6 +12559,8 @@
    "ோற": {"probe": "ஆண்டுதோறும்", "raw": 19, "without": 20, "kind": "ownscript"},
    "்": {"kind": "ownscript", "probe": "்", "raw": 9, "without": 10, "corroborating": [{"probe": "ம்", "raw": 10, "without": 11}, {"probe": "ல்", "raw": 10, "without": 11}]},
    "் ": {"kind": "ownscript", "probe": ". ” — சங் .", "raw": 14, "without": 15, "corroborating": [{"probe": "ஆண்: அக்டோபர் காற்று", "raw": 25, "without": 26}, {"probe": "\". . தலைவர்கள் விளாசல்", "raw": 25, "without": 26}]},
+   "்,⟨eow⟩": {"kind": "ownscript", "probe": "க், அ", "raw": 11, "without": 12, "corroborating": [{"probe": "த், அ", "raw": 11, "without": 12}, {"probe": "அக், அ", "raw": 12, "without": 13}]},
+   "்.⟨eow⟩": {"kind": "ownscript", "probe": "க். அ", "raw": 11, "without": 12, "corroborating": [{"probe": "த். அ", "raw": 11, "without": 12}, {"probe": "அக். அ", "raw": 12, "without": 13}]},
    "ం": {"kind": "ownscript", "probe": "అంశం", "raw": 11, "without": 12, "corroborating": [{"probe": "అంగం", "raw": 11, "without": 12}, {"probe": "భంగం", "raw": 11, "without": 12}]},
    "ండ": {"kind": "ownscript", "probe": "ండ", "raw": 10, "without": 11, "corroborating": [{"probe": "కుండ", "raw": 11, "without": 12}, {"probe": "బోరబండ", "raw": 13, "without": 14}]},
    "ంద": {"kind": "ownscript", "probe": "ందీలో", "raw": 12, "without": 13, "corroborating": [{"probe": "ందువలన,", "raw": 13, "without": 14}, {"probe": "ందుకని,", "raw": 13, "without": 14}]},
