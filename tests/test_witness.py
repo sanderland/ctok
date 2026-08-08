@@ -22,6 +22,7 @@ from importlib.resources import files
 import pytest
 
 from ctok.main import FAMILIES, _family, _model, pieces, witness
+from ctok.constants import MARKER_GLYPHS
 from ctok.notation import parse_marked
 from ctok.witness import cost, places, position, surface, verify
 
@@ -188,3 +189,27 @@ def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
     """The terminal consonant is one measured suffix, not a family of count-equivalent patches."""
     assert witness("ங⟨eow⟩", 4.7) == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
     assert {piece for piece in pieces(4.7) if "ங" in piece} == {"ங⟨eow⟩"}
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_no_piece_mixes_whitespace_with_other_material(name):
+    """A space, tab or newline is either the WHOLE piece or not in it.
+
+    Whitespace does not sit inside a token here: the stream absorbs a seam space into the following
+    ``⟨bow⟩`` and spells anything it cannot absorb as its own run, which is why there is a
+    ``whitespace`` group at all. A piece holding a letter and a space is therefore not a token that
+    was measured; it is a modelling device standing in for an absorption the stream failed to
+    perform, and it prices correctly only while the material after it happens to open a word.
+
+    Five such pieces shipped — a virama glued to a space, in Devanagari, Tamil, Malayalam, Sinhala
+    and Myanmar. They carried most of those languages' accuracy AND all of their under-count, and
+    their witness could not tell ``्`` from ``् ``: the probe ``.ᛒ् ᛒ.`` reads the same as
+    ``.ᛒ्ᛒ.``, because a following letter absorbs the space and it costs nothing. See LIMITS.md §7.
+    """
+    doc = _doc(name)
+    bad = [piece for entries in doc["tokens"].values() for piece in entries
+           if (body := "".join(c for c in piece if c not in MARKER_GLYPHS))
+           and any(c.isspace() for c in body) and not all(c.isspace() for c in body)]
+    assert not bad, (f"{_family_of(name)}: {len(bad)} pieces mix whitespace with other material: "
+                     f"{bad}. Whitespace is its own run — a piece like this is compensating for a "
+                     f"stream rule that is missing.")

@@ -85,9 +85,9 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.261% | 0.169% | 310/501 | 96.0% |
-| UDHR | v4.7 | 0.116% | 0.086% | 439/501 | 97.4% |
-| UDHR | v5 | 0.116% | 0.086% | 439/501 | 97.4% |
+| UDHR (501 languages) | v3 | 0.313% | 0.204% | 307/501 | 95.4% |
+| UDHR | v4.7 | 0.163% | 0.120% | 430/501 | 96.4% |
+| UDHR | v5 | 0.163% | 0.120% | 430/501 | 96.4% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
@@ -144,7 +144,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15145
+len(pieces(4.7))                # 15140
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -200,10 +200,16 @@ Asked on a fixed template, every `ownscript` record then resolved:
 | v4.7 | 372 | 148 |
 
 The 439 retired are pieces the vocabulary claimed as one token and whose own probe priced at two or
-more. They are gone rather than kept, and that **costs real accuracy** — UDHR falls from 448/501 to
-439 on v4.7 and 314 to 310 on v3, because some of them were load-bearing. A piece that is not a
-token cannot stay because it happens to help; what it was hiding is now an honest over-count that
-can be mined. Rosetta and MultiPL-E still reproduce every document.
+more. Five more went with them, under a rule rather than a measurement: **whitespace is either the
+whole piece or not in it**. The stream absorbs a seam space into the following `⟨bow⟩` and spells
+what it cannot absorb as its own run, so a piece holding a letter and a space is not a token — it is
+standing in for an absorption the stream failed to perform, and it prices correctly only while
+whatever follows happens to open a word. `tests/test_witness.py` now asserts it.
+
+Both removals **cost real accuracy**: UDHR falls 448/501 → 439 → 430 on v4.7, and 314 → 310 → 307
+on v3, because some of those pieces were load-bearing. A piece that is not a token cannot stay
+because it happens to help; what it was hiding is now an honest over-count that can be mined.
+Rosetta and MultiPL-E still reproduce every document.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.

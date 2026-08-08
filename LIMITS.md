@@ -435,18 +435,25 @@ stream does not perform, and the `mark_sep` witness attached to it during the `o
 is degenerate: it cannot tell `्` from `् `, so it certifies the bare virama and says nothing about
 the pair. The same failure as `xià⟨eow⟩` in §6, found by asking the question one level lower.
 
-Whether the space is absorbed is **script-dependent, and the correlation with the glue pieces is
-exact**:
+The five are now gone, under a rule rather than a per-script judgement: **whitespace is either the
+whole piece or not in it**, asserted by `tests/test_witness.py`. Whether the space is absorbed does
+vary by script, and the correlation with the glue pieces is exact —
 
-| | bare | + space | absorbed? | has a glue piece? |
+| | bare | + space | absorbed? | had a glue piece? |
 |---|---:|---:|---|---|
 | Devanagari, Tamil, Malayalam, Sinhala, Myanmar | 3 | 3 | yes | yes |
 | Khmer, Thai, Lao | 3 | 4 | no | no |
 
-Five scripts absorb and have a compensating piece; three do not absorb and have none. Nobody chose
-that — it fell out of fitting the corpus. **The fix is structural**: absorb a single space after a
-terminal separator into the following `⟨bow⟩` for the first group, and the five pieces can go. The
-totals are unchanged wherever a word follows, and the digit case stops being wrong.
+— but that table is a *symptom*, not a rule, and it must not be written into the encoder. Five
+scripts absorbing and three not is eight data points; an allowlist built from them would be the
+fitted special case this file exists to warn about (§1, §5), dressed up as a law. **The rule that
+produces that split is not known.** What the split does establish is that the glue pieces were never
+independent of it: nobody chose which scripts got one, it fell out of fitting the corpus.
+
+So the pieces are gone and the compensating stream rule is *not* invented in their place. UDHR pays
+for it — 439/501 → 430 on v4.7, 310 → 307 on v3 — and the residual is now an honest over-count in
+the scripts that used to absorb, which is a thing that can be measured and mined rather than a
+number that happened to come out right.
 
 357 such sites sit in these corpora against 733 tokens of under-count, and the count overshoots in
 Tamil and Sinhala because some rows also over-charge and the two cancel.

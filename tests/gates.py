@@ -66,17 +66,17 @@ GATES: dict[str, dict] = {
         # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0019, "within1": 0.95, "exact": 0.60},
+            "v3": {"version": 3.0, "mean": 0.0023, "within1": 0.94, "exact": 0.59},
             # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
-            # and 0.043% mean. Retiring `ownscript` then gave 439 and 0.095%: 439 pieces whose own
-            # probes refuted them were removed, and some were load-bearing. That is a deliberate
-            # step backwards — a piece that is not a token cannot stay because it happens to help —
-            # and it converts a hidden error into an honest over-count that can be mined. UDHR
-            # selected none of this either way.
-            "v4.7": {"version": 4.7, "mean": 0.0010, "within1": 0.96, "exact": 0.86},
+            # and 0.043% mean. Retiring `ownscript` then gave 439, and removing the five pieces
+            # that glued a virama to a space gave 430. Both are deliberate steps backwards: a piece
+            # that is not a token cannot stay because it happens to help. Each converts a hidden
+            # error into an honest over-count, which is a thing that can be mined. UDHR selected
+            # none of it either way.
+            "v4.7": {"version": 4.7, "mean": 0.0014, "within1": 0.95, "exact": 0.84},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0010, "within1": 0.96, "exact": 0.86},
+            "v5": {"version": 5.0, "mean": 0.0014, "within1": 0.95, "exact": 0.84},
         },
     },
     "rosetta": {
