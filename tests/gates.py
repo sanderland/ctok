@@ -66,15 +66,17 @@ GATES: dict[str, dict] = {
         # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.96, "exact": 0.61},
-            # Re-measured 2026-08-08 after the Goldfish word campaign: 448/501 exact and 0.043%
-            # mean, up from 363 and 0.064%. Nothing in that campaign read UDHR — it mined 33
-            # languages against Goldfish rows — so this is out-of-sample, and the threshold moves
-            # with the reading rather than ahead of it.
-            "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.97, "exact": 0.88},
+            "v3": {"version": 3.0, "mean": 0.0019, "within1": 0.95, "exact": 0.60},
+            # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
+            # and 0.043% mean. Retiring `ownscript` then gave 439 and 0.095%: 439 pieces whose own
+            # probes refuted them were removed, and some were load-bearing. That is a deliberate
+            # step backwards — a piece that is not a token cannot stay because it happens to help —
+            # and it converts a hidden error into an honest over-count that can be mined. UDHR
+            # selected none of this either way.
+            "v4.7": {"version": 4.7, "mean": 0.0010, "within1": 0.96, "exact": 0.86},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.97, "exact": 0.88},
+            "v5": {"version": 5.0, "mean": 0.0010, "within1": 0.96, "exact": 0.86},
         },
     },
     "rosetta": {
@@ -86,6 +88,10 @@ GATES: dict[str, dict] = {
         # FINISHED, 2026-08-07: all three families reproduce all 1,741 documents, so the gate is
         # every document rather than a rate. v3 was the last to close — it carried a vocabulary tail
         # through the apostrophe and akshara work and reads exact since the terminal-mark spelling.
+        # Still every document on all three families through the `ownscript` retirement. One file
+        # did break when 439 refuted pieces were removed, and it came back when the single-codepoint
+        # ones among them were re-asked on the `char` template instead of the ヲ grid — the `known`
+        # allowlist in `assert_gate` held the gate up in between rather than lowering it to a rate.
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
@@ -191,9 +197,19 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
     if limits["exact"] is ALL:
         # Named rather than counted: "3 of 1741 documents regressed" is the report a reader wants,
         # and an exact-rate percentage rounds the first regression out of sight.
+        #
+        # `known` is an allowlist of documents already understood to fail, named one by one. It is
+        # how a corpus keeps an every-document gate while carrying an open defect: dropping the gate
+        # to a rate to accommodate one document would silently readmit the next eight. A document
+        # that starts reproducing is also reported, so the list cannot rot into a wish.
+        known = set(limits.get("known", ()))
         bad = [str(r.get("name") or r[cfg["key"]]) for r in agg["rows"] if r["rel"]]
-        assert not bad, (f"[{name}/{family}] {len(bad)} of {agg['n']} documents no longer "
-                         f"reproduce: {', '.join(bad[:8])}{' …' if len(bad) > 8 else ''}")
+        fixed = known - set(bad)
+        assert not fixed, (f"[{name}/{family}] {sorted(fixed)} reproduce again — "
+                           f"drop them from `known`")
+        new = [b for b in bad if b not in known]
+        assert not new, (f"[{name}/{family}] {len(new)} of {agg['n']} documents no longer "
+                         f"reproduce: {', '.join(new[:8])}{' …' if len(new) > 8 else ''}")
         return
     if limits["mean"] is not None:
         assert agg["mean"] < limits["mean"], \
@@ -375,16 +391,13 @@ GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 # the probe to be that template applied to this exact piece, and the arithmetic lands on one token.
 # There is nothing per-piece to choose, so a template witness cannot be shaped to fit its piece.
 #
-# `ownscript` and `fitness` are not that. Both are bespoke, per-piece arguments over natural text —
-# an ablation delta or an intersection of tiling candidates — and both are relative to the rest of
-# the vocabulary rather than to the oracle alone. Measured 2026-08-08 by asking every one of them on
-# the approved template its own marked form selects: **430 of the 1,094 that a template CAN reach
-# are refuted by it** (287 of 606 on v3, 143 of 488 on v4.7). A kind that fails its own cross-check
-# two times in five does not belong in the same column as one that cannot.
-#
-# They are not folded into MISSING either — the corpora say many of those pieces are load-bearing
-# (LIMITS.md §6) — so they are counted, named, and kept out of the headline number.
-ARGUED = ("ownscript", "fitness")
+# `fitness` is not that. It is a bespoke per-piece argument over natural text — an intersection of
+# tiling candidates that restore two or more exact probes — and it is true relative to the rest of
+# the vocabulary rather than to the oracle alone. `ownscript` was the same kind of thing and is now
+# retired: every piece it certified was re-asked on a fixed template, and 481 of 1,157 were refuted
+# by it (LIMITS.md §6). The 22 `fitness` records that remain are counted, named, and kept out of the
+# headline number rather than folded in with either a witness or a gap.
+ARGUED = ("fitness",)
 
 
 def witnessed(counts: dict[str, int]) -> int:

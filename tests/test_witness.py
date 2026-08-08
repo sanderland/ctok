@@ -43,9 +43,7 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     doc = _doc(name)
     # `prefix` is a witness but not a template: a byte prefix is verified by the floor
     # reproducing a character it predicts, not by a probe costing one token.
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {
-        "prefix", "ownscript", "fitness"
-    }
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix", "fitness"}
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
         for piece, w in entries.items():
@@ -107,7 +105,7 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
-            if w["kind"] in ("prefix", "ownscript", "fitness"):
+            if w["kind"] in ("prefix", "fitness"):
                 continue                     # these kinds validate placement in their own verifier
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
@@ -116,8 +114,13 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             named = w["kind"].removeprefix("cased_").removeprefix("digit_")
             # A contraction is stored bare (`'s`) and tiled glued (`'s⟨eow⟩`), so its stored form
             # reads `mid` while the piece it stands for closes a word.
+            # `mark_mid` and `mark_sep` share the probe `.ᛒ{}ᛒ.` and differ only in overhead: a
+            # mark that closes its own word puts an ⟨eow⟩ and a ⟨bow⟩ into the probe that the
+            # anchor has not got, and `mark_sep` carries those two in its constant. Both are
+            # word-interior frames, so both read `mid`.
             expect = {"raw": ("word", "bow"), "word": ("word",), "char": ("mid",),
-                      "glued": ("mid", "word"), "contraction": ("mid",)}.get(w["kind"], (named,))
+                      "glued": ("mid", "word"), "contraction": ("mid",),
+                      "mark_mid": ("mid",), "mark_sep": ("mid",)}.get(w["kind"], (named,))
             assert pos in expect, f"{piece} sits at {pos} but is witnessed as {w['kind']}"
 
 

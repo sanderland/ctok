@@ -299,101 +299,75 @@ A related trap in the same family: `a{X}a` and `.ヲXヲ.` both supply their own
 combining mark that anchor BECOMES the mark's base. They are not independent evidence — they share
 one bias and can agree on a reading that is wrong in the mark's own script.
 
-## 6. An ablation witness makes two claims, and only one of them can expire
+## 6. `ownscript` is retired: there was a frame for combining marks all along
 
-`_verify_ownscript` asserts two different things, and conflating them wastes a real signal:
+`ownscript` was a bespoke per-piece argument — delete this piece and a real word of its own script
+costs one token more — and it existed because of one sentence: "combining-mark pieces cannot be
+moved onto the Latin/Katakana witness scaffolds: the host becomes the mark's base and the probe asks
+about a different cluster." It was introduced in `3dafb2b` and converted **1,560 `no-instrument`
+records** — an honest declared gap — into witnessed ones, which is how the file reached 100%.
 
-```
-with_n    == raw        the shipped vocabulary reproduces a RECORDED count_tokens value
-without_n == raw + 1    deleting this piece costs exactly one token
-```
-
-The second is vocabulary-relative. It says the piece is *needed* by the model as it stands, which is
-not the same as saying the piece is a token: if the piece the encoder actually uses is missing,
-deleting a longer composite of it raises the count identically, and the composite gets recorded as a
-token it never was. Adding the real piece then makes the composite redundant and the claim lapses.
-**That failure means the instrument expired, not that anything is wrong.**
-
-The first is not relative to anything. `raw` is an oracle reading, fixed at the moment it was
-measured and true forever. When adding a piece breaks *that* check, the model has started counting
-a real message **below** what `count_tokens` returned for it, and something in the vocabulary is
-false. That failure is a defect report.
-
-**Measured 2026-08-08.** Both kinds occurred, and the arithmetic distinguishes them at a glance —
-the message names the check:
+**The premise is half true and the conclusion does not follow.** Measured 2026-08-08 with a
+differential that needs no template constant, `delta(H, X) = count(".HXH.") - count(".HH.")`:
 
 ```
-xià⟨eow⟩  "ablating the piece counts 'xià' at 13, not recorded 14"        <- expired
-งท        "the shipped vocabulary counts 'ของ…ได้' at 25, not recorded 26" <- defect
+host          a    e    o  |  ᛒ    ꓘ    ʣ    ヲ
+U+0301        0    0    0  |  3    3    3    3
 ```
 
-`xià⟨eow⟩` and `nə` lapsed against `ià⟨eow⟩` and `ən`; their own templates then priced them at two
-tokens, so both were retracted. `ิน` — real, `.ヲินヲ.` prices it at one — invalidated **thirty** Thai
-witnesses, and there the split was **17 defects, 8 expirations and 5 exposed only after the others
-went**. Seventeen recorded oracle counts that the vocabulary had begun to under-count is a much
-stronger statement than thirty stale instruments, and it is the one that justified acting.
+On a *composing* host the objection is real and large — U+0301 between two `a` costs nothing,
+because NFC has turned the probe into `á` and you are pricing a precomposed letter. On a host that
+precomposes with nothing it evaporates, and all four such hosts agree on every mark tried. The
+frame existed; nobody had looked for it.
 
-All thirty were priced at two to four tokens by their own direct probes, and the corpus agrees on
-1,000 Thai rows — every state measured, not just the one that was convenient:
+Controls matter more than the frame here, and they killed three of the four candidate templates.
+`.ᛒ{}ᛒ.` passes — fifteen known single tokens read 1, spans nothing merges read 3 or 4 — while
+`.{}ᛒ.`, `.ᛒ{}.` and a derived `.{}.` overhead each read **0 of 15** and were discarded. `ᛒ` is not
+itself a single token, which cancels in the two-sided anchor and does not at a word edge. Without
+those controls all three would have looked like instruments.
 
-| | rows exact | over | under | abs |
-|---|---:|---:|---:|---:|
-| neither `ิน` nor the thirty | 506 | 602 | 86 | 688 |
-| the thirty, no `ิน` (as shipped) | 499 | 564 | 126 | 690 |
-| both | 511 | 521 | 130 | 651 |
-| **`ิน`, without the thirty** | **524** | **549** | **89** | **638** |
-
-Each change helps on its own and they are best together, so the thirty were retracted. Retracting
-one moves the baseline for the next — hence the five that only surfaced later — so `reaudit.py`
-sweeps to a fixed point rather than running once.
-
-The method consequence stands, narrowed: **an ablation witness must be re-run, not re-read**, and
-when it fails, read *which* of its two claims failed before deciding what that means. The synthetic
-templates carry only the first claim, which is why they do not go stale.
-
-### The audit that follows from it, and why it did not end in deletions
-
-Thirty refuted pieces out of a few hundred is either a tail or a symptom, so every ablation-witnessed
-piece in both files was asked directly. **Measured 2026-08-08:**
-
-| | ablation witnesses | askable directly | hold | **refuted by their own probe** |
-|---|---:|---:|---:|---:|
-| v3 | 640 | 606 | 319 | **287** |
-| v4.7 | 523 | 488 | 345 | **143** |
-
-The refutations are almost entirely Brahmic and South-East Asian — Thai, Khmer, Sinhala, Malayalam,
-Tamil, Thaana, Myanmar, Lao — which is exactly the population §1 says the ヲ grid cannot measure.
-So this is not a list of false pieces. It is two fallible instruments disagreeing about 430 pieces,
-and the corpora were asked to arbitrate (§5). They answer, and the answer is **not the same twice**:
+**One correction the controls did not catch, and the corpus did.** A mark that closes its own word
+does not sit inside the frame the way the anchor does:
 
 ```
-v3, ablate all 287     9 Brahmic/SEA languages, 9,000 rows   abs error 19,864 -> 47,200
-v4.7, ablate all 143   the same 9 languages                  abs error  5,199 ->  4,989
+probe   ⟨bow⟩.⟨bow⟩ᛒ⟨eow⟩்⟨bow⟩ᛒ⟨eow⟩.
+anchor  ⟨bow⟩.⟨bow⟩ᛒᛒ⟨eow⟩.
 ```
 
-On v3 the refuted pieces are doing enormous real work — Dhivehi alone goes from 1,060 tokens of
-over-charge to 19,508 without them — so there the direct probe is refuting pieces that are real, and
-it is the probe that is wrong. On v4.7 the batch looks mildly beneficial, and per script it splits:
+It adds an `⟨eow⟩` and a `⟨bow⟩` on top of itself, so a real token reads **3**, not 1 — and 23 of
+the 24 word-closing marks read exactly 3. Read as refutations, they made every virama in the file
+look false. Leave-one-out on the mining corpus is what exposed it: four of them — Tamil, Sinhala,
+Malayalam and Myanmar — were worth **21,580 tokens**, against 129 for all the other v4.7
+refutations combined. Hence two kinds sharing one probe string, `mark_mid` (overhead 10) and
+`mark_sep` (overhead 12), chosen by `is_terminal_separator` rather than by which number comes out.
 
-| v4.7, dropped alone | | exact | absolute error |
-|---|---:|---|---|
-| 90 Thai pieces | `tha_thai` | 524 → 472 | 638 → **776** |
-| 13 Sinhala pieces | `sin_sinh` | 452 → **545** | 1,086 → **827** (under-count 830 → 232) |
-| 15 Khmer pieces | `khm_khmr` | 640 → 652 | 614 → 593 |
-| 1 Bengali piece | `ben_beng` | 283 → 282 | 2,254 → 2,258 |
+The outcome, with every record re-asked on a fixed template:
 
-Thai says keep and Sinhala says drop, on the same instrument, in the same family. **So nothing was
-deleted here**, because the one thing this file already knows is that a batch verdict on a set of
-Brahmic candidates is worthless (§1): a set that is mostly wrong and partly right scores like a set
-that is entirely wrong, in either direction. The thirty Thai pieces that *were* retracted each had
-two independent reasons — a direct refutation and a corpus that improved without them — and 430 do
-not.
+| | re-witnessed | retired |
+|---|---:|---:|
+| v3 | 346 | 291 |
+| v4.7 | 372 | 148 |
 
-Two consequences worth carrying forward. Sinhala's 830 tokens of under-count, the third largest in
-the 350-language sweep, are **13 named pieces**, which turns an unmineable under-count (§4) into a
-small per-piece question. And the ablation witness should not be a durable record: it is reproducible
-only against the vocabulary that produced it, and `tests/test_witness.py` is the only thing that
-notices when it stops being true.
+**The 439 retired cost real accuracy and went anyway.** UDHR falls 448 → 439 on v4.7 and 314 → 310
+on v3; leave-one-out priced the whole v3 set at 4,159 tokens on the mining corpus. A piece the
+measurement calls two tokens cannot stay because it happens to help — what it was masking is now an
+honest over-count, which is a thing that can be mined. Rosetta and MultiPL-E still reproduce every
+document: one Rosetta file did break, and came back when the single-codepoint retirements were
+re-asked on the `char` template (`a{}a`) instead of the ヲ grid, which is the right frame for one
+codepoint and reads 1 where ヲ reads 3.
+
+Three lessons worth more than the pieces:
+
+* **A "no instrument" claim is a claim, and it needs the same evidence as a measurement.** This one
+  stood for two days over 1,560 pieces and was refuted by seven probes.
+* **Control every frame in both directions before judging anything with it.** Three of four here
+  were wrong, and the wrong ones fail silently — they return numbers.
+* **An ablation witness is evidence about a vocabulary, not about the tokenizer**, so it expires
+  when the vocabulary grows. `_verify_ownscript` asserted two things: `without_n == raw + 1`, which
+  is vocabulary-relative, and `with_n == raw`, which compares against a recorded `count_tokens`
+  value and is not. Only the first can expire; the second failing means the model has begun counting
+  a real message *below* the oracle. Of thirty Thai witnesses invalidated by buying `ิน`, 17 were
+  the second kind.
 
 ## 7. A true piece can push a word below the oracle, and that does not impeach it
 

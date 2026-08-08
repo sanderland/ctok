@@ -85,9 +85,9 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.136% | 0.101% | 314/501 | 97.2% |
-| UDHR | v4.7 | 0.052% | 0.042% | 448/501 | 98.2% |
-| UDHR | v5 | 0.052% | 0.042% | 448/501 | 98.2% |
+| UDHR (501 languages) | v3 | 0.261% | 0.169% | 310/501 | 96.0% |
+| UDHR | v4.7 | 0.116% | 0.086% | 439/501 | 97.4% |
+| UDHR | v5 | 0.116% | 0.086% | 439/501 | 97.4% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
@@ -144,7 +144,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15288
+len(pieces(4.7))                # 15145
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -173,26 +173,37 @@ A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word,
 probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
 that probe — and `tests/test_witness.py` runs it over every witness in the file.
 
-**Every piece in both files carries evidence, but not all of it is a template.** No piece is left at
-`unmeasured` (a template applies and nobody spent the API call), `no-instrument` (nothing in the
-inventory reaches it) or `refuted` (its own probe priced it above one token), and four marker atoms
-are `special` because `⟨bow⟩` is not text. That leaves two tiers, and `tests/gates.py` reports them
-apart:
+**Every piece rests on a fixed template now.** The `ownscript` kind is gone. It had been introduced
+to convert 1,560 `no-instrument` pieces — an honest declared gap — into witnessed ones, on the
+premise that a combining mark cannot be put on a synthetic scaffold because the host becomes its
+base. Half of that is true: on a *composing* host it is, and badly, since U+0301 between two `a`
+costs nothing at all once NFC has made the probe say `á`. But a host that precomposes with nothing
+works fine, and four of them — `ᛒ` `ꓘ` `ʣ` `ヲ` — agree with each other on every mark tried. So the
+frame existed all along:
 
-| | on a fixed template | argued from natural text |
+| kind | probe for `X` | overhead | what it asks |
+|---|---|---:|---|
+| `mark_mid` | `.ᛒXᛒ.` | 10 | a mark that stays inside its word |
+| `mark_sep` | `.ᛒXᛒ.` | 12 | a mark that CLOSES its word, so the probe also gains an `⟨eow⟩` and a `⟨bow⟩` |
+
+Which of the two applies is decided by `is_terminal_separator`, a property of the piece, never by
+which number comes out. Both were controlled before anything was judged: fifteen known single tokens
+must read 1 and spans nothing merges must read more. Three further frames were built and **discarded
+because they failed that control** — `ᛒ` is not itself a single token, which cancels in the
+`mid` anchor and does not at the word edges.
+
+Asked on a fixed template, every `ownscript` record then resolved:
+
+| | re-witnessed on a template | retired |
 |---|---:|---:|
-| v3 | 47,814 (98.64%) | 658 |
-| v4.7 | 14,746 (96.45%) | 542 |
+| v3 | 346 | 291 |
+| v4.7 | 372 | 148 |
 
-A template witness cannot be shaped to its piece: the probe string lives in `meta.witness.templates`,
-`verify` requires the recorded probe to be *that* template applied to *this* piece, and the
-arithmetic has to land on one token. The `ownscript` and `fitness` kinds are weaker — bespoke
-per-piece arguments over natural text, an ablation delta or an intersection of tiling candidates,
-each true only relative to the rest of the vocabulary rather than to the oracle alone. Asked on the
-approved template their own marked form selects, **430 of the 1,094 that a template can reach are
-refuted by it**. They are still counted, because the corpora say many are load-bearing — deleting
-v3's 287 costs 27,000 tokens of error across 9,000 Brahmic rows — but they are not the headline
-number. [LIMITS.md](LIMITS.md) §6 has the grid.
+The 439 retired are pieces the vocabulary claimed as one token and whose own probe priced at two or
+more. They are gone rather than kept, and that **costs real accuracy** — UDHR falls from 448/501 to
+439 on v4.7 and 314 to 310 on v3, because some of them were load-bearing. A piece that is not a
+token cannot stay because it happens to help; what it was hiding is now an honest over-count that
+can be mined. Rosetta and MultiPL-E still reproduce every document.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.
