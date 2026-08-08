@@ -105,6 +105,29 @@ on a line. (The hand-picked examples that suggested otherwise — `คือ`, `
 from a list of over-charging probes, so they over-charged by construction. A sample drawn from the
 symptom cannot measure how common the symptom is.)
 
+## 2. The span miner was blind, and is not any more
+
+Worth recording because the symptom was indistinguishable from success: the miner proposed
+candidates by MERGING adjacent tiles of the current tiling, which can only reach a span that begins
+and ends on a boundary that tiling already chose. The pieces still missing are exactly the ones it
+did not choose.
+
+Two pieces already in the file demonstrate it. `a www b` tiles as a single `⟨bow⟩www⟨eow⟩`, so
+`ww⟨eow⟩` is a SUB-span and no merge reaches it. `ododic` tiles `⟨bow⟩od` + `od` + `ic⟨eow⟩`, so
+`odod` straddles a boundary and no merge reaches that either. Both were bought by other means and
+neither could have been proposed by the generator that was running.
+
+The fix is to propose every bounded span of the stream rather than every merge, and the check that
+it worked is a **positive control**: hide a piece known to be real and confirm the loop buys it
+back. `ww⟨eow⟩` and `odod` are both re-bought; `்,⟨eow⟩` is proposed and correctly reports that no
+synthetic template can reach it.
+
+With the generator fixed and that control passing, 28,000 candidates over 22,000 lines of Glot500
+and FineWeb-2 yield **no new piece on either family**. That is now a measurement about the corpora
+rather than about the tool: the 1,208 tokens of over-charge left on 570 lines are not reachable by
+any span a shipped template can price at one token. **A miner that returns nothing should be made to
+re-buy something known first** — otherwise "exhausted" and "blind" produce identical output.
+
 ## 2. An under-count cannot be mined away
 
 Adding a piece only ever lowers our number, so a document we already count *below* the oracle is out
