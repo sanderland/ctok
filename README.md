@@ -85,16 +85,16 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.147% | 0.107% | 313/501 | 97.0% |
-| UDHR | v4.7 | 0.074% | 0.064% | 363/501 | 98.0% |
-| UDHR | v5 | 0.074% | 0.064% | 363/501 | 98.0% |
+| UDHR (501 languages) | v3 | 0.142% | 0.104% | 313/501 | 97.0% |
+| UDHR | v4.7 | 0.069% | 0.061% | 365/501 | 98.0% |
+| UDHR | v5 | 0.069% | 0.061% | 365/501 | 98.0% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
 No document in either family is over 5% error. Fifteen v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
 languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.058% (v3) and 0.031% (v4.7).
+document, the error is 0.055% (v3) and 0.027% (v4.7).
 
 The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
 a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
@@ -113,9 +113,11 @@ Nothing in either family is over 5% off now; 15 in each were, before the akshara
 closes its orthographic syllable also closes the word, so a conjunct is two words and carries the
 boundary markers that say so). What is left is vocabulary rather than structure — the residual is
 spread in both directions instead of being a one-sided under-count — and the largest remaining piece
-of it is Brahmic and South-East Asian clusters that have not been mined. Measured on FineWeb-2, that
-is the whole of the error: Thai and Tamil reproduce ~5% of documents against 99–100% for English,
-German, Hindi and code, and carry 1.36% of the error mass against everyone else's 0.02%.
+of it is Brahmic and South-East Asian clusters. Measured on FineWeb-2, that is the whole of the
+error: Thai and Tamil reproduce a small fraction of documents against 99–100% for English, German,
+Hindi and code. Two Tamil virama-punctuation suffixes alone took 10,114 tokens of over-charge off a
+17,962-line Thai/Tamil sample, so this is being mined rather than merely described — see LIMITS.md
+for what the instruments there can and cannot prove.
 
 ## What each piece rests on
 
@@ -128,7 +130,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15220
+len(pieces(4.7))                # 15222
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
