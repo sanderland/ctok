@@ -98,9 +98,9 @@ document, the error is 0.055% (v3) and 0.027% (v4.7).
 
 The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
 a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
-piece. [LIMITS.md](LIMITS.md) records what is still open, and what a campaign should not bother
-trying: the whole of the remaining error is Brahmic and South-East Asian clusters, and the
-instruments that mine everything else measure those wrong.
+piece. [LIMITS.md](LIMITS.md) records what is still open, and — more useful — what each instrument
+can and cannot prove: the ヲ grid measures a Brahmic cluster on a base its script never uses, and
+aggregate corpus fitness proposes a piece without proving one.
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
