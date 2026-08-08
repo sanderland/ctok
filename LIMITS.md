@@ -107,7 +107,7 @@ campaign of their own: the miner priced their words, found them wrong, and could
 any shipped template would accept — the same shape as the Brahmic wall in §1, in a different script.
 
 The single most valuable piece was `ən`, an Azerbaijani schwa bigram that repairs 296 words on its
-own; §7 records why an earlier version of the control refused it.
+own; §8 records why an earlier version of the control refused it.
 
 ## 1. Unconstrained Brahmic/SEA fragment mining manufactures pieces
 
@@ -369,7 +369,60 @@ Three lessons worth more than the pieces:
   a real message *below* the oracle. Of thirty Thai witnesses invalidated by buying `ิน`, 17 were
   the second kind.
 
-## 7. A true piece can push a word below the oracle, and that does not impeach it
+## 7. Where the under-count comes from, now that the false pieces are gone
+
+Retiring `ownscript` took under-count across 44 Goldfish languages from thousands to **789**, and
+what is left is concentrated in six: Malayalam 188, Khmer 180, Lao 119, Tamil 94, Myanmar 76,
+Sinhala 74. Under-count should be impossible — the tiler takes a shortest path over a vocabulary
+meant to be a SUBSET of the real one — so each case is one of three things, and they need different
+fixes: a false piece, a missing boundary, or merge order (§8).
+
+**Most of it is five real pieces applied one character too far.** The vocabulary holds five
+`virama + space` pieces — Devanagari, Tamil, Malayalam, Sinhala and Myanmar. They are not junk;
+removing them is catastrophic, because a terminal separator blocks seam-space absorption and these
+are what pay for the space it leaves behind:
+
+| | exact, with the five | without them |
+|---|---:|---:|
+| `mal_mlym` | 877 | 164 |
+| `tam_taml` | 479 | 58 |
+| `sin_sinh` | 598 | 89 |
+| `mya_mymr` | 950 | 504 |
+
+But removing them also takes Malayalam's under-count from 188 to 8, Tamil's 94 to 0 and Sinhala's 74
+to 0. So they are real pieces used in a place the tokenizer does not use them, and the place is
+measured:
+
+```
+x ക് ക x   +0   separator, space, LETTER
+x ക് 5 x   -1   separator, space, DIGIT
+x ക  5 x   +0   no separator            <- control
+x .  5 x   +0   punctuation, space, digit <- control
+x ക് , x   +0   separator, space, punctuation
+```
+
+A space before a digit belongs to the digit run — `⟨bow⟩x⟨eow⟩ 5 ⟨bow⟩x⟨eow⟩` keeps both of its
+spaces — and the glue piece eats it. That is an engine restriction, not a vocabulary change: the
+piece may not consume a space that a digit run owns. 357 such sites sit in these corpora against 733
+tokens of under-count, and the count overshoots in Tamil and Sinhala because some rows also
+over-charge and the two cancel.
+
+**Khmer and Lao are NOT this.** Together they are 299 of the 733, they contain no `virama + space`
+piece at all, and ablating the five moves neither by a single token. That is a separate mechanism and
+it has not been found.
+
+Two instrument notes, both learned by getting it wrong here first:
+
+* **Shrinking a failure to a bare substring puts it against the message edge, and the edge has its
+  own rules.** Unpadded, this search "found" that a terminal separator followed by one trailing
+  space under-counts — true, reproducible in six languages, and the explanation for none of the
+  corpus: not one under-counting row ends that way. Every measurement above is taken inside fixed
+  padding.
+* **A mechanism that explains the shrunk case still has to be counted at corpus scale.** The first
+  padded reading said the fault was the glue piece used twice consecutively — which is real, and
+  covers 4 of 733.
+
+## 8. A true piece can push a word below the oracle, and that does not impeach it
 
 This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
 two disagree on words that offer the same piece twice.
@@ -385,14 +438,14 @@ Goldfish campaign: Azerbaijani sat at 45.7% of rows exact for one word out of te
 control still earns its place; it is what refuses pieces that repair nothing and break something.
 It just cannot be read as a proof of falsity when the witness is sound.
 
-## 8. Two UDHR documents are unexplained
+## 9. Two UDHR documents are unexplained
 
 Shipibo-Conibo (+4.38% v3, +3.14% v4.7) and Lamnso' (+3.27% / +2.84%) are the worst documents in
 both families and nothing in this campaign touched them. Lamnso' has no reachable corpus at all —
 eBible has no `lns`, Glot500 has no `lns`, the Wikimedia Incubator has no `Wp/lns`, and SIL's Bloom
 Library has it behind a gate — so the question cannot be asked without spending the held-out gate.
 
-## 9. Access and scale
+## 10. Access and scale
 
 - **StarCoder is gated.** `bigcode/starcoderdata` and `bigcode/the-stack-dedup` both require
   authentication. The external replay above uses `bigcode/the-stack-smol-xs` (same Stack lineage,
