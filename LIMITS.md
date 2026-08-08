@@ -7,10 +7,55 @@ a reader who hits one of these does not think it is new.
 Everything here is a measurement with the probe that produced it. Nothing here is a guess about what
 the tokenizer "probably" does.
 
+## 0. Where the error actually is, over 350 languages
+
+**Measured 2026-08-08, v4.7:** 350,000 rows of `goldfish-models/fish-food` — 1,000 rows from each of
+its 350 languages, probed round-robin so every language is sampled equally, rows truncated at 4,000
+characters. Two hours of API time. Nothing was mined against it; it exists to say where mining
+should go.
+
+```
+all 350 languages   96.07% exact   error mass 0.0890%   over 17,756   under 20,950
+minus syr_syrc      96.22% exact   error mass 0.0545%   over 17,560   under  5,811
+```
+
+**80% of all error is in 20 of the 350 languages**, and 59 languages reproduce every one of their
+1,000 rows. Two facts do most of the steering:
+
+**Syriac is the largest single defect in the tokenizer, and no piece can touch it.** `syr_syrc`
+carries 15,139 tokens of under-count — 72% of all under-count in 350 languages — concentrated in
+long, diacritic-dense Peshitta rows. One 4,000-character row reads 7,764 against a recorded 8,408.
+An under-count is unreachable by vocabulary (§3), so this is an encoder question and a large one.
+
+**The largest minable pools are not where the earlier sections of this file point.** Over-charge with
+no under-count to confound it:
+
+| language | exact | over-charge | error mass |
+|---|---:|---:|---:|
+| `ben_beng` Bengali | 28.3% | 2,251 | 0.794% |
+| `asm_beng` Assamese | 31.5% | 1,901 | 0.570% |
+| `aze_latn` Azerbaijani | 45.7% | 1,289 | 0.692% |
+| `lmo_latn` Lombard | 43.3% | 1,086 | 0.816% |
+| `bod_tibt` Tibetan | 75.0% | 605 | 0.116% |
+| `tha_thai` Thai | 49.9% | 564 | 2.153% |
+| `jpn_jpan` Japanese | 79.1% | 447 | 0.261% |
+| `cat_latn` Catalan | 79.3% | 364 | 0.257% |
+
+By script the over-charge is Latin 7,549, Bengali 4,497, Cyrillic 2,127, Tibetan 834 — so most of it
+sits in scripts where the synthetic templates are known to work, and Bengali is a large Brahmic pool
+that is clean (3 tokens of under-count against 2,251 of over).
+
+**Thai is fourth, not first.** The section below reads as though Thai and Tamil were the whole
+residual; they were the whole residual *of the eight corpora that happened to be on disk*. Azerbaijani,
+Lombard, Catalan and Ossetian sit at 43–79% exact in reliable-template scripts and none of them has
+been mined at all. That is the sampling error of §5 at the level of a whole campaign: **a corpus
+chosen for convenience cannot rank the languages.**
+
 ## 1. Unconstrained Brahmic/SEA fragment mining manufactures pieces
 
-Replayed against recorded counts on external corpora (FineWeb, FineWeb-2, the Stack, github-code —
-none of them gates), documents reproducing exactly, v4.7:
+The measurements in this section are real and its lessons hold, but read §0 first for how much of
+the error they cover. Replayed against recorded counts on external corpora (FineWeb, FineWeb-2, the
+Stack, github-code — none of them gates), documents reproducing exactly, v4.7:
 
 | source | docs | exact | error mass |
 |---|---:|---:|---:|
