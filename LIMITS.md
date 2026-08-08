@@ -69,17 +69,18 @@ sits in scripts where the synthetic templates are known to work, and Bengali is 
 that is clean (3 tokens of under-count against 2,251 of over).
 
 **Thai is fourth, not first.** The section below reads as though Thai and Tamil were the whole
-residual; they were the whole residual *of the eight corpora that happened to be on disk*. Azerbaijani,
-Lombard, Catalan and Ossetian sit at 43–79% exact in reliable-template scripts and none of them has
-been mined at all. That is the sampling error of §5 at the level of a whole campaign: **a corpus
+residual; they were the whole residual *of the eight corpora that happened to be on disk*.
+Azerbaijani, Lombard, Catalan and Ossetian sat at 43–79% exact in reliable-template scripts and none
+of them had been mined at all. That is §1's own sampling error — a sample drawn from the symptom
+cannot measure how common the symptom is — repeated at the level of a whole campaign: **a corpus
 chosen for convenience cannot rank the languages.**
 
 ### What that ranking bought, 2026-08-08
 
-The Latin and Cyrillic pools above were then mined — 45 pieces, on Goldfish rows only. The step that
-made it work was localizing first: pricing each WORD of an over-charging row alone, as its own
-message. That said where the defect lived before any candidate was proposed, and it is worth doing
-before a miner runs, because the answer differs by language:
+The Latin, Cyrillic and Arabic-script pools above were then mined — **90 pieces over 33 languages,
+on Goldfish rows only**. The step that made it work was localizing first: pricing each WORD of an
+over-charging row alone, as its own message. That says where the defect lives before any candidate
+is proposed, and it is worth doing before a miner runs, because the answer differs by language:
 
 | | over-charge inside single words |
 |---|---:|
@@ -88,22 +89,25 @@ before a miner runs, because the answer differs by language:
 | `lmo_latn` Lombard | **21%** |
 
 Catalan and Azerbaijani are word-vocabulary problems and were mined out. Lombard is not — four
-fifths of its error is in how words JOIN, so word pieces cannot reach it, and it remains the largest
-over-charge left in this group at 854. Knowing that cost 3,000 API calls and saved mining the wrong
-thing.
+fifths of its error is in how words JOIN — and §2 below says what it turned out to be.
 
 ```
-14,000 Goldfish rows, 14 languages    exact 79.9% -> 91.9%    error mass 5,122 -> 2,047
-UDHR (held out, chose nothing here)   exact 365/501 -> 407/501
+33,000 Goldfish rows, 33 languages     exact 88.2% -> 96.1%    over-charge 6,686 -> 2,380
+UDHR (held out, chose nothing here)    exact 365/501 -> 448/501
 ```
 
-Per language, rows exact out of 1,000: `aze_latn` 457 → 993, `azj_latn` 700 → 1,000, `aze_cyrl`
-858 → 1,000, `oss_cyrl` 763 → 989, `cat_latn` 793 → 990, `ron_latn` 786 → 972, `lmo_latn` 433 → 502,
-`abk_cyrl` 932 → 949. Slovene, Hungarian, Bulgarian, Serbian, Yoruba and Mari were carried along as
-controls and did not move — nothing bought here cost them anything.
+Eight of the 33 now reproduce 999 or 1,000 of their 1,000 rows: `azj_latn`, `aze_cyrl`, `chv_cyrl`,
+`bug_latn`, `slv_latn`, `srp_cyrl`, `kjh_cyrl`, `tam_latn`. The largest movers were `aze_latn`
+457 → 993 rows exact, `oss_cyrl` 763 → 989, `cat_latn` 793 → 990, `ron_latn` 786 → 972.
+
+**Five languages did not move, and that is the useful part of the reading.** `srp_latn` (101),
+`snd_arab` (65), `knc_arab` (148), `glk_arab` (118) and `yor_latn` (173) each kept essentially all
+their over-charge across two mining rounds. The Arabic-script three are one group and worth a
+campaign of their own: the miner priced their words, found them wrong, and could not propose a span
+any shipped template would accept — the same shape as the Brahmic wall in §1, in a different script.
 
 The single most valuable piece was `ən`, an Azerbaijani schwa bigram that repairs 296 words on its
-own; §6 records why an earlier version of the control refused it.
+own; §7 records why an earlier version of the control refused it.
 
 ## 1. Unconstrained Brahmic/SEA fragment mining manufactures pieces
 
@@ -204,7 +208,37 @@ on a line. (The hand-picked examples that suggested otherwise — `คือ`, `
 from a list of over-charging probes, so they over-charged by construction. A sample drawn from the
 symptom cannot measure how common the symptom is.)
 
-## 2. The span miner was blind, and is not any more
+## 2. A span that mixes a HARD character with a space or a stop has no template
+
+Lombard was the one language in the campaign where localizing said *don't mine this* — only 21% of
+its over-charge was inside a word — and shrinking its wrong rows to minimal failing substrings
+returned, over and over, two strings three characters long: `².` and `² e`.
+
+**Measured 2026-08-08.** U+00B2 SUPERSCRIPT TWO costs exactly one token too many whenever a space or
+a punctuation mark follows it, and nothing at all otherwise:
+
+```
+a²   +0     a².  +1     a² b  +1     a²a  +0     km²  +0     km² e  +1     km². E  +1
+a³   +0     a³.  +0     a³ b  +0        ¹ ½ ¼ ¾ ⁴ ₂ read +0 in every one of those frames
+```
+
+It is not a class rule: `³ ¹ ½ ¼ ¾ ⁴ ₂` share `²`'s category (`No`) and its HARD class and are exact
+in the same frames, so this is a vocabulary difference, the same shape as the `±`/`©`/`®` note in
+`normalize._is_symbol_text`. Nor is it a stream rule about absorbing the space: absorbing it would
+take `a³ b` *below* its recorded count.
+
+The fitness enumerator names the missing pieces — `² ` and `².` — and no shipped template can price
+either. `²` is HARD, a space and a full stop are not, and `mine_stream.probe_of` refuses mixed
+material because no template owns it: the ヲ grid would put a letter against it, and the digit
+anchors would read a punctuation run. So this is a **no-instrument** gap rather than an unmined one.
+
+It is also the whole of Lombard's residual, which is what makes it worth a section. 859 occurrences
+of `²` followed by a space or a stop in 1,000 rows, against 854 tokens of remaining over-charge.
+There is a second, uniform fact in the same grid: *every* `No` character over-charges by one in
+`1X  1`, a space RUN, where the other classes do not. That one is class-level and looks like a rule,
+but a superscript before a double space is rare enough in real text that it buys nothing.
+
+## 3. The span miner was blind, and is not any more
 
 Worth recording because the symptom was indistinguishable from success: the miner proposed
 candidates by MERGING adjacent tiles of the current tiling, which can only reach a span that begins
@@ -227,7 +261,7 @@ rather than about the tool: the 1,208 tokens of over-charge left on 570 lines ar
 any span a shipped template can price at one token. **A miner that returns nothing should be made to
 re-buy something known first** — otherwise "exhausted" and "blind" produce identical output.
 
-## 3. An under-count cannot be mined away
+## 4. An under-count cannot be mined away
 
 Adding a piece only ever lowers our number, so a document we already count *below* the oracle is out
 of reach of any vocabulary work. This is not a small residue: of the 21,512 tokens of absolute error
@@ -239,7 +273,7 @@ mining.
 Those need a structural reading — a spelling, a boundary rule, a frame — not more vocabulary. The
 useful consequence is a triage rule: **read the sign before spending API calls.**
 
-## 4. Synthetic probes cannot settle a stream-spelling question
+## 5. Synthetic probes cannot settle a stream-spelling question
 
 Two synthetic templates agreeing is not evidence, and neither is twenty-two.
 
@@ -265,7 +299,7 @@ A related trap in the same family: `a{X}a` and `.ヲXヲ.` both supply their own
 combining mark that anchor BECOMES the mark's base. They are not independent evidence — they share
 one bias and can agree on a reading that is wrong in the mark's own script.
 
-## 5. An ablation witness expires when the vocabulary grows, and can certify a piece that is not one
+## 6. An ablation witness expires when the vocabulary grows, and can certify a piece that is not one
 
 An `ownscript` witness says: delete this piece, and a real word of its own script costs one token
 more. That is a sound argument only *relative to the rest of the vocabulary at the moment it is
@@ -285,7 +319,7 @@ The consequence for method: **an ablation witness is evidence about a vocabulary
 tokenizer**, and it must be re-run — not merely re-read — whenever pieces are added near it. The
 synthetic templates do not have this property, because they measure the span alone.
 
-## 6. A true piece can push a word below the oracle, and that does not impeach it
+## 7. A true piece can push a word below the oracle, and that does not impeach it
 
 This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
 two disagree on words that offer the same piece twice.
@@ -301,14 +335,14 @@ Goldfish campaign: Azerbaijani sat at 45.7% of rows exact for one word out of te
 control still earns its place; it is what refuses pieces that repair nothing and break something.
 It just cannot be read as a proof of falsity when the witness is sound.
 
-## 7. Two UDHR documents are unexplained
+## 8. Two UDHR documents are unexplained
 
 Shipibo-Conibo (+4.38% v3, +3.14% v4.7) and Lamnso' (+3.27% / +2.84%) are the worst documents in
 both families and nothing in this campaign touched them. Lamnso' has no reachable corpus at all —
 eBible has no `lns`, Glot500 has no `lns`, the Wikimedia Incubator has no `Wp/lns`, and SIL's Bloom
 Library has it behind a gate — so the question cannot be asked without spending the held-out gate.
 
-## 8. Access and scale
+## 9. Access and scale
 
 - **StarCoder is gated.** `bigcode/starcoderdata` and `bigcode/the-stack-dedup` both require
   authentication. The external replay above uses `bigcode/the-stack-smol-xs` (same Stack lineage,
