@@ -78,6 +78,51 @@ def test_generic_combining_accents_close_the_word_after_the_mark(version: float)
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
+def test_syriac_terminal_mark_runs(version: float):
+    """U+0740–U+074A stand outside the words; a following vowel point rides the same unmarked
+    separator run. Ordinary U+0730–U+073F vowel points remain inside one word."""
+    overhead = _model(_family(version)).message_overhead
+    rows = [
+        ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
+        ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂ ⟨bow⟩ܒ⟨eow⟩", 11),
+        ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂ܶ⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
+        ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊ܶ⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒܰܒ", "⟨bow⟩ܒܰܒ⟨eow⟩", 8),
+    ]
+    for text, stream, content in rows:
+        assert marked_stream(text, version) == stream
+        assert token_count(text, version) - overhead == content
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7])
+def test_after_mark_killer_closes_after_the_complete_mark_suffix(version: float):
+    """A later vowel remains attached through an after-mark boundary. On a Syriac host the
+    U+0300–U+0362 seam population closes the run; U+0345 and U+0363–U+036F do not."""
+    overhead = _model(_family(version)).message_overhead
+    rows = [
+        ("ܒ̱", "⟨bow⟩ܒ̱⟨eow⟩", 6),
+        ("ܒ̱ܒ", "⟨bow⟩ܒ̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
+        ("ܒ̱ ܒ", "⟨bow⟩ܒ̱⟨eow⟩ ⟨bow⟩ܒ⟨eow⟩", 11),
+        ("ܒ̱ܶܒ", "⟨bow⟩ܒ̱ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒ̣ܒ", "⟨bow⟩ܒ̣⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
+        ("ܒ̣ܶܒ", "⟨bow⟩ܒ̣ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒͣܒ", "⟨bow⟩ܒͣܒ⟨eow⟩", 8),
+    ]
+    for text, stream, content in rows:
+        assert marked_stream(text, version) == stream
+        assert token_count(text, version) - overhead == content
+
+
+def test_generic_mark_run_closure_depends_on_a_syriac_host():
+    assert marked_stream("ܒ̣ܒ", 4.7) == "⟨bow⟩ܒ̣⟨eow⟩⟨bow⟩ܒ⟨eow⟩"
+    assert marked_stream("q̣q", 4.7) == "⟨bow⟩q̣q⟨eow⟩"
+    # The circumflex piece is available in the Latin pretoken and byte-priced in the Syriac one.
+    assert token_count("q̂q", 4.7) == 15
+    assert token_count("ܒ̂ܒ", 4.7) == 21
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7])
 def test_stray_mark_run_head_uses_the_raw_byte_floor(version: float):
     """A mark piece is word-context vocabulary. At a stray run head the public marked stream is
     unchanged, but tiling uses raw bytes; later non-killer marks can use their ordinary pieces.

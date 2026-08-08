@@ -111,13 +111,12 @@ decides which candidate gets asked.
 
 Nothing in either family is over 5% off now; 15 in each were, before the akshara law (a mark that
 closes its orthographic syllable also closes the word, so a conjunct is two words and carries the
-boundary markers that say so). What is left is vocabulary rather than structure — the residual is
-spread in both directions instead of being a one-sided under-count — and the largest remaining piece
-of it is Brahmic and South-East Asian clusters. Measured on FineWeb-2, that is the whole of the
-error: Thai and Tamil reproduce a small fraction of documents against 99–100% for English, German,
-Hindi and code. Two Tamil virama-punctuation suffixes alone took 10,114 tokens of over-charge off a
-17,962-line Thai/Tamil sample, so this is being mined rather than merely described — see LIMITS.md
-for what the instruments there can and cannot prove.
+boundary markers that say so). A later 350-language Goldfish sweep found that Syriac, not Thai, held
+72% of the remaining under-count. Its mark-run law is now implemented: two independent 100-row
+Syriac samples moved from 38/42 exact to 98/97, with seven tokens of absolute error left across all
+200 rows. The largest measured over-charge pools are now Bengali, Assamese and ordinary Latin or
+Cyrillic vocabulary gaps. See LIMITS.md for the full ranking and the minimal probes behind the
+Syriac rule.
 
 ## What each piece rests on
 

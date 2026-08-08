@@ -75,6 +75,17 @@ EXTRA_KILLERS = frozenset((
     "\u030c",  # COMBINING CARON
     "\u0327",  # COMBINING CEDILLA
     "\u0331",  # COMBINING MACRON BELOW
+    "\u0740",  # SYRIAC FEMININE DOT
+    "\u0741",  # SYRIAC QUSHSHAYA
+    "\u0742",  # SYRIAC RUKKAKHA
+    "\u0743",  # SYRIAC TWO VERTICAL DOTS ABOVE
+    "\u0744",  # SYRIAC TWO VERTICAL DOTS BELOW
+    "\u0745",  # SYRIAC THREE DOTS ABOVE
+    "\u0746",  # SYRIAC THREE DOTS BELOW
+    "\u0747",  # SYRIAC OBLIQUE LINE ABOVE
+    "\u0748",  # SYRIAC OBLIQUE LINE BELOW
+    "\u0749",  # SYRIAC MUSIC
+    "\u074a",  # SYRIAC BARREKH
     "\u093c",  # DEVANAGARI SIGN NUKTA
     "\u0951",  # DEVANAGARI STRESS SIGN UDATTA
     "\u0952",  # DEVANAGARI STRESS SIGN ANUDATTA
@@ -150,6 +161,12 @@ EXTRA_KILLERS = frozenset((
     "\u1b73",  # BALINESE MUSICAL SYMBOL COMBINING GONG
     "\ua9b3",  # JAVANESE SIGN CECAK TELU
 ))
+
+# Word-context pieces that are usable on noncomposing Latin hosts but byte-price on a Syriac host.
+# A six-host Latin grid gives at least three discriminating rows per mark and supports one shared
+# piece over per-pair explanations; Syriac byte-floor and standalone grids refute that piece in
+# their pretokens. The distinction belongs here, at eligibility, not in the piece's spelling.
+SYRIAC_FLOOR_MARKS = frozenset("\u0302\u0303\u0304\u0327\u0331")
 
 # ---- normalization ------------------------------------------------------------------------------
 

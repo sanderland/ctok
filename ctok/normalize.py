@@ -14,7 +14,7 @@ import unicodedata
 from .constants import (
     BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, EXTRA_KILLERS, FUNNY_SPACE,
     HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
+    SURROGATE, SYMBOL_LETTERS, SYRIAC_FLOOR_MARKS, VARIATION_SELECTORS, WORDY,
 )
 
 
@@ -243,6 +243,21 @@ _STRAY_MARK = "stray_mark"
 _FLOOR_G = "\ufdd5"
 
 
+def _guard_syriac_floor_marks(body: str) -> str:
+    """Annotate word-context mark pieces that byte-price when their base is Syriac."""
+    out = []
+    syriac_host = False
+    for ch in body:
+        if unicodedata.category(ch).startswith("M"):
+            if syriac_host and ch in SYRIAC_FLOOR_MARKS:
+                out.append(_FLOOR_G)
+        else:
+            syriac_host = 0x0710 <= ord(ch) <= 0x074F and \
+                           unicodedata.category(ch).startswith("L")
+        out.append(ch)
+    return "".join(out)
+
+
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
@@ -268,6 +283,32 @@ def _stray_mark(c: str) -> bool:
     return unicodedata.combining(c) != 0 and not is_terminal_separator(c)
 
 
+def _ends_legacy_killer_run(body: str) -> bool:
+    """Does ``body`` end in a combining-mark suffix containing an after-mark killer?
+
+    A killer closes the orthographic cluster after the complete mark suffix, not necessarily
+    immediately after its own codepoint. This matters when canonical order puts an ordinary vowel
+    point after the killer: the whole suffix stays attached, and the next letter starts a new run.
+
+    Syriac supplies one host-dependent population. On a Syriac letter, the existing
+    ``CHARGING_MARK`` range closes the run; on a noncomposing Latin host the same marks do not.
+    U+0345 and U+0363–U+036F are outside that measured range and stay ordinary in both hosts.
+    """
+    suffix = []
+    for ch in reversed(body):
+        if not unicodedata.category(ch).startswith("M"):
+            syriac_host = 0x0710 <= ord(ch) <= 0x074F and \
+                           unicodedata.category(ch).startswith("L")
+            if syriac_host:
+                return any(is_killer(mark) and not is_terminal_separator(mark)
+                           or CHARGING_MARK.fullmatch(mark) for mark in suffix)
+            break
+        suffix.append(ch)
+    # Every other script keeps the previously measured immediate-after-mark behavior.
+    ch = body[-1]
+    return is_killer(ch) and not is_terminal_separator(ch)
+
+
 def _runs(norm: str, model) -> list[tuple[str, str]]:
     """The text split into maximal same-class runs, with terminal marks as unmarked separators.
 
@@ -291,8 +332,18 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = run_class(ch)
-        legacy_killer = is_killer(cur[-1]) and not is_terminal_separator(cur[-1])
-        if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
+        legacy_killer = _ends_legacy_killer_run(cur)
+        if cur_cls == _KILLER and 0x0740 <= ord(cur[0]) <= 0x074A \
+                and unicodedata.category(ch).startswith("M"):
+            # A terminal separator starts an unmarked mark run; later combining marks ride that
+            # run rather than opening a stray marked word. Syriac writes a vowel point after its
+            # hard/soft dot (`ܒ݂ܶ`), and that whole suffix remains outside the adjacent words.
+            cur += ch
+        elif cur_cls == WORDY and legacy_killer and unicodedata.category(ch).startswith("M"):
+            # An after-mark killer remains inside the word, but its boundary lands after the
+            # complete combining suffix. Do not turn a later mark into a stray marked word.
+            cur += ch
+        elif cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
             # Consecutive unattached marks are one regex-style run. A legacy killer still resets
             # piece eligibility after itself; the stream plan records that inside the run.
             cur += ch
@@ -395,7 +446,7 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
-            out.append(pre + bow + n + EOW_G)
+            out.append(pre + bow + _guard_syriac_floor_marks(n) + EOW_G)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken owns an opening boundary even when it is adjacent to a symbol,
             # digit or punctuation run. A legacy killer at the head instead closes that preceding

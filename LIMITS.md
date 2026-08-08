@@ -22,10 +22,33 @@ minus syr_syrc      96.22% exact   error mass 0.0545%   over 17,560   under  5,8
 **80% of all error is in 20 of the 350 languages**, and 59 languages reproduce every one of their
 1,000 rows. Two facts do most of the steering:
 
-**Syriac is the largest single defect in the tokenizer, and no piece can touch it.** `syr_syrc`
-carries 15,139 tokens of under-count — 72% of all under-count in 350 languages — concentrated in
-long, diacritic-dense Peshitta rows. One 4,000-character row reads 7,764 against a recorded 8,408.
-An under-count is unreachable by vocabulary (§3), so this is an encoder question and a large one.
+**Syriac was the largest single defect, and the 2026-08-08 follow-up found its stream law.** In the
+original sweep `syr_syrc` carried 15,139 tokens of under-count — 72% of all under-count in 350
+languages — concentrated in long, diacritic-dense Peshitta rows. One 4,000-character row read 7,764
+against a recorded 8,408. It now reads 8,408.
+
+The shortest discriminating rows name two classes. U+0730–U+073F are ordinary Syriac vowel points:
+`ܒܰܒ` stays one word and was already exact. Every mark in U+0740–U+074A instead stands outside the
+word: `ܒ݁ܒ` and `ܒ݂ܒ` each cost two more than the old stream, while `ܒ݁ ܒ` costs one more because
+the separator prevents seam-space absorption. A later vowel point rides the same unmarked mark run:
+`ܒ݂ܶܒ` is exact without opening a stray marked word on `ܶ`.
+
+There is a second, host-sensitive class. On a Syriac letter, every assigned mark in the existing
+`CHARGING_MARK` range U+0300–U+0362 except U+0345 closes the run after the complete combining-mark
+suffix. U+0345 and U+0363–U+036F do not. A complete block sweep on a noncomposing Latin host showed
+that the newly found population does not close Latin runs. This is one script-host rule over an
+already defined range, not 85 enumerated exceptions.
+
+Five one-character pieces — U+0302, U+0303, U+0304, U+0327 and U+0331 — are pretoken-context
+vocabulary. A six-host Latin grid gives at least three discriminating rows per mark and supports one
+shared piece over per-pair explanations; standalone and Syriac-host rows byte-price them. The
+existing forced-floor mechanism therefore keeps the pieces available in their measured Latin
+context and blocks them on Syriac.
+
+On the 100 Goldfish rows used to develop the rule, exact reproduction moved from 38 to 98, absolute
+error from 1,551 to 4, and the worst row from −504 to −3. On a second frozen 100-row Goldfish draw,
+exact moved from 42 to 97, absolute error from 1,479 to 3, and worst from −747 to +1. The compact
+grid is exact in both v3 and v4.7. Neither UDHR nor MultiPL-E selected any part of the rule.
 
 **The largest minable pools are not where the earlier sections of this file point.** Over-charge with
 no under-count to confound it:
