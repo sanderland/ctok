@@ -401,11 +401,29 @@ x .  5 x   +0   punctuation, space, digit <- control
 x ക് , x   +0   separator, space, punctuation
 ```
 
-A space before a digit belongs to the digit run — `⟨bow⟩x⟨eow⟩ 5 ⟨bow⟩x⟨eow⟩` keeps both of its
-spaces — and the glue piece eats it. That is an engine restriction, not a vocabulary change: the
-piece may not consume a space that a digit run owns. 357 such sites sit in these corpora against 733
-tokens of under-count, and the count overshoots in Tamil and Sinhala because some rows also
-over-charge and the two cancel.
+The reason is that **a digit run absorbs no adjacent space, on either side**, where a word does:
+
+```
+a b      2 content tokens   ⟨bow⟩a⟨eow⟩ · ⟨bow⟩b⟨eow⟩      the space is absorbed into the ⟨bow⟩
+a 5      3                  ⟨bow⟩a⟨eow⟩ · ␣ · 5            it is not
+5 a      4                  ⟨bow⟩ · 5 · ␣ · ⟨bow⟩a⟨eow⟩     nor on the other side
+998 999  4                  ⟨bow⟩ · 998 · ␣ · 999           a digit run opens with ⟨bow⟩, closes with nothing
+```
+
+So the space next to a digit is not part of anything — it stands alone and costs a token — which is
+precisely why it is still there for the glue piece to swallow:
+
+```
+x ക് 5 x   api 19   ours 18
+  ours    ⟨bow⟩x⟨eow⟩ · ⟨bow⟩ · ക⟨eow⟩ · `് ` · 5 · ␣ · ⟨bow⟩x⟨eow⟩    = 7
+  oracle  ⟨bow⟩x⟨eow⟩ · ⟨bow⟩ · ക⟨eow⟩ · ്   · ␣ · 5 · ␣ · ⟨bow⟩x⟨eow⟩  = 8
+```
+
+With a letter after the space instead, the glue is *right*: `x ക് ക x` reads 7 with it and 8 without,
+and 7 is the recorded count. So the piece is real and its applicability is conditional on what
+follows — an engine restriction, not a vocabulary change. 357 such sites sit in these corpora
+against 733 tokens of under-count, and the count overshoots in Tamil and Sinhala because some rows
+also over-charge and the two cancel.
 
 **Khmer and Lao are NOT this.** Together they are 299 of the 733, they contain no `virama + space`
 piece at all, and ablating the five moves neither by a single token. That is a separate mechanism and
