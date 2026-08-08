@@ -67,10 +67,14 @@ GATES: dict[str, dict] = {
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.96, "exact": 0.61},
-            "v4.7": {"version": 4.7, "mean": 0.0007, "within1": 0.97, "exact": 0.71},
+            # Re-measured 2026-08-08 after the Goldfish word campaign: 406/501 exact and 0.047%
+            # mean, up from 363 and 0.064%. Nothing in that campaign read UDHR — it mined
+            # Azerbaijani, Catalan, Lombard, Romanian and Ossetian against Goldfish rows — so this
+            # is out-of-sample, and the threshold moves with the reading rather than ahead of it.
+            "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.97, "exact": 0.79},
             # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
             # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0007, "within1": 0.97, "exact": 0.71},
+            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.97, "exact": 0.79},
         },
     },
     "rosetta": {

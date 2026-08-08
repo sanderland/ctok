@@ -74,6 +74,37 @@ Lombard, Catalan and Ossetian sit at 43–79% exact in reliable-template scripts
 been mined at all. That is the sampling error of §5 at the level of a whole campaign: **a corpus
 chosen for convenience cannot rank the languages.**
 
+### What that ranking bought, 2026-08-08
+
+The Latin and Cyrillic pools above were then mined — 45 pieces, on Goldfish rows only. The step that
+made it work was localizing first: pricing each WORD of an over-charging row alone, as its own
+message. That said where the defect lived before any candidate was proposed, and it is worth doing
+before a miner runs, because the answer differs by language:
+
+| | over-charge inside single words |
+|---|---:|
+| `cat_latn` Catalan | 98% |
+| `aze_latn` Azerbaijani | 71% |
+| `lmo_latn` Lombard | **21%** |
+
+Catalan and Azerbaijani are word-vocabulary problems and were mined out. Lombard is not — four
+fifths of its error is in how words JOIN, so word pieces cannot reach it, and it remains the largest
+over-charge left in this group at 854. Knowing that cost 3,000 API calls and saved mining the wrong
+thing.
+
+```
+14,000 Goldfish rows, 14 languages    exact 79.9% -> 91.9%    error mass 5,122 -> 2,047
+UDHR (held out, chose nothing here)   exact 365/501 -> 406/501
+```
+
+Per language, rows exact out of 1,000: `aze_latn` 457 → 993, `azj_latn` 700 → 1,000, `aze_cyrl`
+858 → 1,000, `oss_cyrl` 763 → 989, `cat_latn` 793 → 990, `ron_latn` 786 → 972, `lmo_latn` 433 → 502,
+`abk_cyrl` 932 → 949. Slovene, Hungarian, Bulgarian, Serbian, Yoruba and Mari were carried along as
+controls and did not move — nothing bought here cost them anything.
+
+The single most valuable piece was `ən`, an Azerbaijani schwa bigram that repairs 296 words on its
+own; §6 records why an earlier version of the control refused it.
+
 ## 1. Unconstrained Brahmic/SEA fragment mining manufactures pieces
 
 The measurements in this section are real and its lessons hold, but read §0 first for how much of
@@ -196,7 +227,7 @@ rather than about the tool: the 1,208 tokens of over-charge left on 570 lines ar
 any span a shipped template can price at one token. **A miner that returns nothing should be made to
 re-buy something known first** — otherwise "exhausted" and "blind" produce identical output.
 
-## 2. An under-count cannot be mined away
+## 3. An under-count cannot be mined away
 
 Adding a piece only ever lowers our number, so a document we already count *below* the oracle is out
 of reach of any vocabulary work. This is not a small residue: of the 21,512 tokens of absolute error
@@ -208,7 +239,7 @@ mining.
 Those need a structural reading — a spelling, a boundary rule, a frame — not more vocabulary. The
 useful consequence is a triage rule: **read the sign before spending API calls.**
 
-## 3. Synthetic probes cannot settle a stream-spelling question
+## 4. Synthetic probes cannot settle a stream-spelling question
 
 Two synthetic templates agreeing is not evidence, and neither is twenty-two.
 
@@ -234,14 +265,50 @@ A related trap in the same family: `a{X}a` and `.ヲXヲ.` both supply their own
 combining mark that anchor BECOMES the mark's base. They are not independent evidence — they share
 one bias and can agree on a reading that is wrong in the mark's own script.
 
-## 4. Two UDHR documents are unexplained
+## 5. An ablation witness expires when the vocabulary grows, and can certify a piece that is not one
+
+An `ownscript` witness says: delete this piece, and a real word of its own script costs one token
+more. That is a sound argument only *relative to the rest of the vocabulary at the moment it is
+measured*. If the piece the encoder actually uses is missing, deleting a longer composite of it
+raises the count in exactly the same way — and the composite is recorded as a token it never was.
+
+**Measured 2026-08-08.** Buying `ià⟨eow⟩` and `ən` on Catalan and Azerbaijani invalidated two
+witnesses already in the file, and `tests/test_witness.py` caught both. Neither was merely stale:
+
+```
+xià⟨eow⟩   ownscript 'xià'    13 vs 14      direct probe '.ヲxià.'   cost 2   REFUTED
+nə         ownscript 'ənənə'  15 vs 16      direct probe '.ヲnəヲ.'   cost 2   REFUTED
+```
+
+Both were retracted. `xià⟨eow⟩` was never a token; `ià⟨eow⟩` is, and it explains the same evidence.
+The consequence for method: **an ablation witness is evidence about a vocabulary, not about the
+tokenizer**, and it must be re-run — not merely re-read — whenever pieces are added near it. The
+synthetic templates do not have this property, because they measure the span alone.
+
+## 6. A true piece can push a word below the oracle, and that does not impeach it
+
+This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
+two disagree on words that offer the same piece twice.
+
+**Measured 2026-08-08.** `ən` is a verified Azerbaijani token — its own probe prices it at one, and
+adding it repairs **296** standalone word counts. It also takes `cəhənnəm` one token *below* its
+recorded count: that word contains two `ən`s, and shortest-path spends both where merge order did
+not. No vocabulary change fixes this, in either direction.
+
+So a push-below control has to be **net rather than absolute**. An absolute one — refuse the piece
+if any word drops below — refused `ən` outright, and with it the single largest repair in the
+Goldfish campaign: Azerbaijani sat at 45.7% of rows exact for one word out of ten thousand. The
+control still earns its place; it is what refuses pieces that repair nothing and break something.
+It just cannot be read as a proof of falsity when the witness is sound.
+
+## 7. Two UDHR documents are unexplained
 
 Shipibo-Conibo (+4.38% v3, +3.14% v4.7) and Lamnso' (+3.27% / +2.84%) are the worst documents in
 both families and nothing in this campaign touched them. Lamnso' has no reachable corpus at all —
 eBible has no `lns`, Glot500 has no `lns`, the Wikimedia Incubator has no `Wp/lns`, and SIL's Bloom
 Library has it behind a gate — so the question cannot be asked without spending the held-out gate.
 
-## 5. Access and scale
+## 8. Access and scale
 
 - **StarCoder is gated.** `bigcode/starcoderdata` and `bigcode/the-stack-dedup` both require
   authentication. The external replay above uses `bigcode/the-stack-smol-xs` (same Stack lineage,
