@@ -75,6 +75,36 @@ The corollary is worth stating because it is tempting and wrong: *"every piece i
 document we over-charge must be missing a piece"* holds only if the structure is right. Witness
 coverage certifies the vocabulary, not the encoder. Where the two disagree, this is how it shows.
 
+**Three courts, 2026-08-08, all empty — and where that leaves Thai.** With the candidate-by-candidate
+method above, and its control that a candidate's probes must be WRONG without it:
+
+| court | candidates | probes | kept |
+|---|---:|---:|---:|
+| virama × punctuation seam, every Brahmic script | 37 | 179 | **0** — every row already exact |
+| Thai word-final letters | 30 | 227 | **0** — every row already exact |
+| Thai word-final clusters, ≤3 characters | 3,245 | 20,344 | **0** — nearly all push some word BELOW |
+
+The seam court independently reproduces Sol's refusal of the Tamil `? ! ; :` candidates, which is
+the reassuring part: the control refuses the right things without being told about them.
+
+The cluster court is where the useful correction is. `อ⟨eow⟩` repairs `คือ`, `ก็คือ`, `กือทือ` and
+`กล่าวคือ` and takes `กอ` below the oracle — the four it repairs share `ือ`, and the single
+character was the wrong span. Widening to three-character suffixes and demanding that no probe fall
+below its recorded count leaves nothing at all: **every** word-final Thai cluster that repairs some
+word breaks another.
+
+And the reason is that Thai words are mostly not broken. Over 1,157 distinct Thai words priced from
+the corpus:
+
+    ours − api      −2: 1     −1: 62     0: 1,057     +1: 37
+
+**91% exact, and the residual leans UNDER, not over.** Concatenating words into a single run tracks
+the sum of the parts. So the Thai over-charge that shows on whole lines is not in Thai words, and a
+word-piece campaign is looking in the wrong place — the material to examine is what surrounds them
+on a line. (The hand-picked examples that suggested otherwise — `คือ`, `นักแสดง`, `สินค้า` — came
+from a list of over-charging probes, so they over-charged by construction. A sample drawn from the
+symptom cannot measure how common the symptom is.)
+
 ## 2. An under-count cannot be mined away
 
 Adding a piece only ever lowers our number, so a document we already count *below* the oracle is out
