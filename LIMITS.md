@@ -419,15 +419,42 @@ x ക് 5 x   api 19   ours 18
   oracle  ⟨bow⟩x⟨eow⟩ · ⟨bow⟩ · ക⟨eow⟩ · ്   · ␣ · 5 · ␣ · ⟨bow⟩x⟨eow⟩  = 8
 ```
 
-With a letter after the space instead, the glue is *right*: `x ക് ക x` reads 7 with it and 8 without,
-and 7 is the recorded count. So the piece is real and its applicability is conditional on what
-follows — an engine restriction, not a vocabulary change. 357 such sites sit in these corpora
-against 733 tokens of under-count, and the count overshoots in Tamil and Sinhala because some rows
-also over-charge and the two cancel.
+With a letter after the space instead, the glue produces the right total: `x ക് ക x` reads 7 with it
+and 8 without, and 7 is recorded. **But it produces it for the wrong reason**, and the probe says so:
 
-**Khmer and Lao are NOT this.** Together they are 299 of the 733, they contain no `virama + space`
-piece at all, and ablating the five moves neither by a single token. That is a separate mechanism and
-it has not been found.
+```
+.ᛒ्ᛒ.    24        the bare virama
+.ᛒ् ᛒ.   24        the virama and a space — IDENTICAL
+.ᛒ्  ᛒ.  25        a space run is not absorbed
+```
+
+The space costs nothing when a letter follows, because the oracle absorbs it into the next `⟨bow⟩`
+like any other seam — and `_seam_sub` exempts terminal marks from exactly that. So the space was
+never a token, the `virama + space` piece is a modelling device standing in for an absorption the
+stream does not perform, and the `mark_sep` witness attached to it during the `ownscript` retirement
+is degenerate: it cannot tell `्` from `् `, so it certifies the bare virama and says nothing about
+the pair. The same failure as `xià⟨eow⟩` in §6, found by asking the question one level lower.
+
+Whether the space is absorbed is **script-dependent, and the correlation with the glue pieces is
+exact**:
+
+| | bare | + space | absorbed? | has a glue piece? |
+|---|---:|---:|---|---|
+| Devanagari, Tamil, Malayalam, Sinhala, Myanmar | 3 | 3 | yes | yes |
+| Khmer, Thai, Lao | 3 | 4 | no | no |
+
+Five scripts absorb and have a compensating piece; three do not absorb and have none. Nobody chose
+that — it fell out of fitting the corpus. **The fix is structural**: absorb a single space after a
+terminal separator into the following `⟨bow⟩` for the first group, and the five pieces can go. The
+totals are unchanged wherever a word follows, and the digit case stops being wrong.
+
+357 such sites sit in these corpora against 733 tokens of under-count, and the count overshoots in
+Tamil and Sinhala because some rows also over-charge and the two cancel.
+
+**Khmer and Lao are NOT this**, and the table above says why: their separator does not absorb the
+following space, so they never needed a glue piece and have none. Together they are 299 of the 733,
+and ablating all five moves neither by a token. Their under-count is a separate mechanism and has not
+been found — but it is now known not to be this one, which is worth more than it sounds.
 
 Two instrument notes, both learned by getting it wrong here first:
 
