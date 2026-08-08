@@ -86,15 +86,15 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.137% | 0.102% | 314/501 | 97.0% |
-| UDHR | v4.7 | 0.052% | 0.043% | 448/501 | 98.0% |
-| UDHR | v5 | 0.052% | 0.043% | 448/501 | 98.0% |
+| UDHR | v4.7 | 0.053% | 0.043% | 448/501 | 98.0% |
+| UDHR | v5 | 0.053% | 0.043% | 448/501 | 98.0% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
 No document in either family is over 5% error. Fifteen v3 documents and ten v4.7 ones remain in the
 1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
 languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.055% (v3) and 0.024% (v4.7).
+document, the error is 0.055% (v3) and 0.025% (v4.7).
 
 The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
 a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
@@ -123,7 +123,7 @@ all under-count.
 Syriac was structural and is now implemented: its mark-run law took two independent 100-row samples
 from 38/42 rows exact to 98/97, seven tokens of absolute error across all 200. What the sweep ranked
 below it is ordinary missing vocabulary, and that is being mined a language at a time: **33
-languages, 33,000 rows, 88.2% of rows exact to 96.1% on 90 pieces**, with eight of them now
+languages, 35,000 rows, 88.1% of rows exact to 95.6% on 100 pieces**, with eight of them now
 reproducing 999 or 1,000 rows out of 1,000. The pieces are unremarkable — Catalan `-ància`/`-ències`
 suffixes, Czech and Hungarian stems, and the Azerbaijani schwa bigram `ən`, which repairs 296 words
 by itself. UDHR, which chose none of them, moved 365 → 448 documents exact in step. Bengali and
@@ -144,7 +144,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15310
+len(pieces(4.7))                # 15290
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -173,7 +173,7 @@ A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word,
 probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
 that probe — and `tests/test_witness.py` runs it over every witness in the file.
 
-**Every piece in both files now carries one.** 48,474 on v3 and 15,310 on v4.7, with no piece left
+**Every piece in both files now carries one.** 48,474 on v3 and 15,290 on v4.7, with no piece left
 at `unmeasured` (a template applies and nobody spent the API call), `no-instrument` (nothing in the
 inventory reaches it) or `refuted` (its own probe priced it above one token). Four marker atoms are
 `special` — `⟨bow⟩` is not text, so no probe can contain it — and that is the whole of what is not a

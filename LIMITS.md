@@ -319,6 +319,58 @@ The consequence for method: **an ablation witness is evidence about a vocabulary
 tokenizer**, and it must be re-run — not merely re-read — whenever pieces are added near it. The
 synthetic templates do not have this property, because they measure the span alone.
 
+A later Thai piece did the same thing on a larger scale. `ิน` is real (`.ヲินヲ.` prices it at one),
+and buying it invalidated **thirty** Thai ablation witnesses at once, each of which their own direct
+probe then priced at two, three or four tokens. Removing all thirty raised Thai from 511 to 520 rows
+exact out of 1,000 and cut its under-count from 130 to 96 — the signature of pieces that were making
+the tiler cheaper than the tokenizer — so those were retracted too. Retracting one changes the
+baseline for the next, so this has to run to a fixed point rather than once: `reaudit.py` sweeps
+until no witness is stale.
+
+### The audit that follows from it, and why it did not end in deletions
+
+Thirty refuted pieces out of a few hundred is either a tail or a symptom, so every ablation-witnessed
+piece in both files was asked directly. **Measured 2026-08-08:**
+
+| | ablation witnesses | askable directly | hold | **refuted by their own probe** |
+|---|---:|---:|---:|---:|
+| v3 | 640 | 606 | 319 | **287** |
+| v4.7 | 523 | 488 | 345 | **143** |
+
+The refutations are almost entirely Brahmic and South-East Asian — Thai, Khmer, Sinhala, Malayalam,
+Tamil, Thaana, Myanmar, Lao — which is exactly the population §1 says the ヲ grid cannot measure.
+So this is not a list of false pieces. It is two fallible instruments disagreeing about 430 pieces,
+and the corpora were asked to arbitrate (§5). They answer, and the answer is **not the same twice**:
+
+```
+v3, ablate all 287     9 Brahmic/SEA languages, 9,000 rows   abs error 19,864 -> 47,200
+v4.7, ablate all 143   the same 9 languages                  abs error  5,199 ->  4,989
+```
+
+On v3 the refuted pieces are doing enormous real work — Dhivehi alone goes from 1,060 tokens of
+over-charge to 19,508 without them — so there the direct probe is refuting pieces that are real, and
+it is the probe that is wrong. On v4.7 the batch looks mildly beneficial, and per script it splits:
+
+| v4.7, dropped alone | | exact | absolute error |
+|---|---:|---|---|
+| 90 Thai pieces | `tha_thai` | 524 → 472 | 638 → **776** |
+| 13 Sinhala pieces | `sin_sinh` | 452 → **545** | 1,086 → **827** (under-count 830 → 232) |
+| 15 Khmer pieces | `khm_khmr` | 640 → 652 | 614 → 593 |
+| 1 Bengali piece | `ben_beng` | 283 → 282 | 2,254 → 2,258 |
+
+Thai says keep and Sinhala says drop, on the same instrument, in the same family. **So nothing was
+deleted here**, because the one thing this file already knows is that a batch verdict on a set of
+Brahmic candidates is worthless (§1): a set that is mostly wrong and partly right scores like a set
+that is entirely wrong, in either direction. The thirty Thai pieces that *were* retracted each had
+two independent reasons — a direct refutation and a corpus that improved without them — and 430 do
+not.
+
+Two consequences worth carrying forward. Sinhala's 830 tokens of under-count, the third largest in
+the 350-language sweep, are **13 named pieces**, which turns an unmineable under-count (§4) into a
+small per-piece question. And the ablation witness should not be a durable record: it is reproducible
+only against the vocabulary that produced it, and `tests/test_witness.py` is the only thing that
+notices when it stops being true.
+
 ## 7. A true piece can push a word below the oracle, and that does not impeach it
 
 This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
