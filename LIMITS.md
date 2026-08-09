@@ -784,3 +784,166 @@ x n̄wed x      18          x n̄w x       17     x kn̄ x   18     x n̄ x    1
 Everything the word is made of reproduces; only the whole does not. `x an̄ x` and `x an̄b x` read
 +1 in the same grid, so the `n̄` neighbourhood holds an over-charge as well. This is a vocabulary
 question for a miner, not a stream question.
+
+## 13. Bengali and Assamese were a vocabulary campaign, and ten pieces closed them
+
+**Measured 2026-08-09.** §0 named `ben_beng` and `asm_beng` the two largest minable pools. They
+were, and they are now the two smallest: ten pieces over the two families take 2,000 Goldfish rows
+from 1,913 wrong to 7, without moving under-count anywhere.
+
+### 13.1 The ranking that sent this campaign was already stale
+
+§0's table says Bengali 28.3% exact / 2,251 over and Assamese 31.5% / 1,901, measured 2026-08-08.
+By the time this campaign opened, the border-marker and mark-eligibility work of the following day
+had taken v4.7 to **847/1,000 exact and 203 over** for Bengali and **820/1,000 and 404** for
+Assamese. The pool the ranking pointed at was three quarters gone before anyone mined it, and the
+real pool was the one the sweep never measured: **v3**, where the same 2,000 rows carried 3,245
+tokens of over-charge against v4.7's 607, because v3's vocabulary is three times the size and only
+114 of its pieces were Bengali. A ranking is a measurement with a date on it; re-measure before
+spending on it.
+
+### 13.2 Localize first, and probe every word rather than the top four thousand
+
+| | over-charge inside single words | words priced |
+|---|---:|---:|
+| `ben_beng` v4.7 | 201/203 (**99%**) | 4,000 |
+| `asm_beng` v4.7 | 396/404 (**98%**) | 4,000 |
+| `ben_beng` v3 | 1,709/1,709 (**100%**) | 12,328 (all) |
+| `asm_beng` v3 | 1,534/1,536 (**100%**) | 12,359 (all) |
+
+Both are Catalan-shaped, not Lombard-shaped, so a miner was the right instrument. **The word cap is
+part of the measurement, though.** Run at `localize.py`'s default of 4,000 words, v3 Bengali reads
+70% and Assamese 68% — and the missing third is not a joining defect, it is the 8,300 words the cap
+never priced. Pricing all of them moves the reading to 100% and changes the verdict from "a third of
+this is structural" to "none of it is." A localization fraction is only as good as its coverage of
+the wrong rows' vocabulary, and the number to report is the one where every word of every hot row
+has a recorded count.
+
+### 13.3 Two facts about the script, each with its rival refuted
+
+**Bengali `য়` is a composition exclusion.** NFC writes U+09DF as U+09AF U+09BC, and the nukta is a
+terminal separator, so `সময়` streams as `⟨bow⟩সময⟨eow⟩়` — the word closes *before* the mark and a
+following syllable opens a second word (`সময়ের` = `⟨bow⟩সময⟨eow⟩়⟨bow⟩ের⟨eow⟩`). Every wrongly
+priced Bengali word on v4.7, all 25 of them, contained `ময়`. The missing token is the suffix
+`ময⟨eow⟩`.
+
+The rival — the nukta rides *inside* the word and the oracle holds `য়⟨eow⟩` — is refuted by the
+words that have no ম in front:
+
+```
+নয় 3   হয় 3   আয় 3   ময় 3   য় 2      all exact today
+```
+
+Under the rival each of the first four would cost 2, one BELOW its recorded count, which §4 says is
+the direction nothing can undo. It is also why `য়`-shaped candidates never reach a probe: no
+template can place a piece the stream never writes.
+
+**Assamese web text writes the vowel O in the pre-Unicode order.** U+09BE U+09C7 (AA then E) where
+the modern orthography has the single U+09CB, in 45 of 1,000 rows. The rival here is that the
+oracle reorders or composes the pair, and one row cannot tell:
+
+```
+ভােট 15 = ভোট 15        ােৰ 16 ≠ োৰ 15   (v4.7)      13 ≠ 12   (v3)
+```
+
+The first row is consistent with both readings; the second is not — two spellings that cost
+different amounts are not the same string. So `াে` is a piece, and its `mid` probe prices it at 1
+in both families. v4.7 already shipped the sibling `াি`.
+
+### 13.4 What the two families disagree about, and the host that cannot arbitrate
+
+v3 additionally needed four word-initial vowel signs — `⟨bow⟩া` `⟨bow⟩ি` `⟨bow⟩ে` `⟨bow⟩ো`, which
+the nukta split creates and which v4.7 already had — and two doubled vowel signs, `ুু` and `াা`,
+the typos a web-trained vocabulary learns. **Those two are v3-only because v4.7's own probe refuses
+them**: `.ヲুুヲ.` and `.ヲাাヲ.` read cost 1 on v3 and cost 2 on v4.7. A four-host differential
+`delta(H, X) = count(".HXH.") − count(".HH.")` agrees on ক, ব and ヲ — 1 for v3, 2 for v4.7 — and
+names the host that must not be used:
+
+```
+delta(ন, া)  = 0    in BOTH families
+```
+
+`না` is itself a piece, so a Bengali ন host swallows any junction with a following `া` and the
+differential measures nothing. That is instrument warning 4 in a new script: a probe that cannot
+distinguish two candidates proves neither.
+
+### 13.5 What the batch did, judged as a batch
+
+Every cached row on disk, tiled twice. A piece can only change a row where its surface occurs, so
+rows holding none of the ten surfaces are tiled once and their `after` is their `before` by
+construction — which is what makes the whole 242,188-row FineWeb/Stack/github-code replay
+affordable here.
+
+```
+v4.7   45 Goldfish languages   exact 40,693 -> 41,024   over 9,638 -> 9,033   under 7 -> 7
+       FineWeb/Stack/github    exact 232,631 unchanged  over 30,622 unchanged under 0 -> 0
+       43 Glot500 files        exact 14,699 -> 14,737   over   993 ->   943   under 1 -> 1
+       ALL 302,418 rows        exact 288,023 -> 288,392                       under 8 -> 8
+       rows broken 0    rows repaired 369
+
+v3     30 Goldfish languages   exact  2,698 ->  3,947   over 50,410 -> 47,170  under 6 -> 6
+       FineWeb/Stack/github    exact 275,775 unchanged  over  1,566 unchanged  under 0 -> 0
+       ALL 286,856 rows        exact 279,012 -> 280,262                        under 6 -> 6
+       rows broken 0    rows repaired 1,250
+```
+
+Per language, and note that no Goldfish language other than the two moved by a single token:
+
+| | v4.7 exact | v4.7 over | v3 exact | v3 over |
+|---|---:|---:|---:|---:|
+| `ben_beng` | 847 → **1,000** | 203 → **0** | 339 → **999** | 1,709 → **1** |
+| `asm_beng` | 820 → **998** | 404 → **2** | 407 → **996** | 1,536 → **4** |
+
+Glot500's Assamese, which chose nothing, went 370/400 → 400/400 and Bishnupriya 391 → 399.
+(The v3 Goldfish row count is 10,035 over 30 languages rather than 45,000 over 45, because the
+350-language sweep was run against v4.7; the v3 counts for the other fifteen languages were never
+bought. Nothing hangs on it — a piece made only of Bengali codepoints cannot alter a row that has
+none, and `touched` is 0 for every non-Bengali source.)
+
+The held-out gates chose nothing and moved anyway: **UDHR 316 → 317 exact on v3 and 442 → 443 on
+v4.7 and v5**, error mass 0.324% → 0.322% and 0.164% → 0.163%, speakers-weighted 0.071% → 0.063%
+and 0.031% → 0.030%. It is the same document in both — UDHR Bengali, +43 → 0 on v3 and +6 → 0 on
+v4.7. Rosetta 1,741/1,741, the 250-document holdout 249/250 and MultiPL-E 22/22 are all unmoved.
+
+### 13.6 What the templates refused, which is nearly everything
+
+The interesting number is not the ten kept but the wall they came through. Replaying round 0's
+proposal rule and classifying each verdict:
+
+| | well-formed spans proposed | probed | kept | refused by their own probe | refused on placement | refused as net-worse |
+|---|---:|---:|---:|---:|---:|---:|
+| v4.7 | 3,503 | 1,200 | 2 | 1,198 | 0 | 0 |
+| v3 | 12,943 | 1,200 | 6 | 1,194 | 0 | 0 |
+
+The refused spans price at 2 to 13 tokens on their own templates. Not one candidate in either family
+was refused by the net word control — which is worth saying plainly, because that control is the
+part of the rig that exists to catch §1's failure, and in this campaign it never had to fire. The
+templates did all of the work, and the batch measurement then confirmed the same answer at row
+level. A second v3 round probed 103 more and kept 2; the cross-port bought 4 more probes in v4.7
+and kept 0.
+
+### 13.7 The seven tokens that are left, and what they are
+
+```
+v4.7  asm_beng 2 rows, +1 each    every word of both rows prices exactly
+v3    asm_beng 4 rows, ben_beng 1 row, +1 each
+        3 of the 5 hold a wrong word, and all three are Latin-glued: DMামেক, IRGCৰ, SDFৰ
+        the other 2 have no wrong word at all
+```
+
+So the residual is two different things and neither is Bengali vocabulary. The rows with no wrong
+word are a joining question, the Lombard shape of §0 in a script where it accounts for 2% rather
+than 79%. The Latin-glued words are a mixed-script, case-carrying span, which `mine_stream.probe_of`
+refuses on purpose (§6: the `cased_*` templates answer a different question about a fused case
+marker) — they need a campaign with a frame of their own, not a template stretched to cover them.
+
+### 13.8 An instrument note: a substring shortcut has to be taken after normalization
+
+The batch judge skips re-tiling rows that cannot contain a new piece, and the first version of that
+test asked whether the piece's surface occurred in the raw row. It does not. `য়` is a composition
+exclusion, so the corpus writes U+09DF where the stream holds U+09AF U+09BC: the surface `ময`
+occurs in 36 of the 1,000 Bengali rows raw and in 163 normalized. The shortcut declared four fifths
+of the affected rows unaffected and reported Bengali at 882/1,000 where the true figure was
+1,000/1,000 — a wrong answer in the direction that looks like a modest success, which is the
+dangerous direction. Any filter that decides what not to measure has to be applied to the same
+string the tiler sees.
