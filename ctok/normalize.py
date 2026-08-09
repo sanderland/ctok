@@ -13,7 +13,8 @@ import unicodedata
 
 from .constants import (
     BOW_G, CAPS_G, CHARGING_MARK, CONTRACTION_SUFFIXES, DIGIT, EOW_G, EXTRA_KILLERS, FUNNY_SPACE,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE, STRIP_CONTROL, STRIP_PRIVATE,
+    FLOOR_AFTER_FLOOR, HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE,
+    STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, SYRIAC_FLOOR_MARKS, VARIATION_SELECTORS, WORDY,
 )
 
@@ -276,18 +277,35 @@ _STRAY_MARK = "stray_mark"
 _FLOOR_G = "\ufdd5"
 
 
-def _guard_syriac_floor_marks(body: str) -> str:
-    """Annotate word-context mark pieces that byte-price when their base is Syriac."""
+def _guard_floor_marks(body: str, model) -> str:
+    """Annotate word-context mark pieces that byte-price rather than using their own piece.
+
+    Two populations, both the same shape: the mark has a one-token piece measured on a base the
+    encoder can reach, and in this position it cannot reach it, so it pays its own UTF-8 bytes.
+
+    * a Syriac host and one of ``SYRIAC_FLOOR_MARKS``;
+    * a mark whose own host is already at the byte floor. Measured 2026-08-08 on U+0303: `ɔ̃` costs
+      17 on v4.7 where the mark's piece prices it 16, and the same on ʋ, ẹ and ọ — hosts with no
+      precomposed form, so NFC leaves them decomposed and none of them is a unit piece. The controls
+      are what make it a floor rule rather than a claim about the mark: `b̃` is exact at 14, so the
+      tilde piece is real after a base the encoder does carry; `vɔ`, `vɔa` and `avɔ nu` are exact,
+      so the host alone is fine; and `ɔ̀`, `ɔ̆`, `ɔ̈` are exact, so marks we hold no piece for are
+      untouched. `ab̃ b` and `a rɔ̃ b` are exact on the following word and the space, which is what
+      rules out a missing boundary rather than a floor.
+    """
     out = []
     syriac_host = False
+    prev = ""
     for ch in body:
         if unicodedata.category(ch).startswith("M"):
-            if syriac_host and ch in SYRIAC_FLOOR_MARKS:
+            if (syriac_host and ch in SYRIAC_FLOOR_MARKS) or (
+                    ch in FLOOR_AFTER_FLOOR and prev and prev not in model.unit_pieces):
                 out.append(_FLOOR_G)
         else:
             syriac_host = 0x0710 <= ord(ch) <= 0x074F and \
                            unicodedata.category(ch).startswith("L")
         out.append(ch)
+        prev = ch
     return "".join(out)
 
 
@@ -528,7 +546,7 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
-            out.append(pre + bow + _guard_syriac_floor_marks(n) + EOW_G)
+            out.append(pre + bow + _guard_floor_marks(n, model) + EOW_G)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken owns an opening boundary even when it is adjacent to a symbol,
             # digit or punctuation run. A legacy killer at the head instead closes that preceding

@@ -216,3 +216,8 @@ CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 # so the space stays a literal token.
 SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW_G)
 CHARGING_MARK = re.compile("[\u0300-\u0344\u0346-\u0362]")
+
+# Marks that fall to their own byte floor when the host they sit on is already there — the mark's
+# one-token piece was measured on a base the encoder carries, and it cannot reach it here.
+# U+0303 is the measured member; see `normalize._guard_floor_marks` for the grid and its controls.
+FLOOR_AFTER_FLOOR = frozenset("\u0303")

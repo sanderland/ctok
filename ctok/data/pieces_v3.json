@@ -8,7 +8,7 @@
   "fold_quotes": true,
   "allcaps_min": 4,
   "digit_group": 3,
-  "built": "2026-08-07T19:49:47.933775+00:00",
+  "built": "2026-08-09T12:39:05.520317+00:00",
   "provenance": "every token measured with count_tokens against this family's source model",
   "witness": {
    "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
@@ -41,7 +41,7 @@
     "char": 2384,
     "contraction": 7,
     "digit_bow": 28,
-    "digit_eow": 225,
+    "digit_eow": 235,
     "digit_mid": 811,
     "digit_word": 114,
     "eow": 7714,
@@ -45242,7 +45242,17 @@
    "์": {"probe": "a์a", "raw": 10, "kind": "char"},
    "់": {"probe": "a់a", "raw": 10, "kind": "char"},
    "័": {"probe": "a័a", "raw": 10, "kind": "char"},
-   "️": {"probe": "a️a", "raw": 10, "kind": "char"}
+   "️": {"probe": "a️a", "raw": 10, "kind": "char"},
+   "்⟨eow⟩": {"probe": "1் a", "raw": 11, "kind": "digit_eow"},
+   "්⟨eow⟩": {"probe": "1් a", "raw": 11, "kind": "digit_eow"},
+   "്⟨eow⟩": {"probe": "1് a", "raw": 11, "kind": "digit_eow"},
+   "्⟨eow⟩": {"probe": "1् a", "raw": 11, "kind": "digit_eow"},
+   "়⟨eow⟩": {"probe": "1় a", "raw": 11, "kind": "digit_eow"},
+   "，⟨eow⟩": {"probe": "1， a", "raw": 11, "kind": "digit_eow"},
+   "：⟨eow⟩": {"probe": "1： a", "raw": 11, "kind": "digit_eow"},
+   "；⟨eow⟩": {"probe": "1； a", "raw": 11, "kind": "digit_eow"},
+   "．⟨eow⟩": {"probe": "1． a", "raw": 11, "kind": "digit_eow"},
+   "）⟨eow⟩": {"probe": "1） a", "raw": 11, "kind": "digit_eow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
