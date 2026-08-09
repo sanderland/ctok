@@ -8,7 +8,7 @@
     "fold_quotes": false,
     "allcaps_min": null,
     "digit_group": 3,
-    "built": "2026-08-09T12:39:05.331192+00:00",
+    "built": "2026-08-09T23:24:07.128968+00:00",
     "provenance": "every token measured with count_tokens against this family's source model",
     "witness": {
       "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
@@ -47,7 +47,7 @@
         "glued": 1110,
         "mark_mid": 4,
         "mark_sep": 18,
-        "mid": 2335,
+        "mid": 2336,
         "prefix": 467,
         "raw": 2094,
         "special": 4,
@@ -13163,7 +13163,8 @@
       "：⟨eow⟩": {"probe": "1： a", "raw": 15, "kind": "digit_eow"},
       "；⟨eow⟩": {"probe": "1； a", "raw": 15, "kind": "digit_eow"},
       "．⟨eow⟩": {"probe": "1． a", "raw": 15, "kind": "digit_eow"},
-      "）⟨eow⟩": {"probe": "1） a", "raw": 15, "kind": "digit_eow"}
+      "）⟨eow⟩": {"probe": "1） a", "raw": 15, "kind": "digit_eow"},
+      "াে": {"probe": ".ヲােヲ.", "raw": 20, "kind": "mid"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
