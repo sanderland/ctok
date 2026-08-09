@@ -85,9 +85,9 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.352% | 0.207% | 306/501 | 95.4% |
-| UDHR | v4.7 | 0.194% | 0.124% | 430/501 | 96.4% |
-| UDHR | v5 | 0.194% | 0.124% | 430/501 | 96.4% |
+| UDHR (501 languages) | v3 | 0.352% | 0.207% | 307/501 | 95.4% |
+| UDHR | v4.7 | 0.194% | 0.124% | 431/501 | 96.4% |
+| UDHR | v5 | 0.194% | 0.124% | 431/501 | 96.4% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 

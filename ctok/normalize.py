@@ -129,7 +129,8 @@ def _is_punct_text(body: str) -> bool:
     """Unicode punctuation, regardless of which internal class it lands in — the Devanagari danda,
     the ideographic full stop, the Arabic and Ethiopic stops are all category Po but classify HARD,
     and they take the same markers as ASCII punctuation."""
-    return bool(body) and all(unicodedata.category(c).startswith("P") for c in body)
+    return (bool(body) and all(unicodedata.category(c).startswith("P") for c in body)
+            and not any(_ideographic_punct(c) for c in body))
 
 
 def _is_symbol_text(body: str) -> bool:
@@ -411,10 +412,33 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     return split
 
 
+def _ideographic_punct(ch: str) -> bool:
+    """Punctuation of the CJK Symbols and Punctuation block, which takes NO border marker.
+
+    Measured 2026-08-08 over every P-category character of U+3001–U+303F: 25 of 25 write neither
+    ⟨bow⟩ nor ⟨eow⟩. Two independent signatures agree — the digit frames over-charge if a marker is
+    written (`1 。 1` reads 17 against the 19 a marker costs), and the seam frame rejects a fused
+    piece as the alternative explanation (`a。 b` reads 15; a `。⟨eow⟩` piece would make it 14, which
+    is exactly how `，` was shown to be marker-TAKING with its ⟨eow⟩ swallowed by a piece).
+
+    It is the block that predicts this, not the category and not the width. Controls outside it all
+    take markers: fullwidth `？！～`, halfwidth `｡｢｣･`, and `・` U+30FB — which is East_Asian_Width
+    Wide and CJK-looking, so it refutes both of those as the rule. Sentence-terminal does not
+    predict it either: `。` is markerless and `？` is not.
+    """
+    return 0x3001 <= ord(ch) <= 0x303F and unicodedata.category(ch).startswith("P")
+
+
 def _marks_like_punct(ch: str) -> bool:
-    """Is this character one the border-marker branch can claim — punctuation, symbol or format?"""
+    """Is this character one the border-marker branch can claim — punctuation, symbol or format?
+
+    Ideographic punctuation is excluded, so it stays in the ideograph run it sits in and takes no
+    markers. That is per BORDER CHARACTER rather than per run: `1。？ 1` and `1 ？。1` are exact
+    because the marker sits on the `？` side, while `1？。 1` and `1 。？1` are one over if the run
+    is judged as a whole.
+    """
     cat = unicodedata.category(ch)
-    return cat[0] in ("P", "S") or cat == "Cf"
+    return (cat[0] in ("P", "S") or cat == "Cf") and not _ideographic_punct(ch)
 
 
 def stream(text: str, model) -> str:
