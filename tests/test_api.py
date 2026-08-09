@@ -83,16 +83,20 @@ def test_generic_combining_accents_close_the_word_after_the_mark(version: float)
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
 def test_syriac_terminal_mark_runs(version: float):
-    """U+0740–U+074A stand outside the words; a following vowel point rides the same unmarked
-    separator run. Ordinary U+0730–U+073F vowel points remain inside one word."""
+    """U+0740–U+074A stand outside the words. A vowel point written after one is a word-forming
+    LETTER: it opens a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see
+    `normalize._syriac_vowel` — `ܒ݂ܶ` = 21 and `x ܒ݂ܶ x` = 23 pin the word model, `x ܒ݂ܶx` = 22
+    pins the fusion). The riding spelling asserted here before 2026-08-09 priced these mid-word
+    rows identically and was refuted by the space-border and message-end rows. Ordinary
+    U+0730–U+073F vowel points on a real base remain inside one word."""
     overhead = _model(_family(version)).message_overhead
     rows = [
         ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
         # Same count as the older `݂ ⟨bow⟩` spelling: the killer's ⟨eow⟩ lets the seam eat the space.
         ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
-        ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂ܶ⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨bow⟩ܶܒ⟨eow⟩", 12),
         ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊ܶ⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊⟨bow⟩ܶܒ⟨eow⟩", 12),
         ("ܒܰܒ", "⟨bow⟩ܒܰܒ⟨eow⟩", 8),
     ]
     for text, stream, content in rows:

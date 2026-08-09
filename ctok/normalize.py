@@ -331,7 +331,34 @@ def _stray_mark(c: str) -> bool:
     treating them as punctuation shatters every accented word. The distinction this predicate draws
     is the only one the corpora support.
     """
+    if _syriac_vowel(c):
+        return False                   # a baseless Syriac vowel is a word-forming letter instead
     return unicodedata.combining(c) != 0 and not is_terminal_separator(c)
+
+
+def _syriac_vowel(c: str) -> bool:
+    """A Syriac vowel point (or superscript alaph) — a mark that acts as a word-forming LETTER
+    wherever no base can hold it, rather than as a stray mark or a killer-run rider.
+
+    Measured 2026-08-09 on 160 cached rows plus eight bought probes, every one reconciled by the
+    letter reading and none by any marker rule tried before it:
+
+      * riding a killer: `ܒ݂ܶ` = 21 is `⟨bow⟩ܒ⟨eow⟩ ݂ ⟨bow⟩ܶ⟨eow⟩` (10 content tokens — a word
+        model around the vowel, ⟨eow⟩ and all, at MESSAGE END, which no stray-mark spelling
+        writes); `x ܒ݂ܶ x` = 23 and `ܒ݂ܶ 5` = 23 and `ܒ݂ܶ  x` = 23 the same against space
+        borders (run-kills-marker does not kill a word's ⟨eow⟩);
+      * fusing with a following letter, exactly as a word-initial letter does: `ܒ݂ܶܒ` = 23 is
+        `݂ ⟨bow⟩ܶܒ⟨eow⟩` and `x ܒ݂ܶx` = 22 is `݂ ⟨bow⟩ܶx⟨eow⟩` — one token less than a
+        marked vowel standing alone, because `x⟨eow⟩` is a piece;
+      * stray contexts, same law: `ܑ` = 15, `!ܑ` = 16, `1ܑ` = 17, `z ◌ܑ` = 19 (a full
+        ⟨bow⟩…⟨eow⟩ word), and `x◌ܑ◌ܑx` = 24 — the vowel before `◌` closes its word, the one
+        before `x` fuses into `⟨bow⟩ܑx⟨eow⟩`.
+
+    Controls exact throughout: `x ܒܶ x` = 19 (a based vowel stays an ordinary in-word mark),
+    `x ܒ݂ x` = 20 and `ܒ݂ ܒ` = 22 (a bare killer run is unchanged), `ܒܶ ܒ` = 21.
+    """
+    o = ord(c)
+    return o == 0x0711 or 0x0730 <= o <= 0x073F
 
 
 def _ends_legacy_killer_run(body: str) -> bool:
@@ -385,10 +412,11 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         c = run_class(ch)
         legacy_killer = _ends_legacy_killer_run(cur)
         if cur_cls == _KILLER and 0x0740 <= ord(cur[0]) <= 0x074A \
-                and unicodedata.category(ch).startswith("M"):
+                and unicodedata.category(ch).startswith("M") and not _syriac_vowel(ch):
             # A terminal separator starts an unmarked mark run; later combining marks ride that
-            # run rather than opening a stray marked word. Syriac writes a vowel point after its
-            # hard/soft dot (`ܒ݂ܶ`), and that whole suffix remains outside the adjacent words.
+            # run rather than opening a stray marked word. NOT a Syriac vowel point, though: a
+            # vowel written after the hard/soft dot (`ܒ݂ܶ`) is a word-forming letter — it opens a
+            # ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see `_syriac_vowel`).
             cur += ch
         elif cur_cls == WORDY and legacy_killer and unicodedata.category(ch).startswith("M"):
             # An after-mark killer remains inside the word, but its boundary lands after the
