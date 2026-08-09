@@ -144,6 +144,26 @@ def _is_symbol_text(body: str) -> bool:
                               for c in body)
 
 
+def _is_format_text(body: str) -> bool:
+    """A run of format characters (category Cf) — ZWSP, ZWNJ, ZWJ and their relatives.
+
+    These reach `classify` with no branch of their own and fall through to HARD, which writes no
+    markers at all. Measured 2026-08-08, they take the same border markers punctuation does:
+
+        aZb     3     no space border, so no marker, exactly as `a!b` gets a bare `!`
+        aZ b    4     `Z⟨eow⟩`, then the seam deletes the space
+        aZ 5    5     `Z⟨eow⟩` with no ⟨bow⟩ to its right, so the space survives and the ⟨eow⟩ stands
+        aZ  5   4     a space RUN kills the marker, the same rule punct has
+        a Zb    4     `⟨bow⟩Z`, and the seam deletes the space to its left
+        5 Za    6     `⟨bow⟩Z` with no ⟨eow⟩ to its left, so nothing is deleted
+
+    Treating them as HARD reproduces the first, second, fourth and fifth of those and misses the
+    third and sixth by one token each — which is the whole of the Khmer and Lao under-count, since
+    ZWSP is the word separator in both. (Z is U+200B here.)
+    """
+    return bool(body) and all(unicodedata.category(c) == "Cf" for c in body)
+
+
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
     """Is run ``i`` a lone ``'`` that opens the word after it — ``a 'b``, ``'First``, ``x 'REXX``?
 
@@ -463,7 +483,7 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
             shares_left_bow = i > 0 and runs[i - 1][0] not in (SPACE, WORDY, _KILLER)
             bow = "" if head_is_legacy_killer and shares_left_bow else BOW_G
             out.append(bow + guarded + (EOW_G if borders_space(i, +1) else ""))
-        elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body):
+        elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body) or _is_format_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.

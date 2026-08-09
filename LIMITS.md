@@ -474,6 +474,44 @@ Two instrument notes, both learned by getting it wrong here first:
   padded reading said the fault was the glue piece used twice consecutively — which is real, and
   covers 4 of 733.
 
+### The rule the glue pieces were standing in for
+
+**Measured and implemented 2026-08-08.** The pieces were compensating for a class of character the
+stream builder never gave boundary markers to. ZWSP is category **Cf**, not a terminal separator —
+`is_terminal_separator(U+200B)` is False — and it reaches `classify` with no branch of its own, so
+it falls through to HARD, which writes no markers at all. It is also the word separator of Khmer and
+Lao, which is why those two carried the residual.
+
+Format characters take the border markers punctuation already takes (`normalize.py`, the
+`_is_punct_text`/`_is_symbol_text` branch). Ten oracle readings pin it, and the two that discriminate
+were named by an adversarial review of an earlier and wrong version of this section:
+
+```
+aZb     3   no space border, no marker — as `a!b` gets a bare `!`
+aZ b    4   Z⟨eow⟩, then the seam deletes the space
+aZ 5    5   Z⟨eow⟩ with no ⟨bow⟩ right of the space, so the space survives and the ⟨eow⟩ stands
+aZ  5   4   a space RUN kills the marker, the same rule punct has
+a Zb    4   ⟨bow⟩Z, and the seam deletes the space to its left
+5 Za    6   ⟨bow⟩Z with no ⟨eow⟩ left of the space, so nothing is deleted
+1 1     4   unchanged — this is what refutes "ASCII digits take a left ⟨bow⟩", which fits the
+            other nine and predicts 5 here
+```
+
+Under-count over 44 Goldfish languages falls **398 → 143**: Khmer 180 → 25, Lao 119 → 51, Myanmar
+34 → 17, and Malayalam, Tamil, Sinhala, Ossetian, Mari and Gilaki to zero. UDHR is unmoved at
+307/501 and 430/501 (it holds almost no ZWSP) and its error mass rises slightly, 0.313% → 0.334% on
+v3; Rosetta and MultiPL-E still reproduce every document.
+
+Two notes on how this was got, both corrections to what stood here first:
+
+* **"Absorption" was never in the code.** There is one conjunctive rewrite — `SEAM_RE` deletes a
+  space iff `⟨eow⟩` stands immediately left AND `⟨bow⟩` immediately right — and nothing per-side.
+  An earlier draft of this section described a per-side absorption mechanism that fits the oracle's
+  *costs* and does not exist in the encoder. The cost arithmetic survived; the mechanism did not.
+* **Ten numbers did not pick the rule.** Two different single-glyph changes reproduced all ten, and
+  the tie broke only on `1 1` and `5 Za`. A rule that fits every measurement you have is not thereby
+  the rule — ask what else it predicts, and go measure that.
+
 ## 8. A true piece can push a word below the oracle, and that does not impeach it
 
 This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
