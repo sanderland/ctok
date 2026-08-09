@@ -569,11 +569,17 @@ stream never performed, and four classes of run (format characters, terminal sep
 punctuation, Quranic annotation) that never reached the border-marker branch. Under-count over 44
 Goldfish languages went from thousands to 38 without once needing a third category.
 
-**`cəhənnəm` is therefore still open.** `ən` is witnessed on a fixed template and repairs 296
-standalone word counts; that word offers the piece twice and lands one below its recorded count.
-Under the two-entry inventory the reading is that one of the pieces covering it is false in that
-position, or the stream is missing a glyph there — not that the algorithms differ. It has not been
-run down.
+**`cəhənnəm` was the test case, and it resolves to entry 1.** The false piece was not `ən` — which
+is witnessed and repairs 296 standalone word counts — but `nə`, whose own template prices it at
+**two** tokens (`.ヲnəヲ.` reads 21 where a piece reads 20). With both present the tiler spent two
+overlapping ə-n bigrams and landed one below. `nə` came in on the retired `ownscript` kind, with the
+probe `ənənə` — a string that `ən` explains exactly as well, which is instrument warning 5 verbatim.
+
+It was already fixed: `be5beb4` retracted `nə` in the same commit that bought `ən`, so the shipped
+model has counted the word exactly ever since. This section claimed otherwise for a day, and carried
+a detail that would have refuted it on inspection — the word does not contain `ən` twice. **An
+unfixable category was invented to explain a case that was already closed**, which is the strongest
+argument available for not having the category at all.
 
 What survives from the old section is only the operational half: a push-below control has to be
 **net rather than absolute**, because an absolute one refused `ən` outright and with it the single
