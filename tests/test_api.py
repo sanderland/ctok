@@ -67,7 +67,11 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     """A terminal mark is an unmarked separator, not the last character of the left word."""
     assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
     assert marked_stream("क्ष", version) == "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩"
-    assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩् ⟨bow⟩ष⟨eow⟩"
+    # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam then
+    # deletes the space — count-identical to the older `् ⟨bow⟩` spelling here, which is why the
+    # word side could never decide between them. The digit side can: `ກ່ 5` costs one more than the
+    # unmarked spelling charges. See `normalize._runs` / the `_KILLER` branch of `stream_plan`.
+    assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩"
     assert marked_stream("्", version) == "⟨bow⟩्"
 
 
@@ -84,7 +88,8 @@ def test_syriac_terminal_mark_runs(version: float):
     overhead = _model(_family(version)).message_overhead
     rows = [
         ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂ ⟨bow⟩ܒ⟨eow⟩", 11),
+        # Same count as the older `݂ ⟨bow⟩` spelling: the killer's ⟨eow⟩ lets the seam eat the space.
+        ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
         ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂ܶ⟨bow⟩ܒ⟨eow⟩", 12),
         ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
         ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊ܶ⟨bow⟩ܒ⟨eow⟩", 12),

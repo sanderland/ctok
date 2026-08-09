@@ -376,7 +376,33 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
             out.append((cur_cls, cur))
             cur, cur_cls = ch, c
     out.append((cur_cls, cur))
-    return out
+
+    # A HARD run is not homogeneous. `文？` is one run by class, so the whole-run predicates
+    # `_is_punct_text`/`_is_symbol_text` see a mixed body, fail, and the `？` loses the border
+    # markers it is entitled to — while the same character in a run of its own gets them. Measured
+    # 2026-08-08: `文？ 文` and `文 ？文` each cost one more than that spelling charges, `文？文`
+    # and `文？  文` are exact, and `あ？ 文` (already its own run) was exact all along. So the run
+    # is split where the character KIND changes, and the existing predicates then apply per piece.
+    split = []
+    for cls, body in out:
+        if cls != HARD or len(body) == 1:
+            split.append((cls, body))
+            continue
+        cur = body[0]
+        for ch in body[1:]:
+            if _marks_like_punct(ch) == _marks_like_punct(cur[-1]):
+                cur += ch
+            else:
+                split.append((cls, cur))
+                cur = ch
+        split.append((cls, cur))
+    return split
+
+
+def _marks_like_punct(ch: str) -> bool:
+    """Is this character one the border-marker branch can claim — punctuation, symbol or format?"""
+    cat = unicodedata.category(ch)
+    return cat[0] in ("P", "S") or cat == "Cf"
 
 
 def stream(text: str, model) -> str:
@@ -450,8 +476,8 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
     first = runs[0]
     head_quote = _opens_word(runs, 0)
     has_own_bow = not head_quote and (
-                   first[0] in (WORDY, PUNCT, _STRAY_MARK) or _is_punct_text(first[1])
-                   or _is_symbol_text(first[1])
+                   first[0] in (WORDY, PUNCT, _STRAY_MARK, _KILLER) or _is_punct_text(first[1])
+                   or _is_symbol_text(first[1]) or _is_format_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
@@ -483,6 +509,14 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
             shares_left_bow = i > 0 and runs[i - 1][0] not in (SPACE, WORDY, _KILLER)
             bow = "" if head_is_legacy_killer and shares_left_bow else BOW_G
             out.append(bow + guarded + (EOW_G if borders_space(i, +1) else ""))
+        elif cls == _KILLER:
+            # A terminal separator run takes the same border markers punctuation does. Measured
+            # 2026-08-08 on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each
+            # cost one more than an unmarked run charges, `5 ່ 5` costs two, and `ກ່5`, `ກ່  5`
+            # (space run kills the marker) and `ກ່` at message end are exact. The control is a
+            # NON-terminal mark of the same script — Lao ຸ — which is exact unmarked.
+            out.append((BOW_G if borders_space(i, -1) else "") + body
+                       + (EOW_G if borders_space(i, +1) else ""))
         elif cls == PUNCT or _is_punct_text(body) or _is_symbol_text(body) or _is_format_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides

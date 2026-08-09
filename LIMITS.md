@@ -512,6 +512,40 @@ Two notes on how this was got, both corrections to what stood here first:
   the tie broke only on `1 1` and `5 Za`. A rule that fits every measurement you have is not thereby
   the rule — ask what else it predicts, and go measure that.
 
+### Killer runs are punctuation too, and HARD runs must not swallow it
+
+**Measured and implemented 2026-08-08**, after the format-character rule above and by the same
+argument: a class of run that the border-marker branch never reaches.
+
+**A terminal-separator run takes punctuation's border markers.** `⟨bow⟩` when the left neighbour
+ends in a space, `⟨eow⟩` when the right is exactly one space, killed by a run of 2+:
+
+```
+ກ່5  +0    ກ່ 5 +1    ກ່  5 +0    5 ່ກ +1    5 ່ 5 +2    ກ່ ກ +0    ກຸ 5 +0 (non-terminal control)
+```
+
+The word side could never have decided this: `ກ່ ກ` costs the same under both spellings, because the
+new `⟨eow⟩` lets the seam delete the space that the old spelling paid for literally. Only the digit
+side separates them, which is why the two pinned streams in `tests/test_api.py` changed shape while
+their counts did not.
+
+**A HARD run splits where the character kind changes.** `文？` is one run by class, so the whole-run
+predicates see a mixed body, fail, and `？` loses markers the same character gets in a run of its
+own: `文？ 文` and `文 ？文` each cost one more, while `文？文`, `文？  文` and `あ？ 文` are exact.
+
+Under-count over 44 Goldfish languages falls **143 → 41**: Lao 51 → 1, Myanmar 17 → 0, Japanese
+11 → 1, and Malayalam, Tamil, Sinhala and Chinese to zero. Rosetta and MultiPL-E still reproduce
+every document; UDHR is unmoved on v4.7 at 430/501 and loses one on v3.
+
+**Over-count rises 33,024 → 33,686, and that is the unfinished half.** The five killers with a fused
+`K⟨eow⟩` piece in the real vocabulary — Tamil, Sinhala, Malayalam, Devanagari, Bengali nukta — now
+pay for a marker we cannot spell, because we do not have those pieces. A trial patch that adds them
+takes Tamil 11,792 → 1,461, Sinhala 7,942 → 706 and Malayalam 4,342 → 5 of over-charge, and leaves
+Thai, Khmer and Myanmar untouched, which is consistent: those three read `+0` on the discriminating
+probe and are predicted to have no fused piece. **The inventory is per piece, not per script** — a
+blanket Bengali nukta piece introduced four new under-counts — so it needs a mining pass with real
+witnesses rather than the five characters written down here.
+
 ## 8. A true piece can push a word below the oracle, and that does not impeach it
 
 This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
