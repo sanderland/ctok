@@ -85,9 +85,9 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.324% | 0.196% | 316/501 | 94.8% |
-| UDHR | v4.7 | 0.164% | 0.105% | 442/501 | 96.4% |
-| UDHR | v5 | 0.164% | 0.105% | 442/501 | 96.4% |
+| UDHR (501 languages) | v3 | 0.322% | 0.195% | 317/501 | 94.8% |
+| UDHR | v4.7 | 0.163% | 0.105% | 443/501 | 96.4% |
+| UDHR | v5 | 0.163% | 0.105% | 443/501 | 96.4% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
@@ -95,7 +95,7 @@ Two v3 documents and one v4.7 one sit over 5% — Tem (+6.23% / +6.08%) and, on 
 (+6.13%) — with 24 more v3 documents and 17 v4.7 ones in the 1–5% band; the worst of those are
 Navajo (+4.86% / +4.41%), Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+4.07% / +3.53%), languages
 for which no marked-text source has been found. Weighted by speakers rather than by document, the
-error is 0.071% (v3) and 0.031% (v4.7). Part of the UDHR residual is deliberate: the 2026-08-09
+error is 0.063% (v3) and 0.030% (v4.7). Part of the UDHR residual is deliberate: the 2026-08-09
 mark-eligibility work (LIMITS.md §11) converted under-counts in tone-marked orthographies into
 honest over-counts, which moved several of these documents up the table rather than off it.
 
@@ -129,26 +129,36 @@ below it is ordinary missing vocabulary, and that is being mined a language at a
 languages, 35,000 rows, 88.1% of rows exact to 95.6% on 100 pieces**, with eight of them now
 reproducing 999 or 1,000 rows out of 1,000. The pieces are unremarkable — Catalan `-ància`/`-ències`
 suffixes, Czech and Hungarian stems, and the Azerbaijani schwa bigram `ən`, which repairs 296 words
-by itself. UDHR, which chose none of them, moved 365 → 448 documents exact in step. Bengali and
-Assamese are the largest pools still untouched.
+by itself. UDHR, which chose none of them, moved 365 → 448 documents exact in step.
+
+**Bengali and Assamese were the two largest pools left, and ten pieces closed them** (LIMITS.md
+§13). Both localize almost entirely inside single words — 99% and 98% on v4.7, 100% on v3 once
+every word of every wrong row is priced rather than the top 4,000 — so this was vocabulary and not
+structure. The whole of it is two facts about how the script is written down: `য়` is a composition
+exclusion whose nukta closes the word from outside, which makes the Bengali `-ময়` suffix the piece
+`ময⟨eow⟩`; and Assamese web text spells the vowel O in the pre-Unicode order `◌া◌ে`, which is one
+token of its own. v3 needed four word-initial vowel signs on top, and two doubled signs that v4.7's
+own probe refuses. Across the two languages, 2,000 Goldfish rows went from 1,913 wrong to 7 — and
+UDHR, which chose nothing, gained its Bengali document in both families.
 
 LIMITS.md records what the instruments can and cannot prove, including two pieces this campaign had
 to *retract*: both were admitted on ablation witnesses that only looked convincing while the real
 piece was missing.
 
 **Under-count is nearly gone, and the last of it is listed rather than guessed at.** Across the
-three replay corpora — 44 Goldfish languages, 43 Glot500 files and 242,188 rows of
-FineWeb/Stack/github-code — under-count stands at **8 tokens in 301,418 rows**, from 18 on
+three replay corpora — 45 Goldfish languages, 43 Glot500 files and 242,188 rows of
+FineWeb/Stack/github-code — under-count stands at **8 tokens in 302,418 rows**, from 18 on
 2026-08-09. Both rules that closed the gap were the same kind of thing, and neither could be seen
 from the Latin frames the model was mostly built on: a border ⟨eow⟩ that the seam deletes wherever
 a ⟨bow⟩ follows the space, so only a right neighbour with no ⟨bow⟩ of its own — a CJK letter, an
 ASCII digit run — can price it. One belongs to non-ASCII digit runs (`８ 取`, `文 ½ 文`), the other
 to a word ending in a combining charging mark (`x ẹ̀ 2 x`), and the second was measured on a
 15-host grid spanning nine scripts where the digit frame read exactly one below the letter frame in
-every row. The gates are unmoved by both — UDHR stays at 316/442/442 exact and 0.196%/0.105%/0.105%
-mean, Rosetta and MultiPL-E still reproduce every document — which is the usual reading: the held-out
+every row. The gates were unmoved by both — Rosetta and MultiPL-E still reproduce every document,
+and UDHR did not stir until the Bengali pieces above — which is the usual reading: the held-out
 corpora hold almost none of the material these rules are about. [LIMITS.md](LIMITS.md) §12 carries
-the eight that remain, each with the control that refutes its obvious explanation.
+the eight that remain, each with the control that refutes its obvious explanation, and the Bengali
+campaign after it left every one of them exactly where it was.
 
 ## What each piece rests on
 
