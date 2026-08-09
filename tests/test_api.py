@@ -112,7 +112,14 @@ def test_after_mark_killer_closes_after_the_complete_mark_suffix(version: float)
     rows = [
         ("ܒ̱", "⟨bow⟩ܒ̱⟨eow⟩", 6),
         ("ܒ̱ܒ", "⟨bow⟩ܒ̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ̱ ܒ", "⟨bow⟩ܒ̱⟨eow⟩ ⟨bow⟩ܒ⟨eow⟩", 11),
+        # A word ending in a charging mark takes punctuation's right-hand ⟨eow⟩ at a single-space
+        # border, and the seam then deletes the space — count-identical to the older literal-space
+        # spelling here, which is why the word side could never decide between them. The digit side
+        # can, on this very host: `x ܒ̱ 2 x` = 23 and `x ܒ̱ 文 x` = 23 cost one more than the
+        # literal space charges, while `x ܒ̱ ܒ x` = 24, `x ܒ̱  2 x` = 22 (space run kills the
+        # marker), `x ܒ̱2 x` = 21 and `x ܒ 2 x` = 20 are exact either way. See
+        # `normalize._charging_border`.
+        ("ܒ̱ ܒ", "⟨bow⟩ܒ̱⟨eow⟩⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
         ("ܒ̱ܶܒ", "⟨bow⟩ܒ̱ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),
         ("ܒ̣ܒ", "⟨bow⟩ܒ̣⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
         ("ܒ̣ܶܒ", "⟨bow⟩ܒ̣ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),

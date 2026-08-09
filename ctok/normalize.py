@@ -115,11 +115,18 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
 
 
 def _seam_sub(match) -> str:
-    """The seam law, minus the two places a real space is NOT absorbable.
+    """The seam law, minus the one place a real space is NOT absorbable.
 
     A terminal mark is its own unmarked run (see :func:`_runs`), so it cannot occur immediately
-    before this seam: the preceding word has already closed on the other side of the mark. A
-    combining mark that remains inside a word is the one measured exception here.
+    before this seam: the preceding word has already closed on the other side of the mark.
+
+    For a WORDY run this guard is now unreachable, and that is the point: a word ending in a
+    charging mark writes a second ⟨eow⟩ at the space border (see :func:`_charging_border`), so the
+    character this pattern captures is that ⟨eow⟩ and never the mark. The two spellings cost the
+    same wherever a ⟨bow⟩ follows the space — which is every string the guard was measured on —
+    and differ where none does, which is what the guard got wrong. What still reaches it is an
+    unattached mark run (:data:`_STRAY_MARK`), whose ⟨eow⟩ is written by the border rule directly
+    on the mark.
     """
     ch, case_markers = match.group(1), match.group(2)
     if CHARGING_MARK.fullmatch(ch):
@@ -219,6 +226,37 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     prev_cls, prev_body = runs[i - 1]
     # A punct run is maximal, so a run that IS the apostrophe cannot have punctuation to its left.
     return prev_cls == PUNCT and prev_body == "'"
+
+
+def _charging_border(body: str) -> bool:
+    """Does this word body end in a charging mark, so that it writes a second ⟨eow⟩ where it
+    borders a single space on the right?
+
+    The seam law says a space between ⟨eow⟩ and ⟨bow⟩ is not written, and a word ending in one of
+    these marks was modelled as blocking that — the space stayed a literal token. That reproduces
+    the cost only while something with a ⟨bow⟩ stands on the other side of the space. Where nothing
+    does, the oracle charges one more than a literal space:
+
+        x ẹ̀ 2 x = 23   x ẹ̀ 文 x = 23   x ẹ̀ 2 = 21   x ẹ̀ 22 x = 23   x ẹ̀ 2a x = 23
+        2 ẹ̀ 2 = 23    x b̃ 2 x = 20   x b̃ 文 x = 20   x ẹ̀ 'a x = 23   x ẹ̀ b̃ 2 x = 27
+
+    so the space is not what is charged: a border ⟨eow⟩ is, and the space then goes the way every
+    seam space goes. Controls, all exact and all cost-identical under the two spellings because the
+    seam eats the marker: `x ẹ̀ a x` `x ẹ̀ . x` `x ẹ̀ ٢ x` `x ẹ̀ ,2 x` `x ẹ̀ +2 x` `x b̃ a x`
+    `x b̃ . x` `x b̃ ٢ x`. Controls where no marker is written at all: `x ẹ̀2 x` (no border),
+    `x ẹ̀\\t2 x` (a tab is not a space), `x ẹ̀  2 x` (a space RUN kills the marker, the same rule
+    punctuation, digit runs and terminal separators have), `x ẹ 2 x` (no mark) and `x ǹ 2 x`
+    (`ǹ` is precomposed, so after NFC there is no mark to end in).
+
+    The population is exactly :data:`CHARGING_MARK`, measured as the difference between the digit
+    frame and the letter frame on `x b<mark> 2 x` / `x b<mark> a x` so that the word's own pricing
+    cancels: U+0300 0301 0302 0303 0304 0305 0306 0308 030C 0327 0331 0342 0344 0346 0350 0362 all
+    read −1, and U+0345 0363 0367 036F pin both ends of the range from outside it. Marks of other
+    scripts do not join — U+0483 Cyrillic, U+0591 Hebrew, U+064B Arabic, U+0901 Devanagari,
+    U+0E31 Thai and U+20D0 all read 0. U+0331 needs a host that does not precompose (`o̱` `gu̱`
+    read −1 where `ḇ` `ḵ` are NFC-composed away and read 0) — the same trap as `ǹ`.
+    """
+    return bool(CHARGING_MARK.fullmatch(body[-1:]))
 
 
 def _is_nd_run(body: str) -> bool:
@@ -669,7 +707,11 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
-            out.append(pre + bow + _guard_floor_marks(n, model) + EOW_G)
+            # A word ending in a charging mark writes a SECOND ⟨eow⟩ at a single-space right
+            # border — the border marker punctuation, digit runs and terminal separators all take.
+            # See `_charging_border`; it is what the seam block in `_seam_sub` was standing in for.
+            border = EOW_G if _charging_border(n) and borders_space(i, +1) else ""
+            out.append(pre + bow + _guard_floor_marks(n, model) + EOW_G + border)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken owns an opening boundary even when it is adjacent to a symbol,
             # digit or punctuation run. A legacy killer at the head instead closes that preceding
