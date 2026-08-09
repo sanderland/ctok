@@ -49,6 +49,18 @@ def is_hard_cp(o: int) -> bool:
         # way — they were probed in the same sweep and are exact as wordy — so this is the two marks
         # and not the CJK punctuation block.
         or o in (0x3005, 0x3006)      # 々 〆
+        # Quranic ANNOTATION signs — ayah ends, rub-el-hizb, the zeros, sajdah, the stop marks.
+        # Two contiguous ranges, and each already contains members Unicode types as Cf or So which
+        # were never in the letter class; the ones that leak through are the Mn members, because
+        # `classify` admits category M. Measured 2026-08-08 in `ف_ى`, delta against the unmarked
+        # baseline: U+06D6–06DC read +2, U+06DD–06E0 read +4, U+06E1–06E8 read +2, U+06E9–06EC
+        # read +4, U+06ED reads +2 — so the boundaries are pinned on both sides of both ranges.
+        # +4 is the unattached-mark spelling: its own ⟨bow⟩, the mark at the byte floor, and the
+        # following letters restarting a word. Combining class does not predict the split (06DB at
+        # ccc 230 reads +2 and 06DF at ccc 230 reads +4; 06E3 at ccc 220 reads +2 and 06EA at
+        # ccc 220 reads +4), and neither does byte length. These are annotation, not pronunciation.
+        or 0x06DD <= o <= 0x06E0      # ۝ ۞ and the two small high zeros
+        or 0x06E9 <= o <= 0x06EC      # ۩ and the empty-centre stops
     )
 
 
