@@ -703,9 +703,14 @@ probes. Each has a control that refutes the obvious rule.
 ### 12.1 A boundary between adjacent byte-floored characters — five tokens, one population
 
 `mdf_cyrl` 1, `aze_arab` 2, `snd_arab` 1 and `lao_laoo` 1 were four separate entries in the
-campaign brief. They are one measured shape: **where two adjacent characters both fall to the byte
-floor and are not the same character, the oracle charges one token more than their bytes**, and the
-deficit counts those junctions exactly.
+campaign brief. They are one measured shape: **where two adjacent NON-ASCII characters stand inside
+one pretoken, no piece spans the pair, and they are not the same character, the oracle charges one
+token more than we do**, and the deficit counts those junctions exactly.
+
+Each side may be a byte-floor run or a one-codepoint piece — `ຸ່` is a floored `ຸ` next to the
+`່` piece and still splits — so this is not a statement about the byte floor. What it needs is
+that no single piece covers the junction and that neither side is ASCII: `t͡s` and `tɕ` and `t͡a`
+are exact because the `s`, the `t` and the `a` are ASCII, and the same U+0361 in `t͡ɕ` is one under.
 
 ```
 x ٘ٛ x   20 (−1)   x ٘٘ٛ x   22 (−1)   x ٘ٛ٘ x  23 (−2)   x ٘ٛ٘ٛ x 26 (−3)
@@ -716,8 +721,9 @@ x ٖ۽ x   20 (−1)   x ຸ່ x     19 (−1)   x ຸຸ່ x  21 (−1)   x �
 Controls, exact, and they are what makes the junction count the predicate rather than the
 characters: `x ٘ x` `x ٛ x` `x ຸ x` `x ٖ x` singly; `x ٘٘ x` `x ٘٘٘ x` `x ٘٘٘٘ x` `x ຸຸ x`
 `x ່່ x` `x ﬞﬞ x` `x ٰٰ x` `x ɕɕ x` (identical neighbours, no junction); `x t͡s x` `x t͡a x`
-`x tɕ x` (one side is a piece, not the floor); `x ัิ x` `x िी x` `x ఀఀ x` (ccc-0 marks are
-WORDY words, not unattached-mark runs, and never reach this).
+`x tɕ x` (one side is ASCII); `x b̃ɕ x` (U+0303 is a killer, so the two sit in different
+pretokens); `x ัิ x` `x िी x` `x ఀఀ x` (ccc-0 marks are WORDY words rather than unattached-mark
+runs, and a piece spans the pair).
 
 **And it cannot be written, because a piece we cannot see covers about half the junctions.** The
 refutation is exact and same-script: `ٖٗ` (U+0656 + U+0657) rides at 19 while `ٜ٘` (U+065C +
