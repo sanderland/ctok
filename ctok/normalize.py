@@ -241,11 +241,59 @@ def _is_no_run(body: str) -> bool:
     return bool(body) and all(unicodedata.category(c) == "No" for c in body)
 
 
-def _nonascii_digits(body: str) -> bool:
-    """The digit runs measured to take a boundary ⟨bow⟩ at any space border: every non-ASCII Nd run,
-    and every No run. Letter scripts measured not to; ASCII Nd runs only strand one against a
-    non-ASCII digit neighbour."""
-    return (_is_nd_run(body) and not body.isascii()) or _is_no_run(body)
+def _digit_border(ch: str) -> bool:
+    """Is this the kind of digit for which the border markers are written — a non-ASCII decimal
+    digit, or any of the Unicode *other* numbers?
+
+    ASCII digits take no border marker of their own: `1 1` = 4 and `文 5 文`, `文 5 5`, `x 5年 x`
+    are all exact unmarked. Everything else does, in every script tried — `٥ 取` `۹ 取` `๙ 取`
+    `१ 取` `５ 取` `½` — so the split is ASCII vs not, not script by script.
+    """
+    cat = unicodedata.category(ch)
+    return cat == "No" or (cat == "Nd" and not ch.isascii())
+
+
+def _digit_run(body: str) -> bool:
+    """A run the digit-border branch owns: all decimal digits, or all *other* numbers."""
+    return _is_nd_run(body) or _is_no_run(body)
+
+
+def _digit_bow(body: str) -> bool:
+    """Does a digit run write ⟨bow⟩ where it borders a space on the left? Per BORDER CHARACTER,
+    exactly as the punctuation marker is (see :func:`_marks_like_punct`) — the run's FIRST
+    character decides, not the run as a whole.
+
+    Measured 2026-08-09 on mixed ASCII/Arabic-Indic runs, which are the only runs where the two
+    readings differ (a HARD digit sub-run is all non-ASCII by construction, since ASCII digits are
+    their own class). `文 5٥` = 17 and `٥5 5` = 17 and `文 ٥5 5` = 20 each read one MORE under a
+    whole-run test, which wrote a ⟨bow⟩ on a run that opens with `5`; `文 ٥5` = 18 and `文 ٥5 文`
+    = 20 keep it, because those open with `٥`.
+    """
+    return _digit_run(body) and _digit_border(body[0])
+
+
+def _digit_eow(body: str) -> bool:
+    """Does a digit run write ⟨eow⟩ where it borders a single space on the right? The run's LAST
+    character decides, the mirror of :func:`_digit_bow`.
+
+    This is the half the digit branch never had, and the reason it looked complete is that the
+    seam hides it: an ⟨eow⟩ before `space + ⟨bow⟩` is deleted along with the space, so every probe
+    whose right neighbour is a word, a punctuation run or another marker-taking digit run reads
+    the same with it and without it (`x ５ x` `８ ９` `١ ٢` `a ½ b` `文 ５ x` all exact either
+    way). It shows only before a run that writes no ⟨bow⟩ of its own — a CJK or Hangul letter, or
+    ideographic punctuation:
+
+        ８ 取 = 16   １ 竹 = 16   ９ 。 = 16   ５ 取 = 16   ٥ 取 = 17   ۹ 取 = 17
+        ๙ 取 = 17   १ 取 = 15   文 ½ 文 = 19   한 ５ 한 = 19   文 ٥ 文 = 20   取 １２ 取 = 19
+
+    each one token more than an ⟨eow⟩-less spelling charges. Controls: `件 ５` and `文 ٥` = exact
+    (the message end is not a space), `８  取` and `文 ５  文` = exact (a space RUN kills the
+    marker, the rule punctuation has), `文 ٥\\t文` and `文 ٥\\n文` = exact (only a space counts),
+    `9 取` and `文 5 文` = exact (ASCII digits are not border digits), and `文 ٥5 文` = 20 and
+    `文 ٥5 5` = 20 exact, which is what fixes the last character rather than the first as the
+    test — a `٥5` run ending in ASCII writes no ⟨eow⟩.
+    """
+    return _digit_run(body) and _digit_border(body[-1])
 
 
 def is_killer(c: str) -> bool:
@@ -456,7 +504,7 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         cur = body[0]
         for ch in body[1:]:
             if (VARIATION_SELECTORS[0] <= ord(ch) <= VARIATION_SELECTORS[1]
-                    or _marks_like_punct(ch) == _marks_like_punct(cur[-1])):
+                    or _hard_kind(ch) == _hard_kind(cur[-1])):
                 cur += ch
             else:
                 split.append((cls, cur))
@@ -480,6 +528,28 @@ def _ideographic_punct(ch: str) -> bool:
     predict it either: `。` is markerless and `？` is not.
     """
     return 0x3001 <= ord(ch) <= 0x303F and unicodedata.category(ch).startswith("P")
+
+
+def _hard_kind(ch: str) -> str:
+    """Which pretoken alternative a character of a HARD run belongs to.
+
+    A HARD run is a run of our own class, not a pretoken: the conventional pretokenizer regex
+    alternates ``\\p{L}\\p{M}*`` | ``\\p{N}+`` | ``[^\\s\\p{L}\\p{N}]+``, so a number and the
+    ideograph beside it are different pretokens however our classifier grouped them. The
+    punctuation split was measured first (`文？ 文`); the number split is the same fact for the
+    other alternative, and `件 ５年` = 17, `件 ½年` = 17, `件 ５。` = 17, `件 ５５年` = 18,
+    `取 ５年` = 17, `문 ５년` = 17 each cost one more than an unsplit run charges — the ⟨bow⟩ the
+    digit branch writes once `５` is a run of its own. Controls: `件 5年` `x 5年 x` (ASCII digits
+    are not border digits), `件 年５` `件 。５` (nothing borders the space), `x ５年 x` `x ５。 x`
+    `x ५年 x` (exact either way — the seam eats the new ⟨bow⟩ against the word's ⟨eow⟩, which is
+    why a Latin frame could never have found this), and `文〇 文` `件 〇年` (U+3007 is Nl, outside
+    the measured Nd/No border population, and stays with its ideographs).
+    """
+    if _marks_like_punct(ch):
+        return "punct"
+    if _digit_border(ch):
+        return "number"
+    return "letter"
 
 
 def _marks_like_punct(ch: str) -> bool:
@@ -585,7 +655,7 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
     has_own_bow = not head_quote and (
                    first[0] in (WORDY, PUNCT, _STRAY_MARK, _KILLER) or _is_punct_text(first[1])
                    or _is_symbol_text(first[1]) or _is_format_text(first[1])
-                   or (first[0] in (DIGIT, HARD) and _nonascii_digits(first[1]))
+                   or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
     # message pays for no marker, which is exactly where v5 counts one token under v4.7.
@@ -631,14 +701,19 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
             takes_bow = borders_space(i, -1) and not _opens_word(runs, i)
             out.append((BOW_G if takes_bow else "") + body
                        + (EOW_G if borders_space(i, +1) else ""))
-        elif (_is_nd_run(body) or _is_no_run(body)) and cls in (DIGIT, HARD):
-            # A digit run takes a leading ⟨bow⟩ when it borders a space — the same rule punct has.
-            # The population is measured: every non-ASCII Nd run at any space border, every No run
-            # (see `_is_no_run`), plus an ASCII run only against a non-ASCII digit neighbour across
-            # the space. No ⟨eow⟩ is ever written, since the message end is not a space.
-            takes_bow = _nonascii_digits(body) or (
-                i >= 2 and _nonascii_digits(runs[i - 2][1]) and runs[i - 2][0] in (DIGIT, HARD))
-            out.append((BOW_G if takes_bow and borders_space(i, -1) else "") + body)
+        elif _digit_run(body) and cls in (DIGIT, HARD):
+            # A digit run takes the same border markers punctuation does, on BOTH sides, and which
+            # side is written is decided by the border character (`_digit_bow`, `_digit_eow`).
+            #
+            # The ⟨eow⟩ half was missing, and with it went a clause that gave an ASCII run a ⟨bow⟩
+            # "against a non-ASCII digit neighbour across the space". That clause was standing in
+            # for the neighbour's own ⟨eow⟩: wherever it fired, the seam deleted the space between
+            # the two markers, so the pair is interchangeable and the probes could not tell them
+            # apart. They separate on a space RUN, which kills the marker but not the seam-less
+            # ⟨bow⟩ — `٥  5` = 16 and `٥5 5` = 17 and `文 ٥5 5` = 20 each read one MORE with the
+            # lookback clause and exact without it. So it is gone rather than mirrored.
+            out.append((BOW_G if _digit_bow(body) and borders_space(i, -1) else "") + body
+                       + (EOW_G if _digit_eow(body) and borders_space(i, +1) else ""))
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
     annotated = SEAM_RE.sub(_seam_sub, "".join(out))
