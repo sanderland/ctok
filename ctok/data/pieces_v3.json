@@ -8,7 +8,7 @@
   "fold_quotes": true,
   "allcaps_min": 4,
   "digit_group": 3,
-  "built": "2026-08-09T23:24:34.284633+00:00",
+  "built": "2026-08-09T23:24:54.830773+00:00",
   "provenance": "every token measured with count_tokens against this family's source model",
   "witness": {
    "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 9929,
+    "bow": 9933,
     "cased_bow": 877,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -45253,7 +45253,11 @@
    "．⟨eow⟩": {"probe": "1． a", "raw": 11, "kind": "digit_eow"},
    "）⟨eow⟩": {"probe": "1） a", "raw": 11, "kind": "digit_eow"},
    "াে": {"probe": ".ヲােヲ.", "raw": 16, "kind": "mid"},
-   "ময⟨eow⟩": {"probe": ".ヲময.", "raw": 13, "kind": "eow"}
+   "ময⟨eow⟩": {"probe": ".ヲময.", "raw": 13, "kind": "eow"},
+   "⟨bow⟩া": {"probe": ".াヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩ি": {"probe": ".িヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩ে": {"probe": ".েヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩ো": {"probe": ".োヲ.", "raw": 13, "kind": "bow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
