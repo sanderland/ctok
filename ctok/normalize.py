@@ -154,9 +154,14 @@ def _is_symbol_text(body: str) -> bool:
     exact but `1 c1` and `1c 1` one MORE than we charge and `1 c 1` two more — a boundary written
     where the oracle writes none, the exact mirror of what the BMP characters do. `文 🐫` = 6 is
     the row it costs on real text.
+
+    A trailing variation selector rides its base (see the sub-run split in :func:`_runs`), so it
+    is transparent here: `⚖️` is a symbol body and takes the symbol's markers (`1 ⚖️ 1` = 22).
+    A body of ONLY selectors is not a symbol.
     """
-    return bool(body) and all(unicodedata.category(c).startswith("S") and ord(c) < 0x10000
-                              for c in body)
+    core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
+    return bool(core) and all(unicodedata.category(c).startswith("S") and ord(c) < 0x10000
+                              for c in core)
 
 
 def _is_format_text(body: str) -> bool:
@@ -409,6 +414,12 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     # 2026-08-08: `文？ 文` and `文 ？文` each cost one more than that spelling charges, `文？文`
     # and `文？  文` are exact, and `あ？ 文` (already its own run) was exact all along. So the run
     # is split where the character KIND changes, and the existing predicates then apply per piece.
+    #
+    # A variation selector never opens a sub-run of its own: it rides its base's sub-run. So is
+    # punct-like and Mn is not, so `⚖️` would otherwise sever at the selector — the symbol sub-run
+    # takes its ⟨bow⟩ but the trailing selector falls to the no-marker branch and the ⟨eow⟩ is
+    # lost. Measured 2026-08-09: `1 ⚖️ 1` = 22 and `1 ✔️ 1` = 21, one more than the severed
+    # spelling charges; `a ⚖️ b` = 19 is exact either way because the letter seam cancels it.
     split = []
     for cls, body in out:
         if cls != HARD or len(body) == 1:
@@ -416,7 +427,8 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
             continue
         cur = body[0]
         for ch in body[1:]:
-            if _marks_like_punct(ch) == _marks_like_punct(cur[-1]):
+            if (VARIATION_SELECTORS[0] <= ord(ch) <= VARIATION_SELECTORS[1]
+                    or _marks_like_punct(ch) == _marks_like_punct(cur[-1])):
                 cur += ch
             else:
                 split.append((cls, cur))
