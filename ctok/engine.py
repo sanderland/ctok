@@ -11,7 +11,7 @@ tiles.
 
 from __future__ import annotations
 
-from .constants import EOW_G, MARKER_GLYPHS
+from .constants import BOW_G, CAPS_G, CONTEXTUAL_MARKS, EOW_G, MARKER_GLYPHS, SHIFT_G
 from .normalize import nfc, stream_plan
 from .notation import parse_marked
 
@@ -147,6 +147,50 @@ def frame_tail(n: int, model) -> list[str]:
     return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
 
 
+def _mark_host_tile(seg: str, model) -> bool:
+    """Is ``seg`` a tile a ``CONTEXTUAL_MARKS`` piece may follow at price 1 — ASCII letters only,
+    marker-carrying only when it is a single letter?
+
+    Measured 2026-08-09 (see ``constants.CONTEXTUAL_MARKS``): the mark's piece prices 1 after a
+    single-letter tile of at most two UTF-8 bytes, with or without its markers — `⟨bow⟩q`
+    (`q̃x` = 15), a bare `b` mid-word (`bb̃` = 15), `⟨bow⟩о` (evn's `о̄мачин` = 17), a bare `ü`
+    (tca's `duü̃xü̃` = 19) — and after a markerless multi-letter ASCII tile (`aab̃` = 15, where no
+    `⟨bow⟩aa`/`⟨bow⟩aab` piece exists to price it any other way). It pays its own bytes after a
+    marker-carrying multi-letter tile — `⟨bow⟩ab` (`ab̃ b` = 17), `⟨bow⟩gu` (snn's `gu̱i` = 16),
+    `⟨bow⟩mó` (cic's `mó̱makat` = 17), `⟨bow⟩ба` (gld's `ба̄охан` = 17) — after a non-ASCII
+    markerless multi tile (`бимчэ̄` = 18 forbids `чэ`), after a three-byte single-letter tile
+    (`vọ̃` = 16, `ọ̃` `ạ̃` = 16), and after a raw byte chunk (`ɔ̂ ɔ̄ ɔ̧ ɔ̱ ɔ̃` = 17, hosts no
+    piece covers). Residual: `π̂`-style rows keep a pre-existing ±1 that no tile rule resolves —
+    see the UNEXPLAINED grid in LIMITS.md.
+    """
+    body = seg.lstrip(BOW_G + SHIFT_G + CAPS_G)
+    if not body or not body.isalpha():
+        return False
+    if len(body) == 1:
+        if len(body.encode()) > 2:
+            return False
+        return seg in model.vocab or seg in model.unit_pieces
+    return seg == body and body.isascii() and seg in model.vocab
+
+
+def _dotted_host_blocked(seg: str) -> bool:
+    """Is ``seg`` a tile after which the dotted capital İ byte-prices, in İ's contextual spot —
+    a marker-carrying tile ending in an uppercase ASCII letter?
+
+    Measured 2026-08-09, cached grid. Word-final İ after such a tile pays its two bytes: `Bİ Dİ
+    Kİ Lİ Rİ Sİ Tİ` = 15 each and `x Aİ x` `x Eİ x` `x Sİ x` = 17, where the unit piece would
+    read one less. So does İ before a LOWERCASE ASCII letter: `Dİs` = 15, `x Dİl x` = 17. Every
+    other neighbourhood keeps the piece at 1: mid-word before an uppercase letter (`AİD` `BİR`
+    `DİN` `x DİREKTOR x` `TƏSDİQLƏMİSİNİZ` exact), word-final after a lowercase host (`aİ` `xİ`
+    `x nİ x` `x dİ x` exact), after a bare uppercase mid-word tile (`RPİ` = 15 exact), after
+    `⟨bow⟩İ` itself (`x İİ x` = 16 exact — İ is uppercase but not ASCII), and after a markerless
+    multi-letter tile (`xalqlarınİ` `x novunİ x` exact). `x Hüseynovunİ x` = 22 stays one under
+    and is reported in LIMITS.md: `(un)` is the same tile `x novunİ x` prices the piece after, so
+    no tile rule separates them out of our vocabulary.
+    """
+    return seg[0] in (BOW_G, SHIFT_G, CAPS_G) and seg[-1].isascii() and seg[-1].isupper()
+
+
 def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
 
@@ -174,6 +218,28 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         floor_prefix[at + 1] = 1
     for i in range(len(s)):
         floor_prefix[i + 1] += floor_prefix[i]
+    # The tile-contextual mark pieces (`constants.CONTEXTUAL_MARKS`): each such position prices 1
+    # only when the tile ending right before it is an eligible host tile (`_mark_host_tile`), and
+    # pays its raw UTF-8 bytes after any other tile. A position already forced to the floor (the
+    # Syriac-host and stray-mark populations) keeps that stricter rule.
+    ctx_marks = frozenset(j for j, ch in enumerate(s)
+                          if ch in CONTEXTUAL_MARKS and j not in floor_positions)
+    # The dotted capital İ, in its one measured byte-pricing spot: word-final or followed by an
+    # ASCII lowercase letter, and not word-initial (`⟨bow⟩İ` covers that position as a piece).
+    # There its unit piece prices 1 only after a tile `_dotted_host_tile` admits; after a
+    # marker-carrying tile ending in an uppercase ASCII letter it pays its two UTF-8 bytes.
+    ctx_dotted = frozenset(
+        j for j, ch in enumerate(s)
+        if ch == "İ" and 0 < j < len(s) - 1 and s[j - 1] not in MARKER_GLYPHS
+        and j not in floor_positions
+        and (s[j + 1] == EOW_G or "a" <= s[j + 1] <= "z"))
+    ctx_prefix = [0] * (len(s) + 1)
+    for at in ctx_marks:
+        ctx_prefix[at + 1] = 1
+    for at in ctx_dotted:
+        ctx_prefix[at + 1] = 1
+    for i in range(len(s)):
+        ctx_prefix[i + 1] += ctx_prefix[i]
 
     def unit_floor(j: int) -> int:
         """What one character costs where no piece covers it — a marker is a token, anything else
@@ -194,6 +260,25 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # offered to the DP.
         if floor_prefix[i] != floor_prefix[j]:
             return unit_floor(j) if i - j == 1 and j in floor_positions else None
+        if ctx_prefix[i] != ctx_prefix[j]:
+            # A span touching a tile-contextual position (a `CONTEXTUAL_MARKS` mark, or İ in its
+            # measured spot). Alone, the character pays its raw bytes; the only way to its
+            # one-token piece is a combined edge [eligible host tile][piece], which costs the pair
+            # of tokens it is. No ordinary piece may span the position.
+            if i - j == 1:
+                return model.raw_bytes.cost_char(s[j])
+            last = i - 1
+            if ctx_prefix[last] != ctx_prefix[j] or floor_prefix[last] != floor_prefix[j]:
+                return None
+            host = s[j:last]
+            if last in ctx_marks:
+                return 2 if s[last] in pieces and _mark_host_tile(host, model) else None
+            # ``last`` is a contextual İ: any tile may precede it at price 1 except the measured
+            # marker-carrying-uppercase shape (`_dotted_host_blocked`).
+            if _dotted_host_blocked(host):
+                return None
+            host_cost = 1 if host in pieces else (unit_floor(j) if last - j == 1 else None)
+            return None if host_cost is None else host_cost + 1
         if s[j:i] in pieces:
             return 1
         return unit_floor(j) if i - j == 1 else None
@@ -205,7 +290,19 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]
-        if j not in floor_positions and (seg in pieces or unit_floor(j) == 1):
+        if j in ctx_marks or j in ctx_dotted:
+            # A contextual position that no eligible host tile precedes: its raw-byte chunks.
+            out.extend(model.raw_bytes.chunks(seg.encode()))
+        elif (i - 1 in ctx_marks or i - 1 in ctx_dotted) and i - j > 1:
+            # A combined [host tile][piece] edge, split where the DP priced it. The host is a
+            # piece or a single character, which may itself expand to byte chunks.
+            host = seg[:-1]
+            if host in pieces or unit_floor(j) == 1:
+                out.append(host)
+            else:
+                out.extend(model.bytes.chunks(host.encode()))
+            out.append(seg[-1])
+        elif j not in floor_positions and (seg in pieces or unit_floor(j) == 1):
             out.append(seg)
         else:
             floor = model.raw_bytes if j in floor_positions else model.bytes

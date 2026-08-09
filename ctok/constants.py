@@ -217,7 +217,14 @@ CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW_G)
 CHARGING_MARK = re.compile("[\u0300-\u0344\u0346-\u0362]")
 
-# Marks that fall to their own byte floor when the host they sit on is already there — the mark's
-# one-token piece was measured on a base the encoder carries, and it cannot reach it here.
-# U+0303 is the measured member; see `normalize._guard_floor_marks` for the grid and its controls.
-FLOOR_AFTER_FLOOR = frozenset("\u0303")
+# The five word-context mark pieces (U+0302 0303 0304 0327 0331) whose one-token price is
+# TILE-contextual: each prices 1 only when the tile immediately before the mark is a bare ASCII
+# letter, optionally carrying ⟨bow⟩/case markers; after any other tile the mark pays its own UTF-8
+# bytes. Measured 2026-08-09: `ɔ̂ ɔ̄ ɔ̧ ɔ̱` each read one under with the previous U+0303-only,
+# host-character guard, so the population is all five piece-marks; `vọ̃` (host IS a unit piece, but
+# not ASCII) and `ab̃ b` (host reachable only inside the `⟨bow⟩ab` tile) pinned the condition to
+# the preceding TILE rather than the preceding character. Controls exact either way: `o̱` `u̱`
+# `yo̱thu̱` `bb̃` `aab̃` `ib̃` `b̃` `b̃ b` `vɔ` `vɔa` `ɔ̀` `ɔ̆` `ɔ̈` `a rɔ̃ b`. The eligibility
+# edges live in `engine.tile`; `normalize._guard_floor_marks` keeps only the unconditional
+# Syriac-host floor.
+CONTEXTUAL_MARKS = frozenset("\u0302\u0303\u0304\u0327\u0331")
