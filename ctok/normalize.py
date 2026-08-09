@@ -473,10 +473,26 @@ def stream(text: str, model) -> str:
     is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal. Nothing
     else is marked here: whether punctuation wants a marker is for the tiling to reveal.
     """
-    return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model)
+    return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
+                       head_stripped=stripped_head(text))
 
 
-def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
+def stripped_head(text: str) -> bool:
+    """Did :func:`nfc` strip the very first character of the message?
+
+    The frame's leading-space absorption is a fact about the RAW message head: the frame ends in
+    ⟨bow⟩ and that ⟨bow⟩ IS the space (' a' = 12 on v4.7, same as 'a'). A stripped C1 or
+    private-use character still stood between the frame and the space when the oracle read it, and
+    the oracle does not absorb across it. Measured 2026-08-09: '\\x95 a', '\\x8c a' and '\\uf0d8 a'
+    all read 13 where the absorbed spelling charges 12. Controls: 'a' and ' a' = 12, '  a' = 13,
+    '\\x95a' = 12 (the strip itself is right — the character costs nothing), and 'a \\x95 b' is
+    exact (mid-text strips never touch the head rule).
+    """
+    t = SURROGATE.sub("�", unicodedata.normalize("NFC", text))
+    return bool(STRIP_CONTROL.match(t) or STRIP_PRIVATE.match(t))
+
+
+def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, frozenset[int]]:
     """The marked stream plus positions whose character must use the raw byte floor.
 
     A bare combining-mark piece is measured inside a letter run. The first mark of an unattached
@@ -496,7 +512,9 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
     # Where the frame does NOT end in a ⟨bow⟩ (v5), there is no space to stand in for: the leading
     # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
-    if model.frame_bow and norm[:1] == " " and norm[1:2] != " ":
+    # A space the strip EXPOSED is not the raw head and is not absorbed either — the oracle read
+    # `[stripped char][space][text]` and kept the space (see :func:`stripped_head`).
+    if model.frame_bow and not head_stripped and norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
     runs = _runs(norm, model)
     if not runs:
@@ -610,6 +628,6 @@ def stream_plan(norm: str, model) -> tuple[str, frozenset[int]]:
     return "".join(clean), frozenset(floor_positions)
 
 
-def stream_norm(norm: str, model) -> str:
+def stream_norm(norm: str, model, *, head_stripped: bool = False) -> str:
     """The public marked stream over normalized text; floor annotations stay internal to tiling."""
-    return stream_plan(norm, model)[0]
+    return stream_plan(norm, model, head_stripped=head_stripped)[0]

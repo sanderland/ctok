@@ -12,7 +12,7 @@ tiles.
 from __future__ import annotations
 
 from .constants import BOW_G, CAPS_G, CONTEXTUAL_MARKS, EOW_G, MARKER_GLYPHS, SHIFT_G
-from .normalize import nfc, stream_plan
+from .normalize import nfc, stream_plan, stripped_head
 from .notation import parse_marked
 
 
@@ -208,7 +208,7 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # of the Rosetta corpus, which is how this was found.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
-    s, floor_positions = stream_plan(norm, model)
+    s, floor_positions = stream_plan(norm, model, head_stripped=stripped_head(text))
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
