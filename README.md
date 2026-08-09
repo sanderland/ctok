@@ -85,16 +85,19 @@ corpus as evidence about an unfinished model. Code is done; what follows is abou
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.301% | 0.177% | 316/501 | 95.4% |
-| UDHR | v4.7 | 0.149% | 0.094% | 443/501 | 96.4% |
-| UDHR | v5 | 0.149% | 0.094% | 443/501 | 96.4% |
+| UDHR (501 languages) | v3 | 0.324% | 0.196% | 316/501 | 94.8% |
+| UDHR | v4.7 | 0.164% | 0.105% | 442/501 | 96.4% |
+| UDHR | v5 | 0.164% | 0.105% | 442/501 | 96.4% |
 | Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
 | Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
 
-No document in either family is over 5% error. Fourteen v3 documents and nine v4.7 ones remain in the
-1–5% band; the worst are Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+3.27% / +2.84%), both
-languages for which no marked-text source has been found. Weighted by speakers rather than by
-document, the error is 0.046% (v3) and 0.016% (v4.7).
+Two v3 documents and one v4.7 one sit over 5% — Tem (+6.23% / +6.08%) and, on v3 only, Maldivian
+(+6.13%) — with 24 more v3 documents and 17 v4.7 ones in the 1–5% band; the worst of those are
+Navajo (+4.86% / +4.41%), Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+4.07% / +3.53%), languages
+for which no marked-text source has been found. Weighted by speakers rather than by document, the
+error is 0.071% (v3) and 0.031% (v4.7). Part of the UDHR residual is deliberate: the 2026-08-09
+mark-eligibility work (LIMITS.md §11) converted under-counts in tone-marked orthographies into
+honest over-counts, which moved several of these documents up the table rather than off it.
 
 The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
 a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
@@ -109,9 +112,9 @@ and the 250 are drawn from blocks that sample never touched, so the second rate 
 anything the first chose. A piece is accepted on a membership probe either way; the corpus only ever
 decides which candidate gets asked.
 
-Nothing in either family is over 5% off now; 15 in each were, before the akshara law (a mark that
-closes its orthographic syllable also closes the word, so a conjunct is two words and carries the
-boundary markers that say so). What is left is vocabulary rather than structure.
+15 documents in each family sat over 5% off before the akshara law (a mark that closes its
+orthographic syllable also closes the word, so a conjunct is two words and carries the boundary
+markers that say so); one or two do now, and what is left is vocabulary rather than structure.
 
 Where that vocabulary is missing was measured rather than guessed, by scoring 350,000 rows across
 the 350 languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`:

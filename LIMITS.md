@@ -27,11 +27,17 @@ original sweep `syr_syrc` carried 15,139 tokens of under-count — 72% of all un
 languages — concentrated in long, diacritic-dense Peshitta rows. One 4,000-character row read 7,764
 against a recorded 8,408. It now reads 8,408.
 
-The shortest discriminating rows name two classes. U+0730–U+073F are ordinary Syriac vowel points:
-`ܒܰܒ` stays one word and was already exact. Every mark in U+0740–U+074A instead stands outside the
-word: `ܒ݁ܒ` and `ܒ݂ܒ` each cost two more than the old stream, while `ܒ݁ ܒ` costs one more because
-the separator prevents seam-space absorption. A later vowel point rides the same unmarked mark run:
-`ܒ݂ܶܒ` is exact without opening a stray marked word on `ܶ`.
+The shortest discriminating rows name two classes. U+0730–U+073F are ordinary Syriac vowel points
+*on a base*: `ܒܰܒ` stays one word and was already exact. Every mark in U+0740–U+074A instead stands
+outside the word: `ܒ݁ܒ` and `ܒ݂ܒ` each cost two more than the old stream, while `ܒ݁ ܒ` costs one
+more because the separator prevents seam-space absorption. A vowel point written after such a
+separator was first modelled as riding the same unmarked run — `ܒ݂ܶܒ` is exact under that spelling
+— but the 2026-08-09 space-border and message-end probes refuted it: a BASELESS vowel point is a
+word-forming letter, opening a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues
+(`ܒ݂ܶ` = 21, `x ܒ݂ܶ x` = 23, `x ܒ݂ܶx` = 22; the mid-word row prices identically under both
+spellings, which is why it alone could not tell them apart). The same law closes the 153-row stray
+Syriac-vowel family (`ܑ` `!ܑ` `1ܑ` `z ◌ܑ` `x◌ܑ◌ܑx`): all 2,526 cached Syriac rows now read
+2,515 exact / 8 over / 3 under, from 2,332 / 27 / 167.
 
 There is a second, host-sensitive class. On a Syriac letter, every assigned mark in the existing
 `CHARGING_MARK` range U+0300–U+0362 except U+0345 closes the run after the complete combining-mark
@@ -42,8 +48,9 @@ already defined range, not 85 enumerated exceptions.
 Five one-character pieces — U+0302, U+0303, U+0304, U+0327 and U+0331 — are pretoken-context
 vocabulary. A six-host Latin grid gives at least three discriminating rows per mark and supports one
 shared piece over per-pair explanations; standalone and Syriac-host rows byte-price them. The
-existing forced-floor mechanism therefore keeps the pieces available in their measured Latin
-context and blocks them on Syriac.
+Syriac-host floor still holds; the rest of the condition was re-measured 2026-08-09 and is
+TILE-contextual, not host-character-contextual — see `engine._mark_host_tile` for the grid and §11
+for what remains unexplained.
 
 On the 100 Goldfish rows used to develop the rule, exact reproduction moved from 38 to 98, absolute
 error from 1,551 to 4, and the worst row from −504 to −3. On a second frozen 100-row Goldfish draw,
@@ -605,3 +612,45 @@ Library has it behind a gate — so the question cannot be asked without spendin
 - **A 10M-document sweep is on the order of 200 hours of API time** at the throughput this
   sustains for documents of a few thousand characters. Any sweep at that scale has to resume from
   disk; it is not something one session finishes.
+
+## 11. The contextual-mark residual: what 2026-08-09 pinned, and what it could not
+
+The five word-context mark pieces (U+0302 0303 0304 0327 0331) are tile-contextual
+(`engine._mark_host_tile`): the piece prices 1 after a single-letter tile of at most two UTF-8
+bytes, with or without ⟨bow⟩/case markers, and after a markerless multi-letter ASCII tile; it pays
+its own bytes after everything else. That rule took the 434-row probe grid from 402 exact / 68
+under to 445 / 9, and every one of the 9 residual unders predates it. They are the UNEXPLAINED
+part, and their minimal grid is:
+
+```
+π̂       14   the mark prices 1 after ⟨bow⟩π          xπ̂x   17   and pays bytes after a bare π
+чипа̄ли  18   prices 1 after the single tile а         бимчэ̄ 18   pays bytes after the single э
+о̄мачин  17   prices 1 after ⟨bow⟩о                    мэ̄нэ  19   pays bytes after э again
+до̄вани  16   prices 1 after the marker-multi ⟨bow⟩до  ба̄охан 17  pays bytes after ⟨bow⟩ба
+x b̃ 2 x 20   one under with the piece priced at 1 and the ⟨eow⟩ written
+```
+
+No tile rule separates the left column from the right out of our vocabulary: `π` and `э` are unit
+pieces exactly as `а` and `о` are, and `⟨bow⟩до` and `⟨bow⟩ба` are the same tile shape. Every row
+on the left is consistent with a fused piece in the oracle's vocabulary that ours lacks
+(`⟨bow⟩чип`-shaped hosts, or `о̄`-shaped host+mark pairs), and every such explanation is
+unfalsifiable one row at a time — which is why the non-ASCII two-byte hosts keep the piece at 1
+(the corpus-frequent reading) and the rows above stay listed as rows, not attributed. The UDHR
+cost of the tile rule is real and deliberate: tca/oaa/snn/ame moved from small unders (hidden
+errors) to larger overs (honest missing vocabulary), v4.7 443 → 442 exact and mean 0.094% → 0.105%.
+
+The dotted capital İ is the same shape (`engine._dotted_host_blocked`): its unit piece pays its
+two bytes where İ is word-final or followed by an ASCII lowercase letter AND the tile before it
+carries a marker and ends in an uppercase ASCII letter (`Bİ Dİ Kİ Lİ Rİ Sİ Tİ` = 15, `Dİs` = 15,
+`x Dİl x` = 17; controls `AİD` `BİR` `RPİ` `aİ` `x İİ x` `x DİREKTOR x` `xalqlarınİ` exact).
+One row stays UNEXPLAINED:
+
+```
+x novunİ x       17   İ prices 1 after the tile (un)
+x Hüseynovunİ x  22   İ pays bytes after the same tile (un) — one under for us
+```
+
+The two words share their entire tail; only `⟨bow⟩H` + `ü` differ, five tiles before the İ. No
+rule over the preceding tile can separate them; a piece we lack (`⟨bow⟩Hüseynovun`-shaped, which
+would put a marker-carrying multi-letter tile before the İ) would, and is not attributed without a
+probe that could refute it.
