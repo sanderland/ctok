@@ -374,8 +374,8 @@ Three lessons worth more than the pieces:
 Retiring `ownscript` took under-count across 44 Goldfish languages from thousands to **789**, and
 what is left is concentrated in six: Malayalam 188, Khmer 180, Lao 119, Tamil 94, Myanmar 76,
 Sinhala 74. Under-count should be impossible — the tiler takes a shortest path over a vocabulary
-meant to be a SUBSET of the real one — so each case is one of three things, and they need different
-fixes: a false piece, a missing boundary, or merge order (§8).
+meant to be a SUBSET of the real one — so each case is one of two things, and they need different
+fixes: a false piece, or a missing boundary glyph (§8).
 
 **Most of it is five real pieces applied one character too far.** The vocabulary holds five
 `virama + space` pieces — Devanagari, Tamil, Malayalam, Sinhala and Myanmar. They are not junk;
@@ -546,21 +546,43 @@ probe and are predicted to have no fused piece. **The inventory is per piece, no
 blanket Bengali nukta piece introduced four new under-counts — so it needs a mining pass with real
 witnesses rather than the five characters written down here.
 
-## 8. A true piece can push a word below the oracle, and that does not impeach it
+## 8. An under-count is always a defect. There is no third explanation
 
-This engine tiles by shortest path. The tokenizer it reconstructs merges in a fixed order, and the
-two disagree on words that offer the same piece twice.
+An earlier version of this section said the engine tiles by shortest path while "the tokenizer it
+reconstructs merges in a fixed order", so the two could disagree and no vocabulary change would fix
+it. **That is wrong, and it was never measured — it was imported from BPE, which this tokenizer is
+not.** Nothing in this repo's evidence shows a merge-ordered encoder, and min-cost tiling reproduces
+1,741 Rosetta documents and 22 MultiPL-E files exactly, which is not what an algorithm mismatch
+looks like.
 
-**Measured 2026-08-08.** `ən` is a verified Azerbaijani token — its own probe prices it at one, and
-adding it repairs **296** standalone word counts. It also takes `cəhənnəm` one token *below* its
-recorded count: that word contains two `ən`s, and shortest-path spends both where merge order did
-not. No vocabulary change fixes this, in either direction.
+So the inventory of causes has two entries, not three:
 
-So a push-below control has to be **net rather than absolute**. An absolute one — refuse the piece
-if any word drops below — refused `ən` outright, and with it the single largest repair in the
-Goldfish campaign: Azerbaijani sat at 45.7% of rows exact for one word out of ten thousand. The
-control still earns its place; it is what refuses pieces that repair nothing and break something.
-It just cannot be read as a proof of falsity when the witness is sound.
+1. **a false piece** — the vocabulary claims one token for something that is two or more, so the
+   cover we find is cheaper than any the encoder could take;
+2. **a missing boundary glyph** — the stream omits an ⟨eow⟩/⟨bow⟩ the encoder writes, so we are
+   tiling a shorter string than was tokenized.
+
+Both are findable and both are fixable. The campaign of 2026-08-08 is the evidence for taking that
+seriously: every under-count population examined that day resolved into one of the two — 439 pieces
+whose own probes refuted them, five `virama + space` pieces compensating for an absorption the
+stream never performed, and four classes of run (format characters, terminal separators, ideographic
+punctuation, Quranic annotation) that never reached the border-marker branch. Under-count over 44
+Goldfish languages went from thousands to 38 without once needing a third category.
+
+**`cəhənnəm` is therefore still open.** `ən` is witnessed on a fixed template and repairs 296
+standalone word counts; that word offers the piece twice and lands one below its recorded count.
+Under the two-entry inventory the reading is that one of the pieces covering it is false in that
+position, or the stream is missing a glyph there — not that the algorithms differ. It has not been
+run down.
+
+What survives from the old section is only the operational half: a push-below control has to be
+**net rather than absolute**, because an absolute one refused `ən` outright and with it the single
+largest repair in the campaign. That is a statement about how much evidence one word carries against
+296, not a licence to call the residue unexplainable.
+
+**The standing rule this leaves:** never reach for an algorithm mismatch to explain a count. If a
+tiling cannot be found, that is a fact about the search or the vocabulary, and the answer is to keep
+looking — not to conclude the encoder works differently.
 
 ## 9. Two UDHR documents are unexplained
 
