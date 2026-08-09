@@ -417,6 +417,15 @@ a 5      3                  ⟨bow⟩a⟨eow⟩ · ␣ · 5            it is not
 998 999  4                  ⟨bow⟩ · 998 · ␣ · 999           a digit run opens with ⟨bow⟩, closes with nothing
 ```
 
+**Correction, 2026-08-09: the last line is true of ASCII digits only, and the ⟨bow⟩ in it is the
+frame's.** A NON-ASCII digit run takes punctuation's border markers on BOTH sides — see
+`normalize._digit_eow`. The reason it read as "closes with nothing" is that the closing marker is
+invisible almost everywhere: an ⟨eow⟩ before `space + ⟨bow⟩` is deleted along with the space, so
+every probe whose right neighbour is a word, a punctuation run or another marker-taking digit run
+prices the same either way. It shows only before a run that writes no ⟨bow⟩ of its own — `８ 取`,
+`٥ 取`, `文 ½ 文`, `한 ５ 한` each cost one more than the marker-free spelling charges. The rows
+above stay correct because ASCII digits are not in that population (`1 1` = 4, `文 5 文` exact).
+
 So the space next to a digit is not part of anything — it stands alone and costs a token — which is
 precisely why it is still there for the glue piece to swallow:
 
@@ -654,3 +663,118 @@ The two words share their entire tail; only `⟨bow⟩H` + `ü` differ, five til
 rule over the preceding tile can separate them; a piece we lack (`⟨bow⟩Hüseynovun`-shaped, which
 would put a marker-carrying multi-letter tile before the İ) would, and is not attributed without a
 probe that could refute it.
+
+## 12. The last eight under-counts, 2026-08-09
+
+Two rules landed this day and took the under-count over Goldfish, Glot500 and the FineWeb/Stack
+slices from 18 to 8. Both were the same shape — **a border marker that is invisible wherever a
+⟨bow⟩ follows the space**, because the seam then deletes the marker along with the space, so only a
+right neighbour that writes no ⟨bow⟩ of its own can see it:
+
+* a non-ASCII digit run takes ⟨eow⟩ as well as ⟨bow⟩, per border CHARACTER, and a HARD run splits
+  at the number boundary (`normalize._digit_eow`, `_hard_kind`) — Japanese 4 → 0;
+* a word ending in a charging mark takes the same right-hand ⟨eow⟩, which is what the seam block
+  in `_seam_sub` was standing in for (`normalize._charging_border`) — Yoruba 5 → 0, and the last
+  Glot500 Yoruba row with it.
+
+|  | exact | over | under |
+|---|---:|---:|---:|
+| 44 Goldfish languages, before | 39,868 | 9,165 | 16 |
+| after | 39,873 | 9,234 | 7 |
+| 43 Glot500 files, before / after | 14,699 / 14,699 | 992 / 993 | 2 / 1 |
+| FineWeb, the Stack, github-code (242,188 rows) | 232,631 | 30,622 | 0 (unmoved) |
+
+**Over-count rises 70, and that is the intended direction.** Every token of the rise is a word that
+was ALREADY over-charging by the same amount in the letter frame: `а́` reads +2 there both before
+and after, and only the digit frame used to read +1, because a token was missing. §4 is the reason
+to take that trade — an over-count can be mined and an under-count cannot.
+
+Row-level churn was measured rather than assumed, by tiling every row twice: 3 rows that reproduced
+stop and 4 that did not start, all seven in Yoruba. Not one of `abk_cyrl`'s 60 extra tokens breaks a
+row — every one lands on a row that was already wrong, which is what distinguishes "a hidden error
+became visible" from "the rule is wrong". The 15-host differential grid is the other half of that
+argument: before the change the digit frame read exactly one BELOW the letter frame in all 30 rows
+of b q ẹ ü ɔ / а и б ә / π / ܒ / ب / क / ก / ᛒ × U+0301 U+0303, and after it the two frames agree
+in all 30, so there is no host on which the marker is wrong.
+
+The remaining eight are four populations, and none of them is a rule we could not find for want of
+probes. Each has a control that refutes the obvious rule.
+
+### 12.1 A boundary between adjacent byte-floored characters — five tokens, one population
+
+`mdf_cyrl` 1, `aze_arab` 2, `snd_arab` 1 and `lao_laoo` 1 were four separate entries in the
+campaign brief. They are one measured shape: **where two adjacent characters both fall to the byte
+floor and are not the same character, the oracle charges one token more than their bytes**, and the
+deficit counts those junctions exactly.
+
+```
+x ٘ٛ x   20 (−1)   x ٘٘ٛ x   22 (−1)   x ٘ٛ٘ x  23 (−2)   x ٘ٛ٘ٛ x 26 (−3)
+x t͡ɕ x  20 (−1)   x ɕ͡t x    20 (−1)   x ɕ͡ɕ x  23 (−2)
+x ٖ۽ x   20 (−1)   x ຸ່ x     19 (−1)   x ຸຸ່ x  21 (−1)   x ٰ٘ x  20 (−1)
+```
+
+Controls, exact, and they are what makes the junction count the predicate rather than the
+characters: `x ٘ x` `x ٛ x` `x ຸ x` `x ٖ x` singly; `x ٘٘ x` `x ٘٘٘ x` `x ٘٘٘٘ x` `x ຸຸ x`
+`x ່່ x` `x ﬞﬞ x` `x ٰٰ x` `x ɕɕ x` (identical neighbours, no junction); `x t͡s x` `x t͡a x`
+`x tɕ x` (one side is a piece, not the floor); `x ัิ x` `x िी x` `x ఀఀ x` (ccc-0 marks are
+WORDY words, not unattached-mark runs, and never reach this).
+
+**And it cannot be written, because a piece we cannot see covers about half the junctions.** The
+refutation is exact and same-script: `ٖٗ` (U+0656 + U+0657) rides at 19 while `ٜ٘` (U+065C +
+U+0658) splits at 20 — same combining classes (220 then 230), same byte lengths, same block, same
+ascending canonical order, differing only in which characters they are. `ٙٚ` `ٚٛ` `ٖٙ` `ٗٙ` ride
+too, `ٗ٘` `٘ٗ` `٘ٛ` `ﬞ٘` `ﬞ֑` split. So the boundary is real and the oracle's vocabulary swallows
+it for particular pairs, exactly as `±`/`©`/`®` swallow the symbol ⟨eow⟩ in `_is_symbol_text`.
+Writing it unconditionally would break every identical-neighbour row above — a clean population
+that reproduces today — to buy five tokens. It is listed, not implemented.
+
+### 12.2 The dotted İ after a lone ⟨bow⟩H tile — one token
+
+§11 left this as `x Hüseynovunİ x` = 22 against `x novunİ x` = 17 and could say only that the two
+words share their tail. The trigger is now localized to the head, three tiles shorter:
+
+```
+x Hnİ x       18 (−1)      x hnovunİ x    19   x aHnovunİ x  20   x HHnovunİ x 20
+x Hunİ x      18 (−1)      x RPnovunİ x   20   x Novunİ x    18   x HNovunİ x  19
+x Hovunİ x    19 (−1)      x novunİ x     17   x ünovunİ x   19   x Hİ x       17
+x Hnovunİ x   20 (−1)      x Hnovunİa x   20 (−1)   x Hnovunİl x  20 (−1)
+```
+
+So the İ byte-prices when the word's FIRST tile is `⟨bow⟩` plus a single uppercase ASCII letter and
+every letter between it and the İ is lowercase; a second capital anywhere (`HHnovunİ`, `RPnovunİ`,
+`HNovunİ`), a lowercase head (`hnovunİ` `ünovunİ` `novunİ`), or a first tile that swallows more
+letters (`Novunİ` tiles `⟨bow⟩Nov`) all keep the piece at 1. That is a rule over a tile FIVE tiles
+away from the İ, which `engine._dotted_host_blocked` cannot express and which nothing else in the
+model needs, so it is not written on this evidence.
+
+The obvious mechanism — the word is title-case, the oracle writes ⟨shift⟩ and İ lowercases to the
+two codepoints `i` + U+0307 — is **refuted**: `x Hnovuni̇ x` = 22 where `x Hnovunİ x` = 20, and
+`x Hnovunİİ x` = 21 is one under, not two, so the cost is not per İ either.
+
+### 12.3 A stray-mark run at message end — one token
+
+`knc_arab`'s row is an unattached mark that ends the message. The border rule says the message end
+is not a space and writes no ⟨eow⟩; here one is charged:
+
+```
+x وا۟ۖ  20 (−1)     x 1ۖ  18 (−1)     x ۖ  16 (−1)     x 1ﬞ  19 (−1)
+```
+
+with every padded counterpart exact — `x وا۟ۖ x` = 21, `x 1ۖ x` = 19, `x 1ﬞ x` = 20, `x وا۟ۖa` = 20,
+`x وا۟ۖ 1` = 22 — and each mark alone exact (`x وا۟` `x واۖ`). **The obvious rule is refuted by
+another mark in the same block**: `x 1٘` = 16 and `x 1٘ x` = 18 are both +1 OVER, the same offset in
+both frames, so U+0658 pays no message-end ⟨eow⟩ while U+06D6 and U+FB1E do. A marker rule cannot
+split two stray marks that way; a piece can, which puts this in 12.1's category rather than its own.
+
+### 12.4 One Igbo word — one token
+
+The last Glot500 row is `ufọkn̄wed`, and it is a word, not a rule:
+
+```
+x ufọkn̄wed x  22 (−1)     x ndin̄wam x  20     x kn̄w x  18     x bn̄w x  18
+x n̄wed x      18          x n̄w x       17     x kn̄ x   18     x n̄ x    17
+```
+
+Everything the word is made of reproduces; only the whole does not. `x an̄ x` and `x an̄b x` read
++1 in the same grid, so the `n̄` neighbourhood holds an over-charge as well. This is a vocabulary
+question for a miner, not a stream question.

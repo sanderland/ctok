@@ -136,6 +136,20 @@ LIMITS.md records what the instruments can and cannot prove, including two piece
 to *retract*: both were admitted on ablation witnesses that only looked convincing while the real
 piece was missing.
 
+**Under-count is nearly gone, and the last of it is listed rather than guessed at.** Across the
+three replay corpora — 44 Goldfish languages, 43 Glot500 files and 242,188 rows of
+FineWeb/Stack/github-code — under-count stands at **8 tokens in 301,418 rows**, from 18 on
+2026-08-09. Both rules that closed the gap were the same kind of thing, and neither could be seen
+from the Latin frames the model was mostly built on: a border ⟨eow⟩ that the seam deletes wherever
+a ⟨bow⟩ follows the space, so only a right neighbour with no ⟨bow⟩ of its own — a CJK letter, an
+ASCII digit run — can price it. One belongs to non-ASCII digit runs (`８ 取`, `文 ½ 文`), the other
+to a word ending in a combining charging mark (`x ẹ̀ 2 x`), and the second was measured on a
+15-host grid spanning nine scripts where the digit frame read exactly one below the letter frame in
+every row. The gates are unmoved by both — UDHR stays at 316/442/442 exact and 0.196%/0.105%/0.105%
+mean, Rosetta and MultiPL-E still reproduce every document — which is the usual reading: the held-out
+corpora hold almost none of the material these rules are about. [LIMITS.md](LIMITS.md) §12 carries
+the eight that remain, each with the control that refutes its obvious explanation.
+
 ## What each piece rests on
 
 The vocabulary is not a list of guesses. Every piece in `data/pieces_*.json` carries the probe that
