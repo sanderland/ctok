@@ -143,6 +143,14 @@ with the seven      over-charge 10,200   under-count 12,253   total |err| 22,453
 They remove 7,528 tokens of over-charge and introduce 8,469 tokens of under-count. Every one is
 individually well-witnessed and the batch is a net loss. They were discarded.
 
+**Five of the seven came back on 2026-08-10 (§16.4), and the reading above is what has to be
+corrected.** `ัง` `ัน` `ับ` `ัก` `ือ` are real pieces and always were; what was false was the model
+they were applied to, which was writing thousands of tokens of boundary marker in the wrong places
+(§§7, 14, 15). Courted one at a time against real Thai words, each repairs dozens of distinct words
+and pushes NONE below its recorded count. **The instrument lesson survives the retraction intact,
+and is in fact sharpened by it: a batch hides its own failures, and the only thing wrong with this
+measurement was that it judged seven candidates as one.**
+
 The obvious reading is that the scaffold is at fault: `.ヲXヲ.` supplies a katakana anchor that
 becomes the cluster's base, and Thai does not put it there. So the campaign was re-run with the
 scaffold removed entirely.
@@ -1358,3 +1366,200 @@ instrument.
 The held-out gates, read once at the end, moved the way they should: UDHR **338 → 340** exact on
 v3 (mass 0.187%) and **472 → 474** on v4.7 and v5 (0.058%); Rosetta 1741/1741 in all three
 families, the 250-document holdout 250/250, MultiPL-E 22/22; 219 tests pass.
+
+## 16. An astral run takes no border marker — and the last five UDHR documents were two things
+
+**Measured 2026-08-10.** Five documents read over 1% in *both* families and nowhere else did:
+Thai (+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88% in
+both) and Chakma (+1.54% in both). They are now **exact in both families**, and no document in
+either is over 1% any more.
+
+The identical-in-both-families half of that list was the tell, and the brief that opened this
+campaign said so before any probe was bought: v3 carries 48,225 pieces and v4.7 15,147, so a
+residual the two share to the token is not vocabulary. It was two structural facts and eleven
+ordinary word pieces, and the two halves were found by different instruments.
+
+### 16.1 The astral law, and the two branches that were missing it
+
+`_marks_like_punct` and `_is_symbol_text` have excluded ASTRAL characters since the emoji work of
+§15.4 — an emoji takes no border marker. The digit branch and the terminal-separator branch never
+got the same clause, and each was writing markers the oracle does not write.
+
+Two exhaustive sweeps, not samples, in both families:
+
+```
+30 astral terminal separators, EVERY one Unicode has
+   x aK 5   5 Ka x   x aK x   5 K 5   x aKb x
+     +1       +1        0       +2       0        Kharoshthi, Brahmi ×3, Kaithi, Chakma ×2,
+                                                  Sharada, Khojki, Khudawadi, Grantha, Newa,
+                                                  Tirhuta, Siddham, Modi, Takri, Ahom, Dogra,
+                                                  Dives Akuru ×2, Nandinagari, Zanabazar ×2,
+                                                  Soyombo, Bhaiksuki, Masaram ×2, Gunjala, Kawi ×2
+
+72 astral border digits, one or two from each of the 56 astral number blocks
+   x D 5    文 D 文    x D x    5 D 5
+     +1       +2         0       +2
+```
+
+Not one character and not one family dissents, and the deviation is exactly the number of markers
+the frame makes visible: `x aK x` and `x D x` read 0 because the seam deletes both against the
+padding's words, which is why every earlier Latin-framed probe of these characters was silent.
+
+**The BMP controls are what make it an astral rule rather than a change to killers or digits.**
+`่` `်` `្` `्` `்` `́` `ٰ` `݀` read 0 in all thirteen killer frames in both families, and every
+row of `_digit_eow`'s BMP grid is unmoved.
+
+It is per BORDER CHARACTER, the same way every other rule in `normalize.py` is — a MIXED run keeps
+the marker on the side whose own character is BMP:
+
+```
+x a𑄴่ 5   exact WITH the ⟨eow⟩ (NFC orders the astral first, the Thai mai ek last)
+x 𑄶５ 5    exact WITH the ⟨eow⟩
+5 𑄴่a x   one over — the ⟨bow⟩ sits on the astral side
+x ５𑄶 5    one over — the ⟨eow⟩ sits on the astral side
+```
+
+One clause had to move with it, and the row that names it is `𑄴a`: the `has_own_bow` head test
+counted a `_KILLER` first run as supplying the frame's ⟨bow⟩. A run that no longer writes one
+cannot, and `𑄴a` `𑄴 a` `𑄴 5` and `𑄴` alone each read one UNDER until that was fixed —
+the astral digit rows were already right, because `_digit_bow` had gone False for them in the same
+change. `_takes_right_border` takes the same qualification, so the contraction seam still sees the
+population it was measured on.
+
+The re-scan is 1,007 probes per family — 30 astral killers and 8 BMP controls × 13 frames, plus 57
+astral number blocks × 9 — and reads **0 wrong in both families**.
+
+### 16.2 Chakma was ONLY that, and the sweep that established it
+
+Chakma has no Goldfish config, no FineWeb-2 config, no Glot500 config and no open FLORES; the
+`ccp-Latn` in GlotCC is the Latin orthography. So there was no corpus to mine and the question had
+to be settled on the script's own material:
+
+* **every letter × mark pair, 722 probes** (38 letters × 19 vowel signs and marks) — 0 wrong, so
+  the oracle holds no Chakma bigram either;
+* **181 single codepoints** of Thai, Myanmar and Chakma that neither vocabulary has, on the `char`
+  template `a{}a` — **none reads cost 1** in either family, which is also what refuses `ฉ`, the
+  single Thai letter the fitness enumerator scored on 62 rows;
+* random 3-to-4-syllable words, conjuncts, digits, dandas and multi-word phrases — every failure
+  reduced to a word-final `𑄴`/`𑄳` before a space and a run that opens no word, which is 16.1.
+
+Chakma UDHR went +512 → 0 in both families on the astral law alone. **A script with no corpus is
+not a script with no answer**, and the reverse of §9's lesson: there the missing corpus did not
+matter because the defect was structural, and here it did not either.
+
+### 16.3 Myanmar: one piece, on the template §7 predicted would find it
+
+§7 left an open half: "the five killers with a fused `K⟨eow⟩` piece in the real vocabulary — Tamil,
+Sinhala, Malayalam, Devanagari, Bengali nukta — now pay for a marker we cannot spell", and
+predicted Thai, Khmer and Myanmar had none. Myanmar has one, and it is the asat:
+
+```
+digit_eow, `1{} a`, cost = raw - base + 1 - 3        v3      v4.7
+  U+103A MYANMAR SIGN ASAT                            1        1     <- the piece
+  U+1039 virama · U+1037 dot below                    2        2
+  U+0E48 U+0E49 U+0E4C Thai · U+17D2 U+17CB Khmer     2        2
+  U+1036 anusvara · U+0E4A U+0E4B · U+17C6 U+17C7     3        3
+```
+
+Thirteen same-template controls at cost 2 or 3, and `း⟨eow⟩` (U+1038 visarga), which both files
+already ship, reads 1 beside it. The corpus court is `x {} x` around real words — the `raw`
+template cannot reach the piece at all, because the message end is not a space and the encoder
+writes no ⟨eow⟩ there:
+
+```
+600 distinct Burmese words (Goldfish mya_mymr)   600 repaired, 0 pushed below, 0 already exact
+300 distinct Shan words    (Goldfish shn_mymr)   300 repaired, 0 pushed below, 0 already exact
+```
+
+in both families. With it, `mine_own2.py` proposes nothing at all on 2,500 Myanmar wordy runs in
+either family: Myanmar words were one piece away from complete.
+
+### 16.4 Thai was a cross-port, and both directions were already on disk
+
+v3 and v4.7 each held Thai pieces the other lacked, and each family's missing set is exactly what
+its own probe buys:
+
+```
+into v4.7   ัก  ัง  ัน  ับ  ือ                 mid,  .ヲXヲ. = 20, cost 1
+into v3     ที⟨eow⟩ ั⟨eow⟩ ี⟨eow⟩ ื⟨eow⟩ ู⟨eow⟩  eow,  .ヲX.  = 13, cost 1
+            ีย                                  mid,  .ヲXヲ. = 16, cost 1
+```
+
+Five of those `mid` pieces are five of §1's seven — the batch that removed 7,528 tokens of
+over-charge and introduced 8,469 of under-count on 2026-08-07, and was discarded. **They are not
+false pieces and never were.** What was false was the model they were applied to: the akshara,
+border-marker, accent and boundary work of §§7, 14 and 15 has since moved thousands of tokens
+under them. Judged one at a time against real Thai in a frame, each repairs dozens of distinct
+words and pushes **none** below its recorded count:
+
+```
+ัน  189 words repaired / 0 below      ั⟨eow⟩  42 / 0      ี⟨eow⟩  68 / 0
+ือ   47 / 0     ับ  31 / 0     ัง  23 / 0     ัก  12 / 0
+ื⟨eow⟩  36 / 0   ู⟨eow⟩  46 / 0   ที⟨eow⟩  15 / 0   ีย  23 / 0
+```
+
+**That refusal is the whole difference between this campaign and §1's**, and it is why §1's
+correction insisted on it: a batch hides its own failures, and the seven were judged as a batch.
+
+The independent check is that a miner with no knowledge of the cross-port re-derives it.
+`mine_own2.py` — propose every bounded span of an over-charging run's marked stream, decide it on
+its own fixed template, then court it alone — was run over 2,500 wordy runs of Goldfish Thai plus
+FineWeb-2 Thai and returned **exactly those five on v4.7 and exactly those six on v3**, closing
+every host in one round and probing 400 candidates to do it. What it refused is the useful half:
+`อ⟨eow⟩` `ือ⟨eow⟩` `คือ` `หรือ` `⟨bow⟩คือ⟨eow⟩` `่⟨eow⟩` `้⟨eow⟩` `ที` `นี` `ปี` `ฉ` `ฉัน` `คุณ`
+all price at 2 to 4 tokens on their own templates. `อ⟨eow⟩` is the candidate §1 named and killed on
+`กอ`; its own probe kills it too.
+
+### 16.5 What it cost, measured before and after on everything
+
+Row level, against recorded counts, on the corpora the campaign drew from and on two it did not
+(Shan, and a FineWeb-2 Mon slice that is mostly legacy-encoded Burmese):
+
+| | v3 exact | v3 over | v4.7 exact | v4.7 over |
+|---|---|---:|---|---:|
+| `tha_thai` 1,000 Goldfish rows | 523 → **1,000** | 919 → 0 | 472 → **1,000** | 781 → 0 |
+| FineWeb-2 Thai, 1,000 rows | 347 → **994** | 4,453 → 7 | 426 → **999** | 2,382 → 2 |
+| `mya_mymr` 1,000 rows | 512 → **998** | 1,733 → 2 | 512 → **998** | 1,733 → 2 |
+| `shn_mymr` 1,000 rows | 471 → **998** | 973 → 2 | 473 → **999** | 971 → 1 |
+| FineWeb-2 `mnw_Mymr`, 600 rows | 71 → **597** | 4,591 → 3 | 71 → **597** | 4,591 → 3 |
+
+Under-count is 0 before and after on every one of those rows. The differential over the whole
+measurement cache — every text holding a Thai or Myanmar character, an astral killer or an astral
+number, tiled twice, once against the tree at HEAD and once against this one:
+
+```
+v4.7   79,919 texts   exact 61,674 -> 79,787   over 51,585 -> 210   under 0 -> 0
+v3     35,369 texts   exact 29,927 -> 35,267   over 22,536 -> 144   under 0 -> 0
+       rows broken 0        rows repaired 18,113 (v4.7) and 5,340 (v3)
+```
+
+**Over-count falls with under-count held at zero and not one row broken**, which is the §14
+signature of a boundary in the wrong place plus the §13 signature of missing vocabulary, in the
+same campaign.
+
+The whole-cache under scan afterwards reads 71 tokens in 62 texts on v4.7 and 103 in 73 on v3 —
+**every one of them under-counts identically on the tree at HEAD, and not one holds a character
+this campaign touched.** They are `x ͣÉcole x`-shaped stray-mark probes bought into the shared
+measurement cache by a concurrent campaign on §14.6's open boundary, not a regression here. That
+check — re-price every under row against the OLD model — is §14.5's, and it is the only thing that
+separates "a probe we had not bought" from "a row we broke" when two campaigns share one cache.
+
+The held-out gates, read once at the end: UDHR **346 → 353** exact on v3 (mass 0.0959% →
+0.0284%) and **474 → 481** on v4.7 and v5 (0.0577% → **0.0067%**), with the 1–5% band going
+**5 → 0** in both families and no document under-counting in either; Rosetta 1741/1741, the
+250-document holdout 250/250 and MultiPL-E 22/22 unmoved; 219 tests pass.
+
+### 16.6 What is left, and one instrument note
+
+The worst document in each family is now Tamil at +0.75%, in both — a script this campaign did not
+touch and the largest remaining pool in the corpus. On v3 nine Latin-script documents sit between
++0.4% and +0.92% (Oromo, Sango, Yanomamö, Catalan, Turkmen, North Saami, Sidamo, Azerbaijani),
+which is ordinary v3 word vocabulary. Three Myanmar rows and seven Thai ones still over-charge by
+a token; each holds Myanmar digits or Latin material glued to the script, the mixed-span shape
+§13.7 records as needing a frame of its own.
+
+The instrument note is about the fitness enumerator, and it is §1's warning arriving in a new
+disguise. Asked for one-piece explanations of 138 over-charging Thai rows it returned 2,178
+candidates and ranked `ัน` first at 83 rows — correct — and `ฉ`, a single Thai letter, second at
+62. `ฉ` costs two tokens on the `char` template in both families. **A candidate's rank in a
+fitness enumeration carries no evidence at all**; it decides only which probe gets bought next.

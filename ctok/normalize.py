@@ -296,7 +296,8 @@ def _takes_right_border(cls: str, body: str) -> bool:
     contraction seam through: `x ͣ's x` `x ֿ's x` `x ͅ's x` `x ͣ're x` `x a̱ͅ's x` all read one
     OVER when it is counted here, in both families, against `x ͣ'zz x` and `x ͣ'v x` exact.
     """
-    return (cls in (PUNCT, _KILLER)
+    return (cls == PUNCT
+            or (cls == _KILLER and _borders(body[-1]))
             or _is_borderable_text(body)
             or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
 
@@ -365,6 +366,34 @@ def _is_no_run(body: str) -> bool:
     return bool(body) and all(unicodedata.category(c) == "No" for c in body)
 
 
+def _borders(ch: str) -> bool:
+    """Is this character one that can carry a border marker at all?
+
+    An ASTRAL character cannot, and that is the same exclusion :func:`_marks_like_punct` and
+    :func:`_is_symbol_text` already carry for punctuation, symbols and emoji — stated once here
+    so the digit and terminal-separator branches stop being the two places it was missing.
+
+    Measured 2026-08-10, and the sweep is exhaustive over both populations rather than sampled.
+    **All 30 astral terminal separators** — Kharoshthi, Brahmi ×3, Kaithi, Chakma ×2, Sharada,
+    Khojki, Khudawadi, Grantha, Newa, Tirhuta, Siddham, Modi, Takri, Ahom, Dogra, Dives Akuru ×2,
+    Nandinagari, Zanabazar ×2, Soyombo, Bhaiksuki, Masaram Gondi ×2, Gunjala Gondi, Kawi ×2 —
+    read `+1 +1 0 +2 0` on `x aK 5` / `5 Ka x` / `x aK x` / `5 K 5` / `x aKb x` with the markers
+    written: two spurious markers, no character and no family dissenting. **72 astral border
+    digits, one or two from each of the 56 astral number blocks**, read `+1 +2 0 +2` on
+    `x D 5` / `文 D 文` / `x D x` / `5 D 5`. Both populations are exact with no marker written.
+
+    The BMP controls are what make this an astral rule rather than a change to killers or digits:
+    `่` `်` `្` `्` `்` `́` `ٰ` `݀` read 0 in all thirteen killer frames in both families, and
+    every row of :func:`_digit_eow`'s grid is unmoved.
+
+    It is per BORDER CHARACTER, as everywhere else in this module — a MIXED run keeps the marker
+    on the side whose own character is BMP. `x a𑄴่ 5` (NFC orders the astral first) and
+    `x 𑄶５ 5` are exact WITH the ⟨eow⟩, while `5 𑄴่a x` and `x ５𑄶 5` are one over with the
+    marker written on the astral side.
+    """
+    return ord(ch) < 0x10000
+
+
 def _digit_border(ch: str) -> bool:
     """Is this the kind of digit for which the border markers are written — a non-ASCII decimal
     digit, or any of the Unicode *other* numbers?
@@ -372,9 +401,11 @@ def _digit_border(ch: str) -> bool:
     ASCII digits take no border marker of their own: `1 1` = 4 and `文 5 文`, `文 5 5`, `x 5年 x`
     are all exact unmarked. Everything else does, in every script tried — `٥ 取` `۹ 取` `๙ 取`
     `१ 取` `５ 取` `½` — so the split is ASCII vs not, not script by script.
+
+    Astral digits are the far end of the same range and take none either (:func:`_borders`).
     """
     cat = unicodedata.category(ch)
-    return cat == "No" or (cat == "Nd" and not ch.isascii())
+    return (cat == "No" or (cat == "Nd" and not ch.isascii())) and _borders(ch)
 
 
 def _digit_run(body: str) -> bool:
@@ -749,7 +780,8 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
     first = runs[0]
     head_quote = _opens_word(runs, 0)
     has_own_bow = not head_quote and (
-                   first[0] in (WORDY, PUNCT, _STRAY_MARK, _KILLER)
+                   first[0] in (WORDY, PUNCT, _STRAY_MARK)
+                   or (first[0] == _KILLER and _borders(first[1][0]))
                    or _is_borderable_text(first[1])
                    or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
@@ -787,8 +819,11 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
             # cost one more than an unmarked run charges, `5 ່ 5` costs two, and `ກ່5`, `ກ່  5`
             # (space run kills the marker) and `ກ່` at message end are exact. The control is a
             # NON-terminal mark of the same script — Lao ຸ — which is exact unmarked.
-            out.append((BOW_G if borders_space(i, -1) else "") + body
-                       + (EOW_G if borders_space(i, +1) else ""))
+            #
+            # An ASTRAL separator writes neither (:func:`_borders`), per border CHARACTER as the
+            # digit branch is. All 30 of them read two markers too many with this unqualified.
+            out.append((BOW_G if borders_space(i, -1) and _borders(body[0]) else "") + body
+                       + (EOW_G if borders_space(i, +1) and _borders(body[-1]) else ""))
         elif cls == PUNCT or _is_borderable_text(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides

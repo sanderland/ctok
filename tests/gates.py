@@ -74,15 +74,24 @@ GATES: dict[str, dict] = {
         # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
         # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
+        #
+        # Re-measured again 2026-08-10, after the astral border-marker law and the Thai/Myanmar
+        # vocabulary (LIMITS.md §16): 353/501 exact and 0.032% mean on v3, 481/501 and 0.005% on
+        # v4.7, and for the first time EVERY document in both families is within 1% and none
+        # under-counts. `within1` stays a fraction rather than becoming `ALL` because this corpus
+        # is not finished — a third of v3's documents still over-charge — and a rate below the real
+        # one is the compromise an unfinished corpus makes. The exact and mean bounds move with the
+        # model for the reason the paragraph above gives: a threshold far from the reading has
+        # stopped being able to catch anything.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0020, "within1": 0.94, "exact": 0.61},
+            "v3": {"version": 3.0, "mean": 0.0006, "within1": 0.99, "exact": 0.68},
             # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
             # and 0.043% mean. Retiring `ownscript` then gave 439, and removing the five pieces
             # that glued a virama to a space gave 430. Both are deliberate steps backwards: a piece
             # that is not a token cannot stay because it happens to help. Each converts a hidden
             # error into an honest over-count, which is a thing that can be mined. UDHR selected
             # none of it either way.
-            "v4.7": {"version": 4.7, "mean": 0.0011, "within1": 0.95, "exact": 0.86},
+            "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.94},
         },
     },
     "rosetta": {

@@ -94,22 +94,25 @@ opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening ru
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.096% | 0.061% | 346/501 | 99.0% |
-| UDHR | v4.7 (v5 borrows it) | 0.058% | 0.027% | 474/501 | 99.0% |
+| UDHR (501 languages) | v3 | 0.028% | 0.032% | 353/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.007% | 0.005% | 481/501 | 100% |
 
-**No document in either family is over 5% off any more.** Tem, the worst document in both for a
-month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala and Yoruba, with
-Shipibo-Conibo at +0.01% and Lamnso' at +0.02%: the tone-marked orthographies that used to head
-this list are gone from it. **Maldivian was the last one over 5%, at +6.13%, and it is now exact in
-both families** — five mined Thaana pieces did that, and it is the clearest case in the corpus of a
-held-out document moving because a language was mined on Goldfish rows and never read here.
+**No document in either family is over 1% off any more**, and none under-counts. Tem, the worst
+document in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala,
+Yoruba and Maldivian, with Shipibo-Conibo at +0.01% and Lamnso' at +0.02%.
 
-Five documents in each family remain in the 1–5% band and every one is Brahmic or SEA: Thai
-(+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88%) and Chakma
-(+1.54%). Weighted by speakers rather than by document the error is 0.038% (v3) and 0.024% (v4.7).
-What moved was the combining-mark spelling: an accent closes its word BEFORE itself rather than
-after, which is one boundary marker per accent across every decomposed and tone-marked orthography
-in the corpus (LIMITS.md §14).
+The last five over 1% were the same five in both families and they now reproduce exactly: Thai
+(+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88% in both) and
+Chakma (+1.54% in both). That they were *identical* across two vocabularies of 48k and 15k pieces
+is what said most of it could not be vocabulary, and it was not: **an astral run takes no border
+marker**, the exclusion an emoji already had and that the digit and terminal-separator branches
+never got (LIMITS.md §16). All 30 astral viramas Unicode has and 72 astral digits from its 56
+astral number blocks read exactly two spurious markers, in both families, with BMP controls
+unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to mine, went +512 → 0
+on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
+predicted the `digit_eow` template would find, and eleven Thai pieces each family's own probe buys
+and the other family already ships. Weighted by speakers rather than by document the error is
+0.010% (v3) and 0.005% (v4.7).
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
@@ -211,6 +214,20 @@ predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `�
 carries what is left on the over side, and §15.5 reports the one trade: 30 documents now read a
 small over-count that their under-count had been masking.
 
+**The last five UDHR documents over 1% are exact, and one of them had no corpus to mine**
+(LIMITS.md §16). Thai, Thai (2), Burmese, Mon and Chakma read +1.5% to +4.3%, the same five in
+both families — and *identical* across two vocabularies of 48k and 15k pieces, which is what said
+the bulk of it was structure. It was: the astral border-marker law above, worth +512 on Chakma,
++362 on Burmese and +315 on Mon by itself. The Myanmar asat is the fused `K⟨eow⟩` piece §7
+predicted, bought on the shipped `digit_eow` template with thirteen same-template controls at cost
+2–3 and courted on 900 distinct Burmese and Shan words, none pushed below. The eleven Thai pieces
+are a cross-port: five of them are five of the seven the 2026-08-07 batch discarded (LIMITS.md §1),
+and they were never false — the model they were applied to was. Judged one at a time against real
+Thai, each repairs dozens of distinct words and pushes none below its recorded count, and a miner
+that knew nothing of the cross-port re-derived exactly those sets from 2,500 corpus runs. Goldfish
+Thai goes 523 and 472 of 1,000 rows exact to **1,000 in both families**, Burmese and Shan to 998,
+and a FineWeb-2 Myanmar slice that chose nothing goes 71 of 600 to 597.
+
 ## Where the boundary markers go
 
 Before anything is tiled, the text is cut into runs of a single class and the boundary markers are
@@ -222,10 +239,15 @@ class of run after another, is where most of this reconstruction's errors have l
 |---|---|---|
 | **word** — letters and the marks inside them | always, unless a contraction apostrophe already opened it | always |
 | **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a letter follows, which continues that word |
-| **accent, virama, tone mark** — `is_killer`, the marks that stand outside the word | only against a single space | only against a single space |
-| **punctuation, symbols, format characters** — including ZWSP and ZWJ | only against a single space, and not where it opens a word | only against a single space |
-| **digit run** | only against a single space, and only if the run's FIRST character is a non-ASCII digit | only against a single space, and only if its LAST character is |
-| **Han, Hangul, astral letters, whitespace** | never | never |
+| **accent, virama, tone mark** — `is_killer`, the marks that stand outside the word | only against a single space, and only if BMP | only against a single space, and only if BMP |
+| **punctuation, symbols, format characters** — including ZWSP and ZWJ | only against a single space, not where it opens a word, and only if BMP | only against a single space, and only if BMP |
+| **digit run** | only against a single space, and only if the run's FIRST character is a BMP non-ASCII digit | only against a single space, and only if its LAST character is |
+| **Han, Hangul, astral, whitespace** | never | never |
+
+**Nothing astral takes a marker**, whatever its category — that is one law with four discoveries,
+and the last two of them were the whole of the Chakma document (LIMITS.md §16). An emoji was known
+not to; so are astral punctuation and format characters; and as of 2026-08-10 so are all 30 astral
+viramas and every astral digit, measured exhaustively over both populations in both families.
 
 Then one rewrite over the finished string: where `⟨eow⟩` stands immediately left of a space and
 `⟨bow⟩` immediately right of it, **the space is deleted**. It is a single conjunctive rule — there is
@@ -239,7 +261,9 @@ The traps in "borders exactly one space" are all measured, and each of them has 
 * **A run of two or more spaces kills the marker**, uniformly over run lengths 2/3/4/17. A tab or a
   newline is not a space at all and never stands in for one.
 * **The border CHARACTER decides, not the run.** `٥5` writes `⟨bow⟩` and no `⟨eow⟩`; `1？。 1` and
-  `1 。？1` are one over if the run is judged whole, because the marker sits on the `？` side.
+  `1 。？1` are one over if the run is judged whole, because the marker sits on the `？` side. The
+  astral rule is per character for the same reason: `x a𑄴่ 5` and `x 𑄶５ 5` keep the `⟨eow⟩` their BMP
+  last character earns, while `5 𑄴่a x` and `x ５𑄶 5` are one over with it written on the astral side.
 * **A HARD run splits where the character kind changes** — punctuation, number, letter are different
   pretokens however our classifier grouped them, so `文？` gives `？` a run of its own.
 * **Ideographic punctuation U+3001–U+303F takes no marker at all**, 25 of 25 — it is the block that
