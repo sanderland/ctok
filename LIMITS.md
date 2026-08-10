@@ -1005,6 +1005,9 @@ closes before   U+0300-U+033F  U+0342  U+0346-U+0362        (0340 0341 0343 0344
 inside the word U+0345  U+0363-U+036F                        both ends pinned from inside the block
 ```
 
+Re-scored against the shipped encoder afterwards, the whole sweep — both frames, every mark, every
+host, 4,560 rows per family — reproduces exactly in both.
+
 That is exactly the range the retired `_charging_border` enumerated. Its population was right and
 its reading was one step late: the extra ⟨eow⟩ it wrote at a word-final space border is the ⟨eow⟩
 the word already had, one character earlier.
