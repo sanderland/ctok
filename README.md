@@ -93,8 +93,9 @@ unfinished model. Code is done; what follows is about natural language.
 **No v4.7 document is over 5% off any more, and one v3 document is** — Maldivian (+6.13%), which
 this campaign did not touch. Tem, the worst document in both families for a month at +6.23% /
 +6.08%, reproduces exactly, and so do Navajo, Lingala and Yoruba, with Shipibo-Conibo at +0.01%
-and Lamnso' at +0.02%: the tone-marked orthographies that used to head this list are gone from it. Ten v3 documents and five
-v4.7 ones remain in the 1–5% band and every one of them is Brahmic or SEA — Thai (+3.96% / +2.66%),
+and Lamnso' at +0.02%: the tone-marked orthographies that used to head this list are gone from it.
+Ten v3 documents and five v4.7 ones remain in the 1–5% band and every one is Brahmic or SEA —
+Thai (+3.96% / +2.66%),
 Thai (2) (+4.33% / +2.38%), Burmese (+4.03% / +2.33%), Mon, Sinhala. Weighted by speakers rather
 than by document the error is 0.058% (v3) and 0.025% (v4.7). What moved was the combining-mark
 spelling: an accent closes its word BEFORE itself rather than after, which is one boundary marker
@@ -176,7 +177,7 @@ were not exact now are.
 The gates moved this time, which they usually do not: UDHR 317 → 338 exact on v3 and 443 → 472 on
 v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
 that corpus is 250/250. [LIMITS.md](LIMITS.md) §14 carries what is left: three marks our raw byte
-floor over-prices at a stray run head, and two single rows.
+floor over-prices at a stray run head, the dotted İ of §12.2, and three single rows.
 
 ## What each piece rests on
 
