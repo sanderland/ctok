@@ -14,6 +14,7 @@ import unicodedata
 from .constants import (
     BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     EXTRA_KILLERS, FUNNY_SPACE,
+    NON_KILLERS,
     HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
@@ -347,8 +348,27 @@ def is_killer(c: str) -> bool:
     to be excepted from that — it closed the word AFTER the mark — on the strength of decomposed
     Latin corpus slices. Those slices do not distinguish the two spellings: they differ only on a
     host whose whole word is one token, and only against a right neighbour that opens no word.
+
+    **One ccc-9 character dissents, and being DEFINED rather than measured is how it hid**
+    (:data:`NON_KILLERS`). Asked ours-against-oracle on a consonant of its own script, all 121
+    characters this predicate claims reproduce except U+0E3A THAI PHINTHU:
+
+    ```
+                        x HMH x   HMH    x HM x   x HMHH x   x HHMH x
+    U+0E3A  ก           +2        +2     +1       +1         +1
+    U+0E48  ก mai ek     0         0      0        0          0     script-mate control
+    U+094D  क virama     0         0      0        0          0     and 8 more, all zero
+    ```
+
+    It reads +2 in both families because the split is not there to be made, and the same
+    misreading is an UNDER-count wherever the phinthu has no letter in front of it and our
+    `_KILLER` branch writes no boundary at all: `!ฺ` = 12 / 16 against our 10 / 14, `1ฺ` `[ฺ]`
+    `[文ฺ]` `◌ฺ` alike, which is 38 of the 151 texts that still under-counted. As an ordinary mark
+    it is a word's own material after a letter (`xฺ` `xฺx` `กฺก` exact) and a stray-mark run after
+    anything else, which is what those rows measure.
     """
-    return (unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
+    return (unicodedata.combining(c) == 9 and c not in NON_KILLERS
+            or c in EXTRA_KILLERS
             or bool(SEPARATOR_MARKS.fullmatch(c))
             or bool(SEPARATOR_ANNOTATIONS.fullmatch(c)))
 

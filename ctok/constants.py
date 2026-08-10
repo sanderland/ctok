@@ -54,6 +54,16 @@ SYMBOL_LETTERS = (
 # selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
+# The one canonical-combining-class-9 character that does NOT separate word runs. `is_killer`
+# DEFINES the 65 viramas by ccc rather than listing them, which is honest about where the rule
+# comes from and is also the reason this one was never asked: a defined population has no
+# membership test to fail. Asked ours-against-oracle on a consonant of its own script — the only
+# host that can answer, since a Thai mark on a Latin host is the ヲ hazard — the phinthu reads +2
+# over on `x กฺก x` and `กฺก` in both families where its script-mate `่` mai ek and the eight
+# other dissent candidates read 0, and it under-counts by 1 or 2 wherever it stands with no letter
+# in front of it. See :func:`normalize.is_killer` for the grid.
+NON_KILLERS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
+
 # Marks that separate word runs the way a virama does, but that Unicode does not give combining
 # class 9.
 # The U+0300 combining block used to be here, nine members of it, on the strength of the byte-floor

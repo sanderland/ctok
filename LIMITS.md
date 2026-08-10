@@ -1143,9 +1143,10 @@ one place this campaign did break something (14.4).
 * **The sweep is not finished, and the probe scan says exactly where to point it next.** After the
   third pass the cached short probes that still under-count cluster on U+0E3A (Thai phinthu),
   U+0C03 (Telugu visarga), the Mongolian free variation selectors U+180B–U+180F and U+1939
-  (Limbu) — blocks nobody has put through the two frames yet. The first two are already killers, so
-  those rows are the head-price residual below rather than a missing separator; the last two are
-  simply unswept. A fourth pass is a few hundred probes.
+  (Limbu) — blocks nobody has put through the two frames yet. ~~The first two are already killers,
+  so those rows are the head-price residual below rather than a missing separator~~ — **that was
+  wrong about U+0E3A and is §14.7; U+0C03 is still open below.** The last two are simply unswept.
+  A fourth pass is a few hundred probes.
 
 * **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
   one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
@@ -1169,3 +1170,56 @@ one place this campaign did break something (14.4).
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.
+
+### 14.7 One virama is not one, and being DEFINED is how it hid
+
+**Measured 2026-08-10.** 14.6 filed U+0E3A and U+0C03 under "already killers, so the residue is a
+head price". That was an assumption about two characters, not a measurement of them, and it was
+wrong about the first.
+
+`is_killer` has two halves, and the docstring is proud of the difference: the 65 viramas are
+**DEFINED** by canonical combining class 9 rather than listed, because defining them says honestly
+where the rule comes from. A defined population also has no membership test, so no member of it had
+ever been asked. Asking all 121 characters the predicate claims — ours against the oracle, no
+derived frame, on a CONSONANT of each character's own script, which is the only host that can
+answer:
+
+```
+                       x HMH x    HMH    x HM x   x HMHH x   x HHMH x
+U+0E3A ก phinthu         +2       +2       +1        +1         +1     both families
+U+0E48 ก mai ek           0        0        0         0          0     script-mate control
+U+094D क, U+09BC ক, U+0BCD க, U+0C4D క, U+0D4D ക, U+0DCA ක, U+103A က, U+10A3F 𐨐   all 0
+```
+
+**The two frames of 14.1 cannot see this and reported "inside the word" for all nine.** For an
+accent the two spellings differ in how many markers are written; for a Brahmic killer they differ
+in where a single ⟨eow⟩ sits, so the frame reads `m`/`m+1` for the Devanagari virama exactly as it
+does for the phinthu. An instrument that answers uniformly across a population it was not built for
+is not evidence — the direct ours-vs-oracle comparison above is, and it separates them at once.
+
+U+0E3A is now the only member of `constants.NON_KILLERS`. It reads +2 in Thai because the split is
+not there to be made, and the SAME misreading is an under-count wherever the phinthu has no letter
+in front of it and the `_KILLER` branch writes no boundary at all — `!ฺ` = 12 / 16 against our
+10 / 14, and `1ฺ` `[ฺ]` `[文ฺ]` `◌ฺ` `!ฺ!ฺ` alike. As an ordinary mark it is the word's own material
+after a letter and a stray-mark run after anything else, which is what those rows measure.
+
+Every cached text containing the character, both families, both readings:
+
+| | texts | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, as a killer | 72 | 17 | 294 | 63 |
+| v3, as an ordinary mark | 72 | **69** | **280** | **0** |
+| v4.7, as a killer | 139 | 25 | 206 | 136 |
+| v4.7, as an ordinary mark | 139 | **123** | **184** | **0** |
+
+Over-count falls with under-count again — the §14 signature of a boundary in the wrong place rather
+than a missing piece. Across the whole cache v3 goes 209 tokens under in 151 texts to **152 in 112**,
+and no group in the residue is new. Gates unmoved to the digit: UDHR 338/501 v3 and 472/501 v4.7 and
+v5, mass 0.1876% and 0.0584%; Rosetta 1741/1741, holdout 250/250, MultiPL-E 22/22; 219 tests pass.
+
+**U+0C03 TELUGU VISARGA is not the same shape and is NOT fixed.** It is exact in-script in every
+frame that has material on both sides of it — `x కఃక x` `కఃక` `x కఃక క x` — and wrong only when
+its word ends there: `x కః x` reads +1 on v3 and +2 on v4.7, and `!ః` `[ః]` `[文ః]` read one UNDER
+on both. Myanmar U+103A asat reads +1 on that same word-final shape and nowhere else. So this is a
+border question about a killer run at a word edge, not a misclassification, and the ~23 texts it
+holds are the largest remaining under-count population. It is listed, not attributed.
