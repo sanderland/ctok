@@ -1140,33 +1140,28 @@ one place this campaign did break something (14.4).
 
 ### 14.6 What is still open
 
-* **The sweep is not finished, and the probe scan says exactly where to point it next.** After the
-  third pass the cached short probes that still under-count cluster on U+0E3A (Thai phinthu),
-  U+0C03 (Telugu visarga), the Mongolian free variation selectors U+180B–U+180F and U+1939
-  (Limbu) — blocks nobody has put through the two frames yet. ~~The first two are already killers,
-  so those rows are the head-price residual below rather than a missing separator~~ — **that was
-  wrong about U+0E3A and is §14.7; U+0C03 is still open below.** The last two are simply unswept.
-  A fourth pass is a few hundred probes.
+* ~~**The sweep is not finished** … U+0C03, the unswept blocks~~ — **closed by §15**: the fifth
+  pass folded in the forty marks whose grids the cache already held, and U+0C03 was never a killer
+  at all.
 
 * **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
   one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
   across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
   oracle reaches them in fewer tokens. Twelve other marks in the same grid are exact in all five.
   §12.3 predicted this: "a marker rule cannot split two stray marks that way; a piece can."
-* **§12.2's dotted İ is unchanged.** `x Hnİ x` `x Hnovunİ x` `x Hnovunİa x` `x Hnovunİl x`
-  `x Hnovunİİ x` `x Hüseynovunİ x` still read one under on both families, plus `x Hunİ x` and
-  `x Hovunİ x` on v4.7 (v3 gained those two), against twelve controls that are exact. The trigger
-  is still a rule over a tile five tiles away from the İ, which `engine._dotted_host_blocked`
-  cannot express, and nothing in this campaign bears on it.
-* **A Syriac dot with a rider is one under.** `x ݀ͅ x` = 16 / 20. U+0740–U+074A start an unmarked
-  run that a following non-vowel mark joins (§0), and that joined run writes no boundary where a
-  stray run now would. One row, one shape, not attributed.
+* ~~**§12.2's dotted İ is unchanged.**~~ **Closed by §15.3**: the words are title-case, and İ is
+  transparent to the no-other-capitals test.
+* ~~**A Syriac dot with a rider is one under.**~~ **Closed by §15.4**: the absorb clause predated
+  §14 and is gone.
 * **A word after a stray-mark run is one over on some hosts and one under on others**, and no
-  spelling of that boundary gets both. `x ͣก x` and `x ͣب x` = 13 / 17 read one OVER with the
-  word's ⟨bow⟩ written, `x ͣabc x` = 14 on v3 and `x ͣABCD x` = 19 on v4.7 read one under and one
-  over respectively, and `x ͣx x` `x ͣthe x` `!ͣa` are exact under both spellings. All four are
-  exactly as they were before this campaign — the fused spelling swaps which ones are wrong rather
-  than fixing them, at the cost of the 38 `<mark>ꝛ` rows above.
+  spelling of that boundary gets both. This is now the ONLY under-counting shape in the whole
+  cache, one row per family: `x ͣabc x` = 14 reads one under on v3 (exact on v4.7) and
+  `x ͣthe x` = 18 one under on v4.7 (exact on v3), while `x ͣก x` and `x ͣب x` = 13 / 17 read one
+  OVER with the word's ⟨bow⟩ written and `x ͣx x` `!ͣa` are exact under both spellings. The fused
+  spelling swaps which rows are wrong rather than fixing them — on v4.7 it prices `x ͣthe x` right
+  at 18 and breaks `x ͣabc x`, and on v3 exactly the reverse — at the cost of the 38 `<mark>ꝛ`
+  rows of §14.4. Two texts, two probes, and no single boundary spelling reaches both: listed, not
+  fitted.
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.
@@ -1223,3 +1218,143 @@ its word ends there: `x కః x` reads +1 on v3 and +2 on v4.7, and `!ః` `[�
 on both. Myanmar U+103A asat reads +1 on that same word-final shape and nowhere else. So this is a
 border question about a killer run at a word edge, not a misclassification, and the ~23 texts it
 holds are the largest remaining under-count population. It is listed, not attributed.
+
+## 15. Every under-counting text, accounted for — and the residue is two probes
+
+**Measured 2026-08-10.** The assignment was the whole cache: every text ever measured against
+either family, probe grids included, re-tiled and grouped. The fresh baselines — v4.7 had not been
+re-scanned since §14.7 landed, so its stale 489 was never the number — were **152 tokens under in
+112 texts on v3** and **359 in 306 on v4.7**. Every group in both lists is now either fixed with a
+measured rule or listed with the probe that fails to decide it, and after the campaign the whole
+of both caches under-counts by **one token in one text per family**, the same recorded shape on
+each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on v4.7).
+
+### 15.1 The inventory, both families
+
+| group | v3 texts | v4.7 texts | disposition |
+|---|---:|---:|---|
+| forty unswept separator marks | 40 | 242 | fixed — `SEPARATOR_ANNOTATIONS`, fifth pass |
+| U+0C03 Telugu visarga | 23 | 17 | fixed — word material + `ః⟨eow⟩` piece |
+| U+0CF3 Kannada anusvara (Unicode 15.0) | 2 | 16 | fixed — WORDY; our tables are 14.0 and called it Cn |
+| ⟨caps⟩ on caseless-letter spans | 36 | — | fixed — `mark_case` blocks ⟨caps⟩ only |
+| dotted İ words (§12.2 + corpus) | 6 | 26 | fixed — title-case ⟨shift⟩, İ transparent |
+| Syriac dot + rider | 2 | 2 | fixed — absorb clause removed |
+| Greek all-caps final sigma | 2 | — | fixed — oracle lowers Σ→σ without Final_Sigma |
+| `⁉️` (VS16 in a punct body) | — | 1 | fixed — selector rides its base in `_is_punct_text` |
+| emoji ⟨bow⟩ loss after format chars | — | 1 | fixed — astral is not punct KIND; mixed runs borderable |
+| stray-mark word boundary (§14.6) | 1 | 1 | **listed** — no spelling reaches both rows |
+
+The counts sum to each family's list (the Shona/Japanese document and the Devanagari `परिएाजनाÓ`
+row are inside the caseless-⟨caps⟩ 36; the Sorani document carried both of the last two v4.7
+defects at once).
+
+### 15.2 The visarga, and the character our Unicode tables have never met
+
+U+0C03 sat in `EXTRA_KILLERS`, and §14.7 called it "a border question about a killer run at a word
+edge". It is not a killer at all. It is a SPACING mark — Mc, ccc 0 — and the killer reading was
+wrong both ways at once, the §14 signature: one UNDER on every baseless non-space shape (`!ః`
+`[ః]` `aaఃb` `◌ః`), one OVER on every word-final space shape (`x కః x` `aః z` `x ః x`). A
+20-policy enumeration over when its run writes ⟨bow⟩ and ⟨eow⟩ topped out at 17 wrong rows of 54 —
+no border policy fits, because the character is not a separate run. As plain word material with a
+`ః⟨eow⟩` piece (witnessed on the fixed eow template, `.ヲః.` = 13/17, cost 1 in both families) all
+178 cached rows and 46 bought predictions are exact, in-script shapes included. The rival that
+survived longest — a stray-mark word, the letter after keeping its own ⟨bow⟩ — is refuted by one
+probe: `ఃꝛ` = 13/18, the visarga FUSING into the ꝛ-word, one token under the severed spelling on
+the letter that has no suffix piece to collapse the difference. Mn stray marks measured the
+opposite way in §14.4's 38 rows; a spacing Mc is claimed by the letter alternative, and a
+combining Mn is not.
+
+U+0CF3 is the same shape from a blind spot: assigned in Unicode 15.0 as the Kannada spacing
+anusvara, unknown to our 14.0 tables, classified Cn → HARD, no word model. WORDY alone prices all
+27 cached rows and eight in-script predictions (`x ೞೳ x` `ೞೳೞ` `x ೞೳ 5`) exactly, both families.
+
+**Myanmar U+103A asat is NOT the third member.** §14.7 put it beside the visarga; asked over its
+2,383 v3 / 3,487 v4.7 cached rows, the killer reading is exact on every one and the word-material
+rival (with or without an `်⟨eow⟩` piece) is wrong on thousands. Its word-final +1 stays on the
+over side of the ledger.
+
+### 15.3 Case, three ways
+
+* **`str.isupper` lies about caseless letters.** `ヲBUTTヲ`, `ロデオFUCK`, `BODYの`,
+  `அறிவியலNATIONAL`, `परिएाजनाÓ` all pass it, and the ⟨caps⟩ our v3 model wrote is one to three
+  tokens cheaper than the literal spelling the oracle uses. A caseless LETTER anywhere in the span
+  now blocks ⟨caps⟩ — and only ⟨caps⟩: blocking ⟨shift⟩ too was tried, and the full-cache re-scan
+  caught it before it shipped (twenty `.Collectionヲ.`-family bow-template witnesses ±1, the
+  Assamese `Gৰ`/`Gলৈকে` spans −2). Eight of ten framed probes discriminate the spellings; every
+  one picks literal.
+* **§12.2 was a title-case question, not a tile question.** `Hnovunİ` takes ⟨shift⟩ with the İ
+  literal in the lowered body — İ is transparent to the no-other-capitals test, and blocks only at
+  the span head, where ⟨shift⟩ would assert a lowered first letter İ cannot supply. All thirteen
+  §12.2 rows step off their bought lowercase counterparts by exactly the ⟨shift⟩ (`x Hnİ x` = 14 =
+  1 + `x hnİ x` … `x Hüseynovunİ x` = 18 = 1 + `x hüseynovunİ x`), and so do two shapes never
+  measured before (`x Hnİvo x`, `x Hİk x`), in both families. The corpus rows the v4.7 list held —
+  Komi `Тшыгъялİны`, Azeri `Hüseynovu…`, Turkish `Kuvarsİz`, Zazaki — land exact with them. The
+  old reading, "a rule over a tile five tiles before the İ", was the literal tiling's
+  coincidences: `HHnovunİ`, `HNovunİ` and `hnovunİ` are not title-case, so their piece never
+  budged.
+* **The oracle's ⟨caps⟩ lowering is simple, and Python's is not.** `'ΣΚΙΕΣ'.lower()` applies
+  Unicode's Final_Sigma context rule and produces `σκιες`; the oracle's caps body is `σκιεσ`, σ
+  everywhere. `x ΣΚΙΕΣ x` = 16 is the σκιεσ spelling (σκιες reads 14, literal 21), and every caps
+  word without a final sigma is exact under both spellings — which is why the defect survived
+  every grid until two Greek documents were localized in situ. Both attempts that failed first:
+  final-sigma-aware lowering (numerically a no-op — our lowering already produced ς) and literal
+  all-caps Greek (+5 to +17 on four rows).
+
+### 15.4 Two clauses that outlived their evidence, and two predicates asked per run
+
+The Syriac absorb clause — a non-vowel mark after U+0740–074A rides the killer run — predated §14:
+its motivating row `x ݂́ܒ x` has the ACUTE as rider, and the acute joins the run as a killer in
+its own right since the accent sweep. Every rider the clause still touched read one under
+(`x ݀ͅ x` = 16/20). Removed, the stray-word spelling is exact on ten predictions per family
+(`x ݀ͣ x` `x ٰ݀ x` `݀ͅ` `x ݀ͅ 5` `x ݀ͅͅ x` `x ݀ͅa x` `5݀ͅ5`, controls `x ݂́ܒ x` `x ݂ܶ x`) and
+on all 547 v3 / 1,294 v4.7 cached rows containing the dots.
+
+The Sorani document carried two border defects at one boundary shape: an astral emoji was punct
+KIND, so a format character in front of one glued into a markerless sub-run and lost its ⟨bow⟩
+(`📐 ‎📝` −1, against `文 📐 ‎文` exact — the kind split saves the LRM against an ideograph, the
+astral exclusion now saves it against an emoji); and a MIXED punct/symbol/format run failed all
+three homogeneous predicates and lost its markers even split (`🎓 ‎⏰`). The gate is per character
+now — `_is_borderable_text` — and the Mongolian row's `⁉️` is the same lesson for a variation
+selector: it rides its base in the punct test as it always did in the symbol test.
+
+### 15.5 What it cost, and what would not fit
+
+The under side, whole cache: v3 **152 tokens in 112 texts → 1 in 1** over 413,902 texts, v4.7
+**359 in 306 → 1 in 1** over 997,373. Both residues are the same U+0363 row. Over-count fell with
+under on every population that was a rule: the forty marks alone were carrying 2,200 tokens of v3
+over-count and 5,120 of v4.7's alongside their unders, the visarga 13 and 89, U+0CF3 3 and 9 — all
+now zero. The three replay corpora — Goldfish, Glot500, FineWeb/Stack/github-code — read
+**under 0 in both families** (v3 was 5 tokens, all the Tamil documents; v4.7 was 1, the Azeri İ
+row), 280,276 of 286,857 rows exact on v3 and 289,129 of 302,418 on v4.7, with over-count down
+net in both despite the surfaced Tamil +2s.
+
+One trade is reported rather than celebrated: 26 Tamil documents and the Shona/Japanese one now
+read +2 over where they read −2/−4 under. The caps span they share (`லிKARPURAVALLI`) prices
+literal-exact framed and in the one document whose only defect it was; the +2 that surfaces in the
+others is a pre-existing over-count the under-count had been masking. Four more +1s
+(`வகையானADSP` `YOUTUBEல` `ดีINTRO` `តារARTIST`) are the same arithmetic, and all four spans
+price literal-exact framed (`x YOUTUBEல x` = 17 …).
+
+One population the campaign's own instrument manufactured, and then closed: the in-situ window
+deletion that localized the Mongolian row produced `…ВЭ️ 2019` — a variation selector with its
+base deleted — and the full re-scan surfaced it as a new under row. Re-priced against the OLD
+model it was one under there too, which is the check that marks it "a probe we had not bought"
+rather than "a row we broke". The shape generalizes: a VS-only run at a single-space border takes
+the punctuation markers (`5 ️ 5` two under with none written, seam-cancelled against a word,
+killed by a space run — the same three laws every punct run obeys), and all 712 cached rows
+holding a selector now price exactly in both families.
+
+What did not survive contact with the measurements, at the same length as what did: the blanket
+caseless block on ⟨shift⟩ (caught by the full-cache re-scan, 43 rows); the 20-policy border
+enumeration for the visarga (best policy 17/54 wrong); the visarga as a stray-mark word (`ఃꝛ`);
+the visarga floor-priced when baseless (+1 everywhere against the char piece); asat as word
+material (thousands of rows); final-sigma-aware ⟨caps⟩ lowering (a no-op — Python already does
+it; the oracle is the one that does not); literal all-caps Greek (+5 to +17); an emoji ⟨eow⟩ at
+the space border (refuted by `文 📐 ‎文` and `1 📐 ‎1` exact); and the m/gap frames for the forty
+marks, not because they failed but because they were never needed — the 45-shape grids were
+already in the cache, and the direct ours-vs-oracle table over 5,646 rows is the stronger
+instrument.
+
+The held-out gates, read once at the end, moved the way they should: UDHR **338 → 340** exact on
+v3 (mass 0.187%) and **472 → 474** on v4.7 and v5 (0.058%); Rosetta 1741/1741 in all three
+families, the 250-document holdout 250/250, MultiPL-E 22/22; 219 tests pass.

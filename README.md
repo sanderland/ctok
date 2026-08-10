@@ -179,8 +179,21 @@ were not exact now are.
 
 The gates moved this time, which they usually do not: UDHR 317 → 338 exact on v3 and 443 → 472 on
 v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
-that corpus is 250/250. [LIMITS.md](LIMITS.md) §14 carries what is left: three marks our raw byte
-floor over-prices at a stray run head, the dotted İ of §12.2, and three single rows.
+that corpus is 250/250.
+
+**Every under-counting text in the cache is now accounted for, and the residue is one probe per
+family** (LIMITS.md §15). The whole cache — every text ever measured against either model, probe
+grids included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **one
+token in one text on each**, the same recorded stray-mark boundary shape on both sides. What that
+took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
+never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
+Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
+caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`); §12.2's dotted İ, which was
+title-case ⟨shift⟩ with the İ literal all along; a Syriac absorb clause that outlived its
+evidence; the oracle lowering ΣΚΙΕΣ to σκιεσ where Python writes σκιες; and three border-marker
+predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `🎓 ‎⏰`). LIMITS.md §14.6
+carries what is left on the over side, and §15.5 reports the one trade: 30 documents now read a
+small over-count that their under-count had been masking.
 
 ## Where the boundary markers go
 
