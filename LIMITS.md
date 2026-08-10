@@ -1050,10 +1050,19 @@ everything its UNEXPLAINED grid cites, all 23 rows of the retired `_charging_bor
 ### 14.4 An unattached mark run is a word
 
 A stray-mark pretoken already owned a ⟨bow⟩. It owns an ⟨eow⟩ too, against everything except a
-letter — which it fuses with, so the word after it is written bare and the mark run's ⟨bow⟩ is that
-word's. That single rule closes §12.1's junction population, §12.3's message-end run and §12.4's
-Igbo word, which is the argument that it is a law and not a patch: none of the three was about the
-thing its section named it after. §12.2, the dotted İ, is untouched by it and stays open.
+LETTER, which continues the same word. That single rule closes §12.1's junction population,
+§12.3's message-end run and §12.4's Igbo word, which is the argument that it is a law and not a
+patch: none of the three was about the thing its section named it after. §12.2, the dotted İ, is
+untouched by it and stays open.
+
+The letter after it still writes its own ⟨bow⟩, and that half was measured the hard way. Dropping
+it — reading the mark run and the following word as ONE word — is exact on every row of the probe
+grid except one shape, because `⟨bow⟩x⟨eow⟩` costs what `x⟨eow⟩` costs and the two spellings
+collapse. The shape that separates them is a baseless mark opening the message in front of a
+three-byte letter with no suffix piece: `᯦ꝛ` `⳯ꝛ` `〪ꝛ` `꣠ꝛ` `゙ꝛ` and 33 more read 20 where the
+fused spelling charges 19. Those 38 rows were exact before this campaign, and a full re-scan of the
+probe cache is what caught the regression — a synthetic grid chosen in advance would not have
+contained them.
 
 ### 14.5 What it cost, measured before and after on everything
 
@@ -1086,11 +1095,18 @@ rows sat under-counting through three campaigns without appearing in a report:
 | v3 | texts | exact | over | under |
 |---|---:|---:|---:|---:|
 | before | 405,312 | 379,241 | 95,041 in 25,246 rows | 885 in 825 rows |
-| after | SCANV3 |
+| after | 413,536 | 396,828 | 85,944 in 16,558 rows | **208 in 150 rows** |
 
-645 of the 825 under-counting rows were fixed and **two new ones appeared, both the same probe** —
-`x ݀ͅ x`, the Syriac row of 14.6. The `after` denominator is larger because this campaign bought
-about 4,600 probes of its own; none of them under-counts.
+| v4.7 | texts | exact | over | under |
+|---|---:|---:|---:|---:|
+| before | 992,242 | 927,998 | 120,748 in 59,695 rows | 5,206 in 4,549 rows |
+| after | SCANV47 |
+
+**685 of the 825 v3 under-counting rows were fixed and none regressed.** Ten rows are in the after
+list and not the before list; all ten are probes this campaign bought after the before-scan ran,
+and the shipped model at the start of the day under-counted every one of them by the same amount —
+six dotted-İ rows of §12.2, two Thai-phinthu sweep rows, and the Syriac `x ݀ͅ x` of 14.6. The
+after denominator is larger for the same reason: about 8,000 probes were bought during the day.
 
 ### 14.6 What is still open
 
@@ -1114,9 +1130,12 @@ about 4,600 probes of its own; none of them under-counts.
 * **A Syriac dot with a rider is one under.** `x ݀ͅ x` = 16 / 20. U+0740–U+074A start an unmarked
   run that a following non-vowel mark joins (§0), and that joined run writes no boundary where a
   stray run now would. One row, one shape, not attributed.
-* **A title-cased word fused onto a stray-mark run, on v3 only.** `x ͣAbc x` = 14 reads one OVER;
-  `x ͣABCD x` `x ͣabc x` `x ͣthe x` and all four v4.7 counterparts are exact. ⟨shift⟩ and the mark
-  run's ⟨bow⟩ are being charged separately and the oracle charges once.
+* **A word after a stray-mark run is one over on some hosts and one under on others**, and no
+  spelling of that boundary gets both. `x ͣก x` and `x ͣب x` = 13 / 17 read one OVER with the
+  word's ⟨bow⟩ written, `x ͣabc x` = 14 on v3 and `x ͣABCD x` = 19 on v4.7 read one under and one
+  over respectively, and `x ͣx x` `x ͣthe x` `!ͣa` are exact under both spellings. All four are
+  exactly as they were before this campaign — the fused spelling swaps which ones are wrong rather
+  than fixing them, at the cost of the 38 `<mark>ꝛ` rows above.
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.

@@ -638,17 +638,23 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
             pre = ""
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
-            bow = "" if (_contraction_seam(runs, i)
-                         or (i and runs[i - 1][0] == _STRAY_MARK)) else BOW_G
+            bow = "" if _contraction_seam(runs, i) else BOW_G
             out.append(pre + bow + n + EOW_G)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken is a WORD: ⟨bow⟩ on the left even when it is adjacent to a
             # symbol, digit or punctuation run, and ⟨eow⟩ on the right against everything except a
-            # letter, which it fuses with instead — the word after it is written bare and this
-            # ⟨bow⟩ is that word's. Its first mark byte-prices: the same codepoint is a piece
-            # inside a letter run, but here the pretokenizer's letter alternative cannot claim it.
-            fuses = i + 1 < n_runs and runs[i + 1][0] == WORDY
-            out.append(BOW_G + _FLOOR_G + body + ("" if fuses else EOW_G))
+            # LETTER, which continues the same word. Its first mark byte-prices: the same codepoint
+            # is a piece inside a letter run, but here the pretokenizer's letter alternative cannot
+            # claim it.
+            #
+            # The letter still writes its own ⟨bow⟩, and that is measured rather than assumed: the
+            # 38 `<mark>ꝛ` rows of the cached probe grid — a baseless mark opening the message in
+            # front of a three-byte letter with no `ꝛ⟨eow⟩` piece — read one under when the ⟨bow⟩
+            # is dropped, and are the only place in the grid where the two spellings differ, since
+            # `⟨bow⟩x⟨eow⟩` costs what `x⟨eow⟩` costs. `x ͣก x` and `x ͣب x` read one OVER with the
+            # ⟨bow⟩ written and are recorded in LIMITS §14.6 rather than fitted.
+            letter_follows = i + 1 < n_runs and runs[i + 1][0] == WORDY
+            out.append(BOW_G + _FLOOR_G + body + ("" if letter_follows else EOW_G))
         elif cls == _KILLER:
             # A terminal separator run takes the same border markers punctuation does. Measured
             # 2026-08-08 on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each

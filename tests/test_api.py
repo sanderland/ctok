@@ -155,7 +155,8 @@ def test_a_stray_mark_run_is_a_word(version: float):
 
     The ⟨eow⟩ was previously written only against a space, which read one under everywhere else —
     `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run. The
-    fusion is the other half: `x ͣก x` and `x ͣب x` read one OVER while a second ⟨bow⟩ was written.
+    The letter after it still writes its own ⟨bow⟩: 38 `<mark>ꝛ` rows read one under without it,
+    and they are the only rows in the probe grid where the two spellings differ.
     """
     overhead = _model(_family(version)).message_overhead
     rows = [
@@ -164,9 +165,10 @@ def test_a_stray_mark_run_is_a_word(version: float):
         ("x \u0363 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
         ("x \u03635 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩5 ⟨bow⟩x⟨eow⟩", 8),
         ("x \u0363", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩", 5),
-        # A letter after it is written bare: the mark run's ⟨bow⟩ is that word's.
-        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣx⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣa⟨eow⟩", 5),
+        # No ⟨eow⟩ before a letter, but the letter opens its own word.
+        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨bow⟩x⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣ⟨bow⟩a⟨eow⟩", 5),
+        ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
         # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
         ("\u0302", "⟨bow⟩̂", 3),
         ("\u0302\u0302", "⟨bow⟩̂̂", 5),
