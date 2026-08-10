@@ -79,16 +79,23 @@ languages, which varies everything at once.
 
 **Every code corpus is finished and has left the table.** Rosetta Code — all 1,741 mining
 documents and, since 2026-08-10, all 250 held-out ones — and MultiPL-E's 22 languages reproduce
-*every* document exactly, on v3, v4.7 and v5 alike. They are still gated, asserted at every
-document rather than at a rate so the first regression names the file it broke, but a row of zeroes
-is not a measurement and keeping one invites reading a finished corpus as evidence about an
-unfinished model. Code is done; what follows is about natural language.
+*every* document exactly. They are still gated, asserted at every document rather than at a rate so
+the first regression names the file it broke, but a row of zeroes is not a measurement and keeping
+one invites reading a finished corpus as evidence about an unfinished model. Code is done; what
+follows is about natural language.
+
+**v5 is not scored separately anywhere below.** It borrows v4.7's vocabulary outright and differs
+only in its message frame, so it lands on the same documents with the same errors and gating it
+re-derived numbers that were equal by construction. What replaces it is the equality itself, checked
+directly: `test_v5_tracks_v4_7_document_for_document` asserts that v5's deviation from its own
+recorded counts equals v4.7's from theirs, document by document across all four corpora. It does not
+assert a constant offset, because there is not one — 5 tokens on most documents and 6 where one
+opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening run has nothing to absorb.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.188% | 0.098% | 338/501 | 97.8% |
-| UDHR | v4.7 | 0.058% | 0.028% | 472/501 | 99.0% |
-| UDHR | v5 | 0.058% | 0.028% | 472/501 | 99.0% |
+| UDHR (501 languages) | v3 | 0.187% | 0.098% | 340/501 | 97.8% |
+| UDHR | v4.7 (v5 borrows it) | 0.058% | 0.027% | 474/501 | 99.0% |
 
 **No v4.7 document is over 5% off any more, and one v3 document is** — Maldivian (+6.13%), which
 this campaign did not touch. Tem, the worst document in both families for a month at +6.23% /
@@ -122,10 +129,16 @@ vocabulary rather than structure.
 
 Where that vocabulary is missing was measured rather than guessed, by scoring 350,000 rows across
 the 350 languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`:
-96.1% of rows exact, with 80% of the error in twenty languages and 59 languages perfect over a
+96.07% of rows exact, with 80% of the error in twenty languages and 59 languages perfect over a
 thousand rows each. That ranking is in [LIMITS.md](LIMITS.md) §0, and it corrected the target twice
 over — the error was not mainly Brahmic, and the single largest defect was Syriac, holding 72% of
 all under-count.
+
+Re-scored against the current model, the same 350 languages read **98.38% of rows exact with
+under-count 0**, from 96.07% and 20,950 tokens under, and **169 of them now reproduce every cached
+row against 59**. A ranking is perishable and that is the point of re-deriving it: the first one
+sent a campaign at 2,251 tokens of Bengali over-charge that a structural fix had already removed,
+so the pool a miner is aimed at has to be measured on the day rather than read off a table.
 
 Syriac was structural and is now implemented: its mark-run law took two independent 100-row samples
 from 38/42 rows exact to 98/97, seven tokens of absolute error across all 200. What the sweep ranked
@@ -311,6 +324,22 @@ Both removals **cost real accuracy**: UDHR falls 448/501 → 439 → 430 on v4.7
 on v3, because some of those pieces were load-bearing. A piece that is not a token cannot stay
 because it happens to help; what it was hiding is now an honest over-count that can be mined.
 Rosetta and MultiPL-E still reproduce every document.
+
+**Coverage is 100% of both files** — 48,225 pieces on v3 and 15,147 on v4.7, every one resting on a
+fixed template or, for the four marker atoms, declared structural. The last thing standing between
+that and the truth was `fitness`: a bespoke per-piece argument over natural text, true relative to
+the rest of the vocabulary rather than to the oracle, and 33 records deep. It was reported apart
+from the witnessed number rather than folded into it, so the two vocabularies read 99.96% and
+99.87% while every gap column showed nothing — the coverage table now carries a column for every
+kind its own rate withholds, which is how those records became visible enough to go and measure.
+All 33 were then bought on the fixed `mark_mid` and `eow` templates and hold at cost 1, and
+`tests/test_witness.py` fails on any future `fitness` record rather than reporting one.
+
+That guard has a second half, for the direction a coverage number must never round: a witness kind
+nobody has classified used to count as evidence. The kind list is derived from each file's own
+`meta.witness.templates` plus the kinds `verify` names, and anything outside it is reported rather
+than assumed — which caught `digit_bow` (28 v3 punctuation pieces) and `prefix` (467 byte-fallback
+pieces per file) the first time it ran.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.
