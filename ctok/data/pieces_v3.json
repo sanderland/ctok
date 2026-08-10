@@ -10165,6 +10165,7 @@
    "ə⟨eow⟩": {"probe": ".ヲə.", "raw": 13, "kind": "eow"},
    "ː": {"probe": "aːa", "raw": 10, "kind": "char"},
    "ː⟨eow⟩": {"probe": ".ヲː.", "raw": 13, "kind": "eow"},
+   "́": {"probe": ".ᛒ́ᛒ.", "raw": 20, "kind": "mark_sep"},
    "ά": {"probe": "aάa", "raw": 10, "kind": "char"},
    "ά⟨eow⟩": {"probe": ".ヲά.", "raw": 13, "kind": "eow"},
    "έ": {"probe": "aέa", "raw": 10, "kind": "char"},
