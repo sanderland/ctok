@@ -373,6 +373,19 @@ Three lessons worth more than the pieces:
 
 ## 7. Where the under-count comes from, now that the false pieces are gone
 
+*The finished marker model this section discovers piecemeal is stated once, as a table, in
+README.md § "Where the boundary markers go". Read that first; the subsections here are the history
+of how each row of it was found, and what each one cost.*
+
+**Every rule below has the same shape**, which is the thing worth carrying forward: a class of run
+that the border-marker branch never reached, so it silently wrote no markers and the vocabulary
+grew pieces to stand in for them. Format characters (ZWSP is `Cf`, not a killer, so it fell through
+to HARD), terminal separators, HARD runs holding a mixed body, ideographic punctuation, digit-run
+borders, and finally the combining accents of §14 — six populations, one bug, found six times.
+**The class that has no branch writes no marker, and a missing marker never announces itself: it
+turns into an under-count somewhere far away, or into a piece that prices correctly for the wrong
+reason.**
+
 Retiring `ownscript` took under-count across 44 Goldfish languages from thousands to **789**, and
 what is left is concentrated in six: Malayalam 188, Khmer 180, Lao 119, Tamil 94, Myanmar 76,
 Sinhala 74. Under-count should be impossible — the tiler takes a shortest path over a vocabulary
@@ -982,6 +995,18 @@ right spelling the word `Hz` becomes TWO words, so the host's pricing does not c
 is what makes the split look host-dependent, and it is a trap worth naming, because the arithmetic
 looks like a controlled experiment: `q` and `б` read +2 where `ก` and `ب` read +3 only because
 `x q x` = 10 and `x ก x` = 11.
+
+**The rule that trap proposes, written out, so nobody proposes it again.** Read through that
+difference the split looks HOST-dependent, and the pairs it produces look like a discovery rather
+than an artefact, because they cancel the two properties a reader would reach for first: `ب` splits
+and `б` does not though both are two-byte letters whose `⟨bow⟩X` is a piece and whose bare word
+costs the same 15; `ก` splits and `क` does not though both are three-byte letters at that same 15.
+Byte length refuted, piece-ness refuted, two scripts on each side — the shape of the answer looks
+like the measured per-script population `EXTRA_KILLERS` already is, and `_ends_legacy_killer_run`
+already carried a Syriac host clause as precedent. It would have been enumerable, defensible, and
+wrong in every script including the ones it got right by accident. **The tell was available and was
+not used: the rival predicts nothing outside the frame it was derived in.** Asked for a row where
+the two spellings differ — which is what the `5` frame is — it has none.
 
 Two frames on a host whose whole word is ONE token separate them, and both are oracle-only:
 

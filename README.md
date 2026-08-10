@@ -182,6 +182,45 @@ v4.7, and the last held-out Rosetta document — the Swift file with a mark on U
 that corpus is 250/250. [LIMITS.md](LIMITS.md) §14 carries what is left: three marks our raw byte
 floor over-prices at a stray run head, the dotted İ of §12.2, and three single rows.
 
+## Where the boundary markers go
+
+Before anything is tiled, the text is cut into runs of a single class and the boundary markers are
+written between them. **A word is the only run that is flanked unconditionally. Everything else is
+marked only where it borders exactly one space** — and that one rule, discovered separately for one
+class of run after another, is where most of this reconstruction's errors have lived.
+
+| run | `⟨bow⟩` on its left | `⟨eow⟩` on its right |
+|---|---|---|
+| **word** — letters and the marks inside them | always, unless a contraction apostrophe already opened it | always |
+| **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a letter follows, which continues that word |
+| **accent, virama, tone mark** — `is_killer`, the marks that stand outside the word | only against a single space | only against a single space |
+| **punctuation, symbols, format characters** — including ZWSP and ZWJ | only against a single space, and not where it opens a word | only against a single space |
+| **digit run** | only against a single space, and only if the run's FIRST character is a non-ASCII digit | only against a single space, and only if its LAST character is |
+| **Han, Hangul, astral letters, whitespace** | never | never |
+
+Then one rewrite over the finished string: where `⟨eow⟩` stands immediately left of a space and
+`⟨bow⟩` immediately right of it, **the space is deleted**. It is a single conjunctive rule — there is
+no per-side "absorption", though the costs can be read that way and an earlier draft of these
+docs did.
+
+The traps in "borders exactly one space" are all measured, and each of them has cost a campaign:
+
+* **Message start counts; message end does not.** The frame ends in `⟨bow⟩`, and that `⟨bow⟩` *is* a
+  space. There is no space after the last character.
+* **A run of two or more spaces kills the marker**, uniformly over run lengths 2/3/4/17. A tab or a
+  newline is not a space at all and never stands in for one.
+* **The border CHARACTER decides, not the run.** `٥5` writes `⟨bow⟩` and no `⟨eow⟩`; `1？。 1` and
+  `1 。？1` are one over if the run is judged whole, because the marker sits on the `？` side.
+* **A HARD run splits where the character kind changes** — punctuation, number, letter are different
+  pretokens however our classifier grouped them, so `文？` gives `？` a run of its own.
+* **Ideographic punctuation U+3001–U+303F takes no marker at all**, 25 of 25 — it is the block that
+  predicts this, not the category, the width, or being sentence-terminal.
+
+Only one side of most of these is observable at a time, which is why they were found so late: the
+seam deletes an `⟨eow⟩` written before `space + ⟨bow⟩`, so any probe whose right neighbour opens a
+word reads the same with the marker and without it. **Every one of these rules was settled on a
+neighbour that opens no word** — an ideograph, or an ASCII digit.
+
 ## What each piece rests on
 
 The vocabulary is not a list of guesses. Every piece in `data/pieces_*.json` carries the probe that
