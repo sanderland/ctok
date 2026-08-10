@@ -14,7 +14,8 @@ import unicodedata
 from .constants import (
     BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     EXTRA_KILLERS, FUNNY_SPACE,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_MARKS, SHIFT_G, SPACE,
+    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
+    SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
@@ -290,7 +291,9 @@ def is_killer(c: str) -> bool:
     that suppresses a consonant's inherent vowel so it can join the next one — are all canonical
     combining class 9, so those 65 characters are DEFINED, not listed. The **combining accents** of
     U+0300 are a measured RANGE (:data:`SEPARATOR_MARKS`), both of whose ends are pinned by marks
-    inside the same block that do not join. Everything else is ENUMERATED in ``EXTRA_KILLERS``: Thai
+    inside the same block that do not join, and the accent, tone and annotation marks of the other
+    combining blocks are measured RANGES too (:data:`SEPARATOR_ANNOTATIONS`), most of them pinned
+    on both sides by a vowel point or a combining letter that stays inside the word. Everything else is ENUMERATED in ``EXTRA_KILLERS``: Thai
     and Lao tone marks, Myanmar dot-below, nukta, the Khmer consonant shifters, Tai Tham's tone
     signs. Those are not a combining class and no numeric rule picks them out — a Lao tone mark
     (ccc 122) splits and the Lao vowel sign beside it (ccc 118) does not. What they share is
@@ -303,7 +306,8 @@ def is_killer(c: str) -> bool:
     host whose whole word is one token, and only against a right neighbour that opens no word.
     """
     return (unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
-            or bool(SEPARATOR_MARKS.fullmatch(c)))
+            or bool(SEPARATOR_MARKS.fullmatch(c))
+            or bool(SEPARATOR_ANNOTATIONS.fullmatch(c)))
 
 
 _KILLER = "killer"

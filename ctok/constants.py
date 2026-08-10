@@ -228,3 +228,33 @@ SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW
 # its digit-frame/letter-frame differential: that differential was the same fact read one step too
 # late, as an extra ⟨eow⟩ the word writes at a space border rather than as the word ending early.
 SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
+
+# The same question asked of every other combining block of the BMP, on the same two frames and on
+# in-script one-token hosts where the script has any (Cyrillic бвдзйэя, Hebrew אי, Arabic دسم,
+# Devanagari कतनम) as well as on `q`. 418 marks swept, both families, no host and no family
+# dissenting on any one of them, and the answer is orthographic rather than numeric — the same
+# distinction `is_killer` already draws for Thai:
+#
+#   OUTSIDE the word   accents, tone marks, cantillation and annotation — Cyrillic titlo and its
+#                      relatives, the Hebrew te'amim, Vedic tone, Ethiopic gemination, the Arabic
+#                      tone marks and empty-centre stops, and the four cross-script combining
+#                      supplements (U+1AB0, U+1DC0, U+20D0, U+FE20)
+#   INSIDE the word    vowel points and combining LETTERS — Hebrew niqqud, Arabic harakat, the
+#                      Syriac vowels and superscript alaph, Thaana, Samaritan vowels, and every
+#                      block of combining Latin/Cyrillic letters (U+0363, U+1ABF, U+1ACC, U+1DD3,
+#                      U+2DE0, U+A674)
+#
+# Most of these ranges are pinned on BOTH sides by an inside-the-word neighbour in the same block,
+# which is the strongest form this evidence takes: 0658 between 064B–0657 and 0659–065F, 06DF–06E0
+# between 06D6–06DC and 06E1–06E8, 08EA–08EF between 08E3–08E9 and 08F0–08FF, 0818–0819 and 082D
+# among the Samaritan vowels, 1AB0–1ABE / 1AC1–1ACB around 1ABF–1AC0, 1DC0–1DD2 and 1DF5–1DFF
+# around 1DD3–1DF4, A66F–A672 and A67C–A67D around A674–A67B, and the Hebrew accents 0591–05AF
+# against the niqqud 05B0–05C7. Where a range abuts unassigned codepoints or non-marks instead
+# (0483–0489, 135D–135F, 20D0–20F0, FE20–FE2F, the Vedic tones) the block edge is all there is,
+# and the range is written to the assigned marks that were actually probed.
+SEPARATOR_ANNOTATIONS = re.compile(
+    "[\u0483-\u0489\u0591-\u05af\u0658\u06df-\u06e0\u06ea-\u06ec"
+    "\u0818-\u0819\u082d\u08ea-\u08ef\u135d-\u135f"
+    "\u1ab0-\u1abe\u1ac1-\u1acb\u1cd0-\u1ce8\u1ced\u1cf4\u1cf8-\u1cf9"
+    "\u1dc0-\u1dd2\u1df5-\u1dff\u20d0-\u20f0\ua66f-\ua672\ua67c-\ua67d"
+    "\ufe20-\ufe2f]")
