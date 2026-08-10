@@ -53,6 +53,15 @@ FIXTURES = Path(__file__).parent / "fixtures"
 # is any document at all. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
 # error has nothing left for them to measure.
 ALL = "all"
+
+# **v5 is not gated here, and that is a claim rather than an omission.** It reads v4.7's vocabulary
+# and differs only in its message frame, so on every corpus below it lands on exactly the same
+# documents with exactly the same errors — scoring it doubled the gate's cost to re-derive numbers
+# that were equal by construction. What actually guards it is cheaper and more direct: the frame
+# rules are pinned on constructed strings in `test_api.py`, and
+# `test_v5_tracks_v4_7_document_for_document` asserts the equality this omission rests on, over real
+# documents of the corpora below and against both families' recorded counts. If v5 ever stops
+# tracking v4.7, that test fails and v5 comes back into this table.
 GATES: dict[str, dict] = {
     "udhr": {
         "title": "UDHR",
@@ -74,9 +83,6 @@ GATES: dict[str, dict] = {
             # error into an honest over-count, which is a thing that can be mined. UDHR selected
             # none of it either way.
             "v4.7": {"version": 4.7, "mean": 0.0011, "within1": 0.95, "exact": 0.86},
-            # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
-            # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0011, "within1": 0.95, "exact": 0.86},
         },
     },
     "rosetta": {
@@ -95,9 +101,6 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
-            # v5 reproduces every document too, once its own frame rules are modelled — the two
-            # families differ at the message edges and nowhere else this corpus can see.
-            "v5": {"version": 5.0, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta_holdout": {
@@ -119,8 +122,6 @@ GATES: dict[str, dict] = {
             # anywhere moves it in whole tokens. A margin that tight measures the spelling, not a
             # regression. The `exact` floor is what actually guards this corpus.
             "v4.7": {"version": 4.7, "mean": 0.00015, "within1": 0.99, "exact": 0.99},
-            # The same documents as v4.7, and no others.
-            "v5": {"version": 5.0, "mean": 0.00015, "within1": 0.99, "exact": 0.99},
         },
     },
     "multipl_e": {
@@ -136,7 +137,6 @@ GATES: dict[str, dict] = {
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
-            "v5": {"version": 5.0, "mean": None, "within1": None, "exact": ALL},
         },
     },
 }
@@ -288,13 +288,21 @@ def report_vocabulary(markdown: bool = False) -> None:
     """
     cov = witness_coverage()
     groups = sorted({g for fam in cov.values() for g in fam})
-    cols = ("missing", "unresolved", "special")
+    # Every kind the numerator withholds needs a column, or the table shows a rate below 100% with
+    # nothing to explain it. `argued` was missing and `fitness` is the only thing in it, so
+    # `word_pieces` read 99.96% with all three gap cells empty. `other` is the same guarantee for a
+    # kind nobody has classified yet: unknown kinds used to fall through to the witnessed side,
+    # which is the direction that flatters.
+    cols = ("missing", "unresolved", "argued", "special", "other")
+    known = known_kinds()
 
     def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
         total, w = sum(counts.values()), witnessed(counts)
         bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
                   "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
-                  "special": sum(counts.get(k, 0) for k in SPECIAL)}
+                  "argued": sum(counts.get(k, 0) for k in ARGUED),
+                  "special": sum(counts.get(k, 0) for k in SPECIAL),
+                  "other": sum(n for k, n in counts.items() if k not in known)}
         pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
         return total, w, pct, bucket
 
@@ -398,6 +406,37 @@ GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 # by it (LIMITS.md §6). The 22 `fitness` records that remain are counted, named, and kept out of the
 # headline number rather than folded in with either a witness or a gap.
 ARGUED = ("fitness",)
+
+
+def known_kinds() -> frozenset[str]:
+    """Every kind a witness record may carry, DERIVED from the files rather than listed here.
+
+    `witnessed` subtracts the known non-witness kinds from the total, so a kind it has never heard
+    of lands silently on the witnessed side — the one direction a coverage number must never round.
+    The guard is only as good as its list, and a hand-written list is exactly the thing that goes
+    stale. Writing one by hand missed `digit_bow` — a shipped template carrying 28 v3 punctuation
+    pieces — so the template names now come from each vocabulary's own `meta.witness.templates`,
+    the same place `verify` reads them. `prefix` is added on top because `verify` dispatches it
+    before that lookup: 467 byte-fallback pieces per file rest on it and no template declares it.
+    Anything outside the union is reported in the `other` column instead of passing as evidence.
+    """
+    import json
+    from importlib.resources import files
+
+    from ctok.main import FAMILIES
+
+    # `verify` dispatches `prefix` before the template lookup — a byte-prefix piece is pinned by
+    # three characters agreeing, not by a probe string, so it is a real witness with no template.
+    # It is named here because `witness.verify` names it, which is the only authority on what a
+    # witness kind is.
+    names: set[str] = set(GAP_KINDS) | set(ARGUED) | {"prefix"}
+    for key, owner in vocabulary_owners().items():
+        if owner != key:
+            continue
+        doc = json.loads(
+            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+        names |= set(doc["meta"]["witness"]["templates"])
+    return frozenset(names)
 
 
 def witnessed(counts: dict[str, int]) -> int:

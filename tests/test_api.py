@@ -366,3 +366,31 @@ SYMBOL_ROWS = [
 def test_recorded_contraction_and_symbol_costs(version, text, content):
     overhead = _model(_family(version)).message_overhead
     assert token_count(text, version=version) - overhead == content
+
+
+@pytest.mark.parametrize("corpus_name", ["rosetta", "multipl_e", "udhr", "rosetta_holdout"])
+def test_v5_tracks_v4_7_document_for_document(corpus_name):
+    """v5 makes the SAME error as v4.7 on every document, which is why it is not gated separately.
+
+    v5 borrows v4.7's vocabulary outright and differs only in its message frame, so scoring it over
+    the four corpora asserted nothing v4.7 had not already asserted, at twice the cost. This is the
+    equality that omission rests on, stated once and checked directly: for each document, v5's
+    deviation from ITS recorded count equals v4.7's deviation from ITS OWN. Both fixtures are real
+    `count_tokens` readings against different models, so the two sides are measured independently.
+
+    Note what this deliberately does NOT assert: that the two counts differ by a constant. They do
+    not — the offset is 5 on most documents and 6 where one opens with punctuation, because v5's
+    frame ends in no ⟨bow⟩ and the opening run has nothing to absorb. Predicting which is which
+    would mean restating `normalize.stream_plan`'s head rule inside a test, and a test that
+    reimplements the thing it checks cannot fail for the right reason. The frame rules themselves
+    are pinned on constructed strings above.
+    """
+    from gates import GATES, corpus, recorded
+
+    key = GATES[corpus_name]["key"]
+    rows = corpus(corpus_name)[:60]
+    c47, c5 = recorded(corpus_name, "v4.7")["counts"], recorded(corpus_name, "v5")["counts"]
+    for r in rows:
+        text, k = r["text"], r[key]
+        assert token_count(text, 5.0) - c5[k] == token_count(text, 4.7) - c47[k], \
+            f"v5 stopped tracking v4.7 on {corpus_name}/{k} — it needs its own gate row again"
