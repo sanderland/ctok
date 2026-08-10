@@ -56,9 +56,9 @@ VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
 # Marks that separate word runs the way a virama does, but that Unicode does not give combining
 # class 9.
-# NOT only Brahmic: the U+0300 combining block is here too. Those accents close a word AFTER the
-# mark rather than standing outside it; `normalize.is_terminal_separator` keeps that independently
-# measured spelling separate from the terminal-mark population.
+# The U+0300 combining block used to be here, nine members of it, on the strength of the byte-floor
+# host test below. It is a RANGE and it is all of it: see :data:`SEPARATOR_MARKS`, whose instrument
+# is a host whose whole word is ONE token and which can therefore tell the two spellings apart.
 # MEASURED, one character at a time, and the population MUST stay enumerated — the rule is
 # orthographic, not numeric, and the neighbouring codepoint is usually a vowel sign that does NOT
 # split. Test: `cost(H M H) == cost(H M) + cost(H)` at three cuts on three byte-floor CONSONANT hosts
@@ -66,15 +66,6 @@ VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 # not a detail — measured against a script's independent vowels the same test called all 21 Gujarati
 # marks splitters, and the corpus refuted it at once.
 EXTRA_KILLERS = frozenset((
-    "\u0300",  # COMBINING GRAVE ACCENT
-    "\u0301",  # COMBINING ACUTE ACCENT
-    "\u0302",  # COMBINING CIRCUMFLEX ACCENT
-    "\u0303",  # COMBINING TILDE
-    "\u0304",  # COMBINING MACRON
-    "\u0308",  # COMBINING DIAERESIS
-    "\u030c",  # COMBINING CARON
-    "\u0327",  # COMBINING CEDILLA
-    "\u0331",  # COMBINING MACRON BELOW
     "\u0740",  # SYRIAC FEMININE DOT
     "\u0741",  # SYRIAC QUSHSHAYA
     "\u0742",  # SYRIAC RUKKAKHA
@@ -162,12 +153,6 @@ EXTRA_KILLERS = frozenset((
     "\ua9b3",  # JAVANESE SIGN CECAK TELU
 ))
 
-# Word-context pieces that are usable on noncomposing Latin hosts but byte-price on a Syriac host.
-# A six-host Latin grid gives at least three discriminating rows per mark and supports one shared
-# piece over per-pair explanations; Syriac byte-floor and standalone grids refute that piece in
-# their pretokens. The distinction belongs here, at eligibility, not in the piece's spelling.
-SYRIAC_FLOOR_MARKS = frozenset("\u0302\u0303\u0304\u0327\u0331")
-
 # ---- normalization ------------------------------------------------------------------------------
 
 # C0/C1 controls the API strips before tokenizing (cost 0), i.e. every gc=Cc except TAB, LF and NUL.
@@ -211,20 +196,35 @@ CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 # ---- the seam law -------------------------------------------------------------------------------
 
 # ⟨eow⟩ ' ' [case markers] ⟨bow⟩ -> ⟨eow⟩ [case markers] ⟨bow⟩: a single space between two marked
-# spans IS the seam and is not written as a character. Exception: a word ending in a combining mark
-# from the measured range U+0300-U+0362 (minus U+0345 iota) does not let the seam absorb the space,
-# so the space stays a literal token.
+# spans IS the seam and is not written as a character.
 SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW_G)
-CHARGING_MARK = re.compile("[\u0300-\u0344\u0346-\u0362]")
 
-# The five word-context mark pieces (U+0302 0303 0304 0327 0331) whose one-token price is
-# TILE-contextual: each prices 1 only when the tile immediately before the mark is a bare ASCII
-# letter, optionally carrying ⟨bow⟩/case markers; after any other tile the mark pays its own UTF-8
-# bytes. Measured 2026-08-09: `ɔ̂ ɔ̄ ɔ̧ ɔ̱` each read one under with the previous U+0303-only,
-# host-character guard, so the population is all five piece-marks; `vọ̃` (host IS a unit piece, but
-# not ASCII) and `ab̃ b` (host reachable only inside the `⟨bow⟩ab` tile) pinned the condition to
-# the preceding TILE rather than the preceding character. Controls exact either way: `o̱` `u̱`
-# `yo̱thu̱` `bb̃` `aab̃` `ib̃` `b̃` `b̃ b` `vɔ` `vɔa` `ɔ̀` `ɔ̆` `ɔ̈` `a rɔ̃ b`. The eligibility
-# edges live in `engine.tile`; `normalize._guard_floor_marks` keeps only the unconditional
-# Syriac-host floor.
-CONTEXTUAL_MARKS = frozenset("\u0302\u0303\u0304\u0327\u0331")
+# ---- marks that stand outside the word -----------------------------------------------------------
+
+# Combining marks that close the word BEFORE themselves, exactly as a virama does; `normalize.
+# is_killer` folds this range into that population.
+#
+# Two ORACLE frames per mark decide it, and neither consults our own count:
+#
+#     m   = `x qM x` - `x q x` - 1     the mark's own cost — both spellings charge m + 1 here
+#     gap = `x qM5 x` - `x q5 x`       m if the word closes before the mark, m + 1 if it does not
+#
+# The host must be one whose whole word is a single token (`x q x` = 10 on v3), because that is the
+# only place the two spellings differ at all: on a byte-floored host `⟨bow⟩H⟨eow⟩` and
+# `⟨bow⟩H` + `⟨eow⟩` cost the same and both frames collapse. That collapse is why this block was
+# previously read as nine splitting marks under a host-dependent predicate — the earlier test ran on
+# byte-floor consonant hosts, where every mark reads "splits" and no mark can read anything else.
+#
+# Swept over every codepoint of U+0300–U+036F on 21 one-token hosts spanning Latin, Greek, Cyrillic,
+# Armenian, Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Thai, Myanmar and Hiragana, both
+# families: U+0300–U+033F, U+0342 and U+0346–U+0362 read "closes before" on every host in both
+# families, with no host and no family dissenting on any mark, while U+0345 YPOGEGRAMMENI and the
+# combining Latin letters U+0363–U+036F read "inside the word" just as uniformly and so pin both
+# ends of the range from outside it. U+0340 0341 0343 0344 cannot be measured — NFC folds them to
+# 0300 0301 0313 0308+0301 — and are inside the range for that reason alone.
+#
+# `q́z` = `⟨bow⟩q⟨eow⟩` + the mark + `⟨bow⟩z⟨eow⟩`, so a word is TWO words either side of an
+# accent. This range is also exactly the population the retired `_charging_border` enumerated from
+# its digit-frame/letter-frame differential: that differential was the same fact read one step too
+# late, as an extra ⟨eow⟩ the word writes at a space border rather than as the word ending early.
+SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")

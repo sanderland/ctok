@@ -12,11 +12,11 @@ from __future__ import annotations
 import unicodedata
 
 from .constants import (
-    BOW_G, CAPS_G, CHARGING_MARK, CONTEXTUAL_MARKS, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
+    BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     EXTRA_KILLERS, FUNNY_SPACE,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE,
+    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, SYRIAC_FLOOR_MARKS, VARIATION_SELECTORS, WORDY,
+    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 
@@ -114,26 +114,6 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
 # ---- the marked stream --------------------------------------------------------------------------
 
 
-def _seam_sub(match) -> str:
-    """The seam law, minus the one place a real space is NOT absorbable.
-
-    A terminal mark is its own unmarked run (see :func:`_runs`), so it cannot occur immediately
-    before this seam: the preceding word has already closed on the other side of the mark.
-
-    For a WORDY run this guard is now unreachable, and that is the point: a word ending in a
-    charging mark writes a second ⟨eow⟩ at the space border (see :func:`_charging_border`), so the
-    character this pattern captures is that ⟨eow⟩ and never the mark. The two spellings cost the
-    same wherever a ⟨bow⟩ follows the space — which is every string the guard was measured on —
-    and differ where none does, which is what the guard got wrong. What still reaches it is an
-    unattached mark run (:data:`_STRAY_MARK`), whose ⟨eow⟩ is written by the border rule directly
-    on the mark.
-    """
-    ch, case_markers = match.group(1), match.group(2)
-    if CHARGING_MARK.fullmatch(ch):
-        return match.group(0)
-    return ch + EOW_G + case_markers + BOW_G
-
-
 def _is_punct_text(body: str) -> bool:
     """Unicode punctuation, regardless of which internal class it lands in — the Devanagari danda,
     the ideographic full stop, the Arabic and Ethiopic stops are all category Po but classify HARD,
@@ -228,37 +208,6 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     return prev_cls == PUNCT and prev_body == "'"
 
 
-def _charging_border(body: str) -> bool:
-    """Does this word body end in a charging mark, so that it writes a second ⟨eow⟩ where it
-    borders a single space on the right?
-
-    The seam law says a space between ⟨eow⟩ and ⟨bow⟩ is not written, and a word ending in one of
-    these marks was modelled as blocking that — the space stayed a literal token. That reproduces
-    the cost only while something with a ⟨bow⟩ stands on the other side of the space. Where nothing
-    does, the oracle charges one more than a literal space:
-
-        x ẹ̀ 2 x = 23   x ẹ̀ 文 x = 23   x ẹ̀ 2 = 21   x ẹ̀ 22 x = 23   x ẹ̀ 2a x = 23
-        2 ẹ̀ 2 = 23    x b̃ 2 x = 20   x b̃ 文 x = 20   x ẹ̀ 'a x = 23   x ẹ̀ b̃ 2 x = 27
-
-    so the space is not what is charged: a border ⟨eow⟩ is, and the space then goes the way every
-    seam space goes. Controls, all exact and all cost-identical under the two spellings because the
-    seam eats the marker: `x ẹ̀ a x` `x ẹ̀ . x` `x ẹ̀ ٢ x` `x ẹ̀ ,2 x` `x ẹ̀ +2 x` `x b̃ a x`
-    `x b̃ . x` `x b̃ ٢ x`. Controls where no marker is written at all: `x ẹ̀2 x` (no border),
-    `x ẹ̀\\t2 x` (a tab is not a space), `x ẹ̀  2 x` (a space RUN kills the marker, the same rule
-    punctuation, digit runs and terminal separators have), `x ẹ 2 x` (no mark) and `x ǹ 2 x`
-    (`ǹ` is precomposed, so after NFC there is no mark to end in).
-
-    The population is exactly :data:`CHARGING_MARK`, measured as the difference between the digit
-    frame and the letter frame on `x b<mark> 2 x` / `x b<mark> a x` so that the word's own pricing
-    cancels: U+0300 0301 0302 0303 0304 0305 0306 0308 030C 0327 0331 0342 0344 0346 0350 0362 all
-    read −1, and U+0345 0363 0367 036F pin both ends of the range from outside it. Marks of other
-    scripts do not join — U+0483 Cyrillic, U+0591 Hebrew, U+064B Arabic, U+0901 Devanagari,
-    U+0E31 Thai and U+20D0 all read 0. U+0331 needs a host that does not precompose (`o̱` `gu̱`
-    read −1 where `ḇ` `ḵ` are NFC-composed away and read 0) — the same trap as `ǹ`.
-    """
-    return bool(CHARGING_MARK.fullmatch(body[-1:]))
-
-
 def _is_nd_run(body: str) -> bool:
     """A run of decimal digits (Nd), in either the DIGIT or the Nd-HARD class."""
     return all(unicodedata.category(c) == "Nd" for c in body)
@@ -337,29 +286,24 @@ def _digit_eow(body: str) -> bool:
 def is_killer(c: str) -> bool:
     """A mark that terminates the orthographic syllable, and so separates word runs.
 
-    Two populations, and the split between them is the honest part. **Viramas** — the Brahmic sign
+    Three populations, and the split between them is the honest part. **Viramas** — the Brahmic sign
     that suppresses a consonant's inherent vowel so it can join the next one — are all canonical
-    combining class 9, so those 65 characters are DEFINED, not listed. Everything else is
-    ENUMERATED in ``EXTRA_KILLERS``: Thai and Lao tone marks, Myanmar dot-below, nukta, the Khmer
-    consonant shifters, Tai Tham's tone signs. Those are not a combining class and no numeric rule
-    picks them out — a Lao tone mark (ccc 122) splits and the Lao vowel sign beside it (ccc 118)
-    does not. What they share is orthographic: a Thai tone mark is written after the whole syllable
-    exactly as a virama is written after the whole cluster, and the vowel signs that do not split
-    are written inside it.
+    combining class 9, so those 65 characters are DEFINED, not listed. The **combining accents** of
+    U+0300 are a measured RANGE (:data:`SEPARATOR_MARKS`), both of whose ends are pinned by marks
+    inside the same block that do not join. Everything else is ENUMERATED in ``EXTRA_KILLERS``: Thai
+    and Lao tone marks, Myanmar dot-below, nukta, the Khmer consonant shifters, Tai Tham's tone
+    signs. Those are not a combining class and no numeric rule picks them out — a Lao tone mark
+    (ccc 122) splits and the Lao vowel sign beside it (ccc 118) does not. What they share is
+    orthographic: a Thai tone mark is written after the whole syllable exactly as a virama is
+    written after the whole cluster, and the vowel signs that do not split are written inside it.
+
+    Every killer stands OUTSIDE the word: `⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩`. The U+0300 block used
+    to be excepted from that — it closed the word AFTER the mark — on the strength of decomposed
+    Latin corpus slices. Those slices do not distinguish the two spellings: they differ only on a
+    host whose whole word is one token, and only against a right neighbour that opens no word.
     """
-    return unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
-
-
-def is_terminal_separator(c: str) -> bool:
-    """A killer that stands outside the word rather than closing it from inside.
-
-    Generic combining accents do satisfy the older factorization test: they end the run after the
-    mark.  They are not terminal orthographic signs, though, and moving them outside the run makes
-    decomposed Latin text systematically too expensive.  FineWeb-2's accent-heavy Latin slices
-    distinguish the spellings directly.  The U+0300 block therefore keeps the measured after-mark
-    boundary; the Brahmic/SEA terminal population uses the separator spelling.
-    """
-    return is_killer(c) and not 0x0300 <= ord(c) <= 0x036F
+    return (unicodedata.combining(c) == 9 or c in EXTRA_KILLERS
+            or bool(SEPARATOR_MARKS.fullmatch(c)))
 
 
 _KILLER = "killer"
@@ -367,32 +311,6 @@ _STRAY_MARK = "stray_mark"
 # Annotation used only while constructing a stream plan. It is removed before the stream reaches
 # the tiler or public API; the corresponding position is forced through the byte floor.
 _FLOOR_G = "\ufdd5"
-
-
-def _guard_floor_marks(body: str, model) -> str:
-    """Annotate word-context mark pieces that byte-price rather than using their own piece.
-
-    One unconditional population lives here: a Syriac host followed by one of
-    ``SYRIAC_FLOOR_MARKS``. The mark has a one-token piece measured on a base the encoder can
-    reach, and on a Syriac host it cannot reach it, so it pays its own UTF-8 bytes.
-
-    The other population — the five ``CONTEXTUAL_MARKS`` pieces, whose price depends on the TILE
-    immediately before the mark — is not annotated here at all, because no string rewrite can see
-    tiles. `engine.tile` holds their eligibility edges; see ``engine._mark_host_tile`` for the
-    measurements. A byte-floored host (`ɔ̃`) falls out of that rule rather than needing this one:
-    the tile before the mark is then a raw byte chunk, which no eligibility admits.
-    """
-    out = []
-    syriac_host = False
-    for ch in body:
-        if unicodedata.category(ch).startswith("M"):
-            if syriac_host and ch in SYRIAC_FLOOR_MARKS:
-                out.append(_FLOOR_G)
-        else:
-            syriac_host = 0x0710 <= ord(ch) <= 0x074F and \
-                           unicodedata.category(ch).startswith("L")
-        out.append(ch)
-    return "".join(out)
 
 
 def _stray_mark(c: str) -> bool:
@@ -419,7 +337,7 @@ def _stray_mark(c: str) -> bool:
     """
     if _syriac_vowel(c):
         return False                   # a baseless Syriac vowel is a word-forming letter instead
-    return unicodedata.combining(c) != 0 and not is_terminal_separator(c)
+    return unicodedata.combining(c) != 0 and not is_killer(c)
 
 
 def _syriac_vowel(c: str) -> bool:
@@ -447,32 +365,6 @@ def _syriac_vowel(c: str) -> bool:
     return o == 0x0711 or 0x0730 <= o <= 0x073F
 
 
-def _ends_legacy_killer_run(body: str) -> bool:
-    """Does ``body`` end in a combining-mark suffix containing an after-mark killer?
-
-    A killer closes the orthographic cluster after the complete mark suffix, not necessarily
-    immediately after its own codepoint. This matters when canonical order puts an ordinary vowel
-    point after the killer: the whole suffix stays attached, and the next letter starts a new run.
-
-    Syriac supplies one host-dependent population. On a Syriac letter, the existing
-    ``CHARGING_MARK`` range closes the run; on a noncomposing Latin host the same marks do not.
-    U+0345 and U+0363–U+036F are outside that measured range and stay ordinary in both hosts.
-    """
-    suffix = []
-    for ch in reversed(body):
-        if not unicodedata.category(ch).startswith("M"):
-            syriac_host = 0x0710 <= ord(ch) <= 0x074F and \
-                           unicodedata.category(ch).startswith("L")
-            if syriac_host:
-                return any(is_killer(mark) and not is_terminal_separator(mark)
-                           or CHARGING_MARK.fullmatch(mark) for mark in suffix)
-            break
-        suffix.append(ch)
-    # Every other script keeps the previously measured immediate-after-mark behavior.
-    ch = body[-1]
-    return is_killer(ch) and not is_terminal_separator(ch)
-
-
 def _runs(norm: str, model) -> list[tuple[str, str]]:
     """The text split into maximal same-class runs, with terminal marks as unmarked separators.
 
@@ -489,32 +381,25 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     if not norm:
         return []
     def run_class(ch: str) -> str:
-        return _KILLER if is_terminal_separator(ch) else classify(ch)
+        return _KILLER if is_killer(ch) else classify(ch)
 
     out, cur, cur_cls = [], norm[0], run_class(norm[0])
     if cur_cls == WORDY and _stray_mark(norm[0]):
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = run_class(ch)
-        legacy_killer = _ends_legacy_killer_run(cur)
         if cur_cls == _KILLER and 0x0740 <= ord(cur[0]) <= 0x074A \
                 and unicodedata.category(ch).startswith("M") and not _syriac_vowel(ch):
-            # A terminal separator starts an unmarked mark run; later combining marks ride that
-            # run rather than opening a stray marked word. NOT a Syriac vowel point, though: a
-            # vowel written after the hard/soft dot (`ܒ݂ܶ`) is a word-forming letter — it opens a
+            # A Syriac dot starts an unmarked mark run; later combining marks ride that run rather
+            # than opening a stray marked word. NOT a Syriac vowel point, though: a vowel written
+            # after the hard/soft dot (`ܒ݂ܶ`) is a word-forming letter — it opens a
             # ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see `_syriac_vowel`).
             cur += ch
-        elif cur_cls == WORDY and legacy_killer and unicodedata.category(ch).startswith("M"):
-            # An after-mark killer remains inside the word, but its boundary lands after the
-            # complete combining suffix. Do not turn a later mark into a stray marked word.
-            cur += ch
         elif cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
-            # Consecutive unattached marks are one regex-style run. A legacy killer still resets
-            # piece eligibility after itself; the stream plan records that inside the run.
+            cur += ch                  # consecutive unattached marks are one regex-style run
+        elif c == cur_cls:
             cur += ch
-        elif c == cur_cls and not legacy_killer:
-            cur += ch
-        elif c == WORDY and _stray_mark(ch) and (cur_cls != WORDY or legacy_killer):
+        elif c == WORDY and _stray_mark(ch) and cur_cls != WORDY:
             out.append((cur_cls, cur))
             cur, cur_cls = ch, _STRAY_MARK
         else:
@@ -707,27 +592,13 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
             bow = "" if _contraction_seam(runs, i) else BOW_G
-            # A word ending in a charging mark writes a SECOND ⟨eow⟩ at a single-space right
-            # border — the border marker punctuation, digit runs and terminal separators all take.
-            # See `_charging_border`; it is what the seam block in `_seam_sub` was standing in for.
-            border = EOW_G if _charging_border(n) and borders_space(i, +1) else ""
-            out.append(pre + bow + _guard_floor_marks(n, model) + EOW_G + border)
+            out.append(pre + bow + n + EOW_G)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken owns an opening boundary even when it is adjacent to a symbol,
-            # digit or punctuation run. A legacy killer at the head instead closes that preceding
-            # run and shares its opening boundary; at the message edge or after whitespace there is
-            # no preceding run to share. The first mark byte-prices, as does every legacy killer in
-            # the run. That rule is stated on the killer itself because NFC canonically reorders
-            # marks: which character follows one in the input is not stable in the marked stream.
-            guarded = ""
-            for j, ch in enumerate(body):
-                if j == 0 or (is_killer(ch) and not is_terminal_separator(ch)):
-                    guarded += _FLOOR_G
-                guarded += ch
-            head_is_legacy_killer = is_killer(body[0]) and not is_terminal_separator(body[0])
-            shares_left_bow = i > 0 and runs[i - 1][0] not in (SPACE, WORDY, _KILLER)
-            bow = "" if head_is_legacy_killer and shares_left_bow else BOW_G
-            out.append(bow + guarded + (EOW_G if borders_space(i, +1) else ""))
+            # digit or punctuation run, and its first mark byte-prices: the same codepoint is a
+            # piece inside a letter run, but here the pretokenizer's letter alternative cannot
+            # claim it.
+            out.append(BOW_G + _FLOOR_G + body + (EOW_G if borders_space(i, +1) else ""))
         elif cls == _KILLER:
             # A terminal separator run takes the same border markers punctuation does. Measured
             # 2026-08-08 on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each
@@ -758,7 +629,7 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
                        + (EOW_G if _digit_eow(body) and borders_space(i, +1) else ""))
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
-    annotated = SEAM_RE.sub(_seam_sub, "".join(out))
+    annotated = SEAM_RE.sub(r"\1" + EOW_G + r"\2" + BOW_G, "".join(out))
     clean, floor_positions = [], set()
     force_next = False
     for ch in annotated:

@@ -76,9 +76,15 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
-def test_generic_combining_accents_close_the_word_after_the_mark(version: float):
-    """A Latin accent is a run terminator, not an orthographic separator like a virama."""
-    assert marked_stream("h\u0301b", version) == "⟨bow⟩h́⟨eow⟩⟨bow⟩b⟨eow⟩"
+def test_generic_combining_accents_stand_outside_the_word(version: float):
+    """A Latin accent is an orthographic separator exactly as a virama is: the word closes BEFORE
+    the mark, so an accented word is two words. See `constants.SEPARATOR_MARKS` — `x q̊5 x` = 14 is
+    the row, against the 15 the accent charges from inside the word."""
+    assert marked_stream("h\u0301b", version) == "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩"
+    assert marked_stream("h\u030ab", version) == "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩"
+    # U+0345 and U+0363-U+036F pin the range's ends from outside it and stay inside the word.
+    assert marked_stream("h\u0345b", version) == "⟨bow⟩hͅb⟨eow⟩"
+    assert marked_stream("h\u0363b", version) == "⟨bow⟩hͣb⟨eow⟩"
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
@@ -105,24 +111,24 @@ def test_syriac_terminal_mark_runs(version: float):
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
-def test_after_mark_killer_closes_after_the_complete_mark_suffix(version: float):
-    """A later vowel remains attached through an after-mark boundary. On a Syriac host the
-    U+0300–U+0362 seam population closes the run; U+0345 and U+0363–U+036F do not."""
+def test_an_accent_separates_a_syriac_word_like_any_other(version: float):
+    """The accents were once read as closing the word AFTER themselves, and one host — Syriac —
+    was excepted from that. Neither survives `x q̊5 x`: the word closes before the mark on every
+    host, and a vowel point written after the accent opens the next word rather than riding the
+    first. U+0345 and U+0363–U+036F stay inside the word here too."""
     overhead = _model(_family(version)).message_overhead
     rows = [
-        ("ܒ̱", "⟨bow⟩ܒ̱⟨eow⟩", 6),
-        ("ܒ̱ܒ", "⟨bow⟩ܒ̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
-        # A word ending in a charging mark takes punctuation's right-hand ⟨eow⟩ at a single-space
-        # border, and the seam then deletes the space — count-identical to the older literal-space
-        # spelling here, which is why the word side could never decide between them. The digit side
-        # can, on this very host: `x ܒ̱ 2 x` = 23 and `x ܒ̱ 文 x` = 23 cost one more than the
-        # literal space charges, while `x ܒ̱ ܒ x` = 24, `x ܒ̱  2 x` = 22 (space run kills the
-        # marker), `x ܒ̱2 x` = 21 and `x ܒ 2 x` = 20 are exact either way. See
-        # `normalize._charging_border`.
-        ("ܒ̱ ܒ", "⟨bow⟩ܒ̱⟨eow⟩⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
-        ("ܒ̱ܶܒ", "⟨bow⟩ܒ̱ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),
-        ("ܒ̣ܒ", "⟨bow⟩ܒ̣⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ̣ܶܒ", "⟨bow⟩ܒ̣ܶ⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 12),
+        ("ܒ̱", "⟨bow⟩ܒ⟨eow⟩̱", 6),
+        ("ܒ̱ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܒ⟨eow⟩", 10),
+        # The separator takes punctuation's right-hand ⟨eow⟩ at a single-space border and the seam
+        # then deletes the space, so this row costs the same as a literal space. The digit side is
+        # what decides: `x ܒ̱ 2 x` = 23 and `x ܒ̱ 文 x` = 23 cost one more than a literal space
+        # charges, while `x ܒ̱ ܒ x` = 24, `x ܒ̱  2 x` = 22 (a space run kills the marker),
+        # `x ܒ̱2 x` = 21 and `x ܒ 2 x` = 20 are exact either way.
+        ("ܒ̱ ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
+        ("ܒ̱ܶܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܶܒ⟨eow⟩", 12),
+        ("ܒ̣ܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩", 10),
+        ("ܒ̣ܶܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܶܒ⟨eow⟩", 12),
         ("ܒͣܒ", "⟨bow⟩ܒͣܒ⟨eow⟩", 8),
     ]
     for text, stream, content in rows:
@@ -130,10 +136,12 @@ def test_after_mark_killer_closes_after_the_complete_mark_suffix(version: float)
         assert token_count(text, version) - overhead == content
 
 
-def test_generic_mark_run_closure_depends_on_a_syriac_host():
-    assert marked_stream("ܒ̣ܒ", 4.7) == "⟨bow⟩ܒ̣⟨eow⟩⟨bow⟩ܒ⟨eow⟩"
-    assert marked_stream("q̣q", 4.7) == "⟨bow⟩q̣q⟨eow⟩"
-    # The circumflex piece is available in the Latin pretoken and byte-priced in the Syriac one.
+def test_the_accent_spelling_does_not_depend_on_the_host():
+    """`q̂q` = 15 and `ܒ̂ܒ` = 21 used to need a Latin mark PIECE plus a Syriac-host exception that
+    byte-priced it. They need neither: no accent but U+0301 is a piece, the two rows differ only by
+    what the host letters cost, and the mark spelling is one rule."""
+    assert marked_stream("ܒ̣ܒ", 4.7) == "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩"
+    assert marked_stream("q̣q", 4.7) == "⟨bow⟩q⟨eow⟩̣⟨bow⟩q⟨eow⟩"
     assert token_count("q̂q", 4.7) == 15
     assert token_count("ܒ̂ܒ", 4.7) == 21
 
