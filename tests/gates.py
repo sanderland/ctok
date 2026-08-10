@@ -110,18 +110,14 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # 249 of 250 since the apostrophe work, against 89.6% for the model before it; v3 has no
-        # held-out sample measured yet. This is the one corpus NOT gated at every document, and the
-        # remaining one is a Swift file of Unicode escapes where a combining mark sits on U+25CC
-        # DOTTED CIRCLE. That is a stream-spelling question, not a missing piece — see LIMITS.md —
-        # so the gate stays a rate until the spelling is settled rather than pretending a threshold
-        # is a target.
+        # FINISHED 2026-08-10, and gated at every document from then: the last failure was a Swift
+        # file of Unicode escapes whose combining marks sit on U+25CC DOTTED CIRCLE, which the §14
+        # accent law settled — a stream-spelling question, exactly as this comment used to predict.
+        # It stayed a rate while that spelling was open, on the principle that a threshold is not a
+        # target; leaving it a rate now would be the opposite mistake, since `exact: 0.99` on 250
+        # documents silently permits the next two regressions. v3 has no held-out sample measured.
         "families": {
-            # `mean` sits at 0.00015 rather than hard against the 0.00009 reading: this corpus has
-            # ONE failing document, so its mean is that document's error alone and a spelling change
-            # anywhere moves it in whole tokens. A margin that tight measures the spelling, not a
-            # regression. The `exact` floor is what actually guards this corpus.
-            "v4.7": {"version": 4.7, "mean": 0.00015, "within1": 0.99, "exact": 0.99},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "multipl_e": {

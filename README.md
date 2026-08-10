@@ -94,19 +94,22 @@ opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening ru
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.187% | 0.098% | 340/501 | 97.8% |
+| UDHR (501 languages) | v3 | 0.096% | 0.061% | 346/501 | 99.0% |
 | UDHR | v4.7 (v5 borrows it) | 0.058% | 0.027% | 474/501 | 99.0% |
 
-**No v4.7 document is over 5% off any more, and one v3 document is** — Maldivian (+6.13%), which
-this campaign did not touch. Tem, the worst document in both families for a month at +6.23% /
-+6.08%, reproduces exactly, and so do Navajo, Lingala and Yoruba, with Shipibo-Conibo at +0.01%
-and Lamnso' at +0.02%: the tone-marked orthographies that used to head this list are gone from it.
-Ten v3 documents and five v4.7 ones remain in the 1–5% band and every one is Brahmic or SEA —
-Thai (+3.96% / +2.66%),
-Thai (2) (+4.33% / +2.38%), Burmese (+4.03% / +2.33%), Mon, Sinhala. Weighted by speakers rather
-than by document the error is 0.058% (v3) and 0.025% (v4.7). What moved was the combining-mark
-spelling: an accent closes its word BEFORE itself rather than after, which is one boundary marker
-per accent across every decomposed and tone-marked orthography in the corpus (LIMITS.md §14).
+**No document in either family is over 5% off any more.** Tem, the worst document in both for a
+month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala and Yoruba, with
+Shipibo-Conibo at +0.01% and Lamnso' at +0.02%: the tone-marked orthographies that used to head
+this list are gone from it. **Maldivian was the last one over 5%, at +6.13%, and it is now exact in
+both families** — five mined Thaana pieces did that, and it is the clearest case in the corpus of a
+held-out document moving because a language was mined on Goldfish rows and never read here.
+
+Five documents in each family remain in the 1–5% band and every one is Brahmic or SEA: Thai
+(+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88%) and Chakma
+(+1.54%). Weighted by speakers rather than by document the error is 0.038% (v3) and 0.024% (v4.7).
+What moved was the combining-mark spelling: an accent closes its word BEFORE itself rather than
+after, which is one boundary marker per accent across every decomposed and tone-marked orthography
+in the corpus (LIMITS.md §14).
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
@@ -124,8 +127,8 @@ decides which candidate gets asked.
 
 15 documents in each family sat over 5% off before the akshara law (a mark that closes its
 orthographic syllable also closes the word, so a conjunct is two words and carries the boundary
-markers that say so); one v3 document does now and no v4.7 one does, and what is left is
-vocabulary rather than structure.
+markers that say so); none does now in either family, and what is left is vocabulary rather than
+structure.
 
 Where that vocabulary is missing was measured rather than guessed, by scoring 350,000 rows across
 the 350 languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`:
