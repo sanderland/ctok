@@ -330,12 +330,13 @@ def is_killer(c: str) -> bool:
     U+0300 are a measured RANGE (:data:`SEPARATOR_MARKS`), both of whose ends are pinned by marks
     inside the same block that do not join, and the accent, tone and annotation marks of the other
     combining blocks are measured RANGES too (:data:`SEPARATOR_ANNOTATIONS`), most of them pinned
-    on both sides by a vowel point or a combining letter that stays inside the word. Everything else is ENUMERATED in ``EXTRA_KILLERS``: Thai
-    and Lao tone marks, Myanmar dot-below, nukta, the Khmer consonant shifters, Tai Tham's tone
-    signs. Those are not a combining class and no numeric rule picks them out — a Lao tone mark
-    (ccc 122) splits and the Lao vowel sign beside it (ccc 118) does not. What they share is
-    orthographic: a Thai tone mark is written after the whole syllable exactly as a virama is
-    written after the whole cluster, and the vowel signs that do not split are written inside it.
+    on both sides by a vowel point or a combining letter that stays inside the word. Everything
+    else is ENUMERATED in ``EXTRA_KILLERS``: Thai and Lao tone marks, Myanmar dot-below, nukta, the
+    Khmer consonant shifters, Tai Tham's tone signs. Those are not a combining class and no numeric
+    rule picks them out — a Lao tone mark (ccc 122) splits and the Lao vowel sign beside it
+    (ccc 118) does not. What they share is orthographic: a Thai tone mark is written after the
+    whole syllable exactly as a virama is written after the whole cluster, and the vowel signs that
+    do not split are written inside it.
 
     Every killer stands OUTSIDE the word: `⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩`. The U+0300 block used
     to be excepted from that — it closed the word AFTER the mark — on the strength of decomposed
