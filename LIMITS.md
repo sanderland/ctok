@@ -1016,11 +1016,17 @@ That is exactly the range the retired `_charging_border` enumerated. Its populat
 its reading was one step late: the extra ⟨eow⟩ it wrote at a word-final space border is the ⟨eow⟩
 the word already had, one character earlier.
 
-Asked of the other 418 combining marks of the BMP, on in-script one-token hosts as well as `q`, the
+Asked of 418 more combining marks of the BMP, on in-script one-token hosts as well as `q`, the
 answer is orthographic and not numeric — the same distinction `is_killer` already draws for Thai:
 accents, tone marks, cantillation and annotation stand outside the word; vowel points and combining
 LETTERS stay inside it. `гдⷭ҇и` carries both in one word: U+0487 pokrytie separates, and the
 combining Cyrillic letter U+2DED beside it does not.
+
+A second and third pass took the blocks the first one missed, and they were found the right way
+round: by scanning every cached probe that still under-counted afterwards, which named N'Ko,
+Mandaic and two stretches of Arabic Extended-B. 45 more marks, same two frames, same answer.
+That loop — implement, re-scan the whole probe cache, let the residue name the next block — is
+what a sweep should be steered by, and it is cheaper than guessing which block to buy next.
 
 ### 14.3 What that made true, and what it made false
 
