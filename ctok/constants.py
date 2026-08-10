@@ -252,8 +252,16 @@ SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
 # against the niqqud 05B0–05C7. Where a range abuts unassigned codepoints or non-marks instead
 # (0483–0489, 135D–135F, 20D0–20F0, FE20–FE2F, the Vedic tones) the block edge is all there is,
 # and the range is written to the assigned marks that were actually probed.
+#
+# A second pass took the blocks the first one missed, found by scanning every cached probe that
+# still under-counted after it: the N'Ko tone marks U+07EB–U+07F3 and dantayalan U+07FD, the three
+# Mandaic marks U+0859–U+085B, and the Arabic Extended-B annotations U+0898–U+089F. All 21 read
+# "closes before" on `q` and `б` in both families, out of script — none of those three scripts has
+# a letter whose whole word is one token, so the in-script confirmation the other blocks got is not
+# available here.
 SEPARATOR_ANNOTATIONS = re.compile(
     "[\u0483-\u0489\u0591-\u05af\u0658\u06df-\u06e0\u06ea-\u06ec"
+    "\u07eb-\u07f3\u07fd\u0859-\u085b\u0898-\u089f"
     "\u0818-\u0819\u082d\u08ea-\u08ef\u135d-\u135f"
     "\u1ab0-\u1abe\u1ac1-\u1acb\u1cd0-\u1ce8\u1ced\u1cf4\u1cf8-\u1cf9"
     "\u1dc0-\u1dd2\u1df5-\u1dff\u20d0-\u20f0\ua66f-\ua672\ua67c-\ua67d"
