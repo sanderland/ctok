@@ -346,7 +346,7 @@ the 24 word-closing marks read exactly 3. Read as refutations, they made every v
 look false. Leave-one-out on the mining corpus is what exposed it: four of them — Tamil, Sinhala,
 Malayalam and Myanmar — were worth **21,580 tokens**, against 129 for all the other v4.7
 refutations combined. Hence two kinds sharing one probe string, `mark_mid` (overhead 10) and
-`mark_sep` (overhead 12), chosen by `is_terminal_separator` rather than by which number comes out.
+`mark_sep` (overhead 12), chosen by `is_killer` rather than by which number comes out.
 
 The outcome, with every record re-asked on a fixed template:
 
@@ -494,7 +494,7 @@ Two instrument notes, both learned by getting it wrong here first:
 
 **Measured and implemented 2026-08-08.** The pieces were compensating for a class of character the
 stream builder never gave boundary markers to. ZWSP is category **Cf**, not a terminal separator —
-`is_terminal_separator(U+200B)` is False — and it reaches `classify` with no branch of its own, so
+`is_killer(U+200B)` is False — and it reaches `classify` with no branch of its own, so
 it falls through to HARD, which writes no markers at all. It is also the word separator of Khmer and
 Lao, which is why those two carried the residual.
 

@@ -213,7 +213,7 @@ frame existed all along:
 | `mark_mid` | `.ᛒXᛒ.` | 10 | a mark that stays inside its word |
 | `mark_sep` | `.ᛒXᛒ.` | 12 | a mark that CLOSES its word, so the probe also gains an `⟨eow⟩` and a `⟨bow⟩` |
 
-Which of the two applies is decided by `is_terminal_separator`, a property of the piece, never by
+Which of the two applies is decided by `is_killer`, a property of the piece, never by
 which number comes out. Both were controlled before anything was judged: fifteen known single tokens
 must read 1 and spans nothing merges must read more. Three further frames were built and **discarded
 because they failed that control** — `ᛒ` is not itself a single token, which cancels in the

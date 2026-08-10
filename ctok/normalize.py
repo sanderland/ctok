@@ -191,13 +191,18 @@ def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
 def _takes_right_border(cls: str, body: str) -> bool:
     """Does this run write a boundary marker of its own on its RIGHT edge?
 
-    The four populations that do: punctuation, symbols and format characters
+    The three populations that do: punctuation, symbols and format characters
     (:func:`_marks_like_punct`'s three predicates and the ``PUNCT`` class), a terminal separator
-    run, an unattached mark run, and a digit run whose LAST character is a border digit
-    (:func:`_digit_eow`). They are the runs the pretokenizer's catch-all alternative owns rather
-    than its letter or number alternative, and they behave alike everywhere in this module.
+    run, and a digit run whose LAST character is a border digit (:func:`_digit_eow`). They are the
+    runs the pretokenizer's catch-all alternative owns rather than its letter or number
+    alternative, and they behave alike everywhere in this module.
+
+    An unattached mark run is NOT one of them. It writes an ⟨eow⟩ of its own, but it is a word
+    that writes it (see the ``_STRAY_MARK`` branch of :func:`stream_plan`), and a word lets the
+    contraction seam through: `x ͣ's x` `x ֿ's x` `x ͅ's x` `x ͣ're x` `x a̱ͅ's x` all read one
+    OVER when it is counted here, in both families, against `x ͣ'zz x` and `x ͣ'v x` exact.
     """
-    return (cls in (PUNCT, _KILLER, _STRAY_MARK)
+    return (cls in (PUNCT, _KILLER)
             or _is_punct_text(body) or _is_symbol_text(body) or _is_format_text(body)
             or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
 
@@ -221,7 +226,7 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     pretoken alternative owns. Measured 2026-08-10, one token under without it, in both families:
 
         x a̱'s x   x a्'s x   x a่'s x   x a݀'s x       a terminal separator run
-        x ̱'re x   x .̱'re x   x 5̱'re x   x a̱ͅ's x     a separator or unattached mark run
+        x ̱'re x   x .̱'re x   x 5̱'re x                 a separator run with no letter before it
         x ½'s x   x ٥'s x   x a②'s x                  a border-digit run
         x a←'s x   x a​'s x                            a symbol run, a format run (U+200B)
 
