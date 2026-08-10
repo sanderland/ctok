@@ -1069,7 +1069,7 @@ contained them.
 | | v3 exact | over | under | | v4.7 exact | over | under |
 |---|---:|---:|---:|---|---:|---:|---:|
 | Goldfish + Glot500 + FineWeb/Stack/github-code, before | 280,262 | 49,283 | 6 | | 288,392 | 40,598 | 8 |
-| after | 280,271 | 49,262 | **5** | | 289,105 | 38,399 | **1** |
+| after | 280,269 | 49,278 | **5** | | 289,088 | 38,442 | **1** |
 
 **Over-count fell with under-count, by 2,199 tokens on v4.7**, which is what distinguishes a
 misplaced boundary from a missing piece: it was wrong in both directions at once. The languages
@@ -1095,18 +1095,23 @@ rows sat under-counting through three campaigns without appearing in a report:
 | v3 | texts | exact | over | under |
 |---|---:|---:|---:|---:|
 | before | 405,312 | 379,241 | 95,041 in 25,246 rows | 885 in 825 rows |
-| after | 413,536 | 396,828 | 85,944 in 16,558 rows | **208 in 150 rows** |
+| after | 413,541 | 396,827 | 85,967 in 16,563 rows | **209 in 151 rows** |
 
 | v4.7 | texts | exact | over | under |
 |---|---:|---:|---:|---:|
 | before | 992,242 | 927,998 | 120,748 in 59,695 rows | 5,206 in 4,549 rows |
-| after | SCANV47 |
+| after | 996,732 | 960,505 | 88,572 in 35,842 rows | **489 in 385 rows** |
 
-**685 of the 825 v3 under-counting rows were fixed and none regressed.** Ten rows are in the after
-list and not the before list; all ten are probes this campaign bought after the before-scan ran,
-and the shipped model at the start of the day under-counted every one of them by the same amount —
-six dotted-İ rows of §12.2, two Thai-phinthu sweep rows, and the Syriac `x ݀ͅ x` of 14.6. The
-after denominator is larger for the same reason: about 8,000 probes were bought during the day.
+**685 of the 825 v3 under-counting rows were fixed and none regressed.** Eleven rows are in the
+after list and not the before list; every one is a probe this campaign bought after the before-scan
+had already run, and the model at the start of the day under-counted every one of them by the same
+amount — six dotted-İ rows of §12.2, two Thai-phinthu sweep rows, `x ͣabc x`, and the Syriac
+`x ݀ͅ x` of 14.6. The after denominator is larger for the same reason: about 8,000 probes were
+bought during the day. v4.7 reads the same way: 4,169 of its 4,549 under rows fixed, five in the
+after list and not the before list, and the pre-campaign model under-counted all five. That check —
+re-price every new under row against the OLD model — is what
+separates "a probe we had not bought" from "a row we broke", and it is the check that caught the
+one place this campaign did break something (14.4).
 
 ### 14.6 What is still open
 

@@ -152,8 +152,11 @@ piece was missing.
 **Under-count is down to one token, and it was a word boundary in the wrong place.** Across the
 three replay corpora — Goldfish, Glot500 and 242,188 rows of FineWeb/Stack/github-code — v4.7
 under-count stands at **1 token in 302,418 rows**, from 8 on 2026-08-09, and v3 at 5 in 286,856,
-from 6. Over-count fell with it, by 2,199 tokens on v4.7, which is the unusual part: a boundary the
-model was writing one character too late is a defect in both directions at once.
+from 6. Over-count fell with it, by 2,156 tokens on v4.7, which is the unusual part: a boundary the
+model was writing one character too late is a defect in both directions at once. Read over every
+text ever measured against either family — a million rows, probe grids included, which is the
+denominator the old figure was never taken over — under-count goes 5,206 → 489 on v4.7 and
+885 → 209 on v3, and 4,169 and 685 of those rows respectively were fixed with none broken.
 
 **A combining accent closes its word BEFORE itself, exactly as a virama does** (LIMITS.md §14).
 Nine members of the U+0300 block used to close it after the mark and five others carried a
