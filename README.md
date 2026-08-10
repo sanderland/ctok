@@ -106,7 +106,7 @@ The last five over 1% were the same five in both families and they now reproduce
 Chakma (+1.54% in both). That they were *identical* across two vocabularies of 48k and 15k pieces
 is what said most of it could not be vocabulary, and it was not: **an astral run takes no border
 marker**, the exclusion an emoji already had and that the digit and terminal-separator branches
-never got (LIMITS.md §16). All 30 astral viramas Unicode has and 72 astral digits from its 56
+never got (LIMITS.md §17). All 30 astral viramas Unicode has and 72 astral digits from its 56
 astral number blocks read exactly two spurious markers, in both families, with BMP controls
 unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to mine, went +512 → 0
 on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
@@ -200,11 +200,10 @@ The gates moved this time, which they usually do not: UDHR 317 → 338 exact on 
 v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
 that corpus is 250/250.
 
-**Every under-counting text in the cache is now accounted for, and the residue is one probe per
-family** (LIMITS.md §15). The whole cache — every text ever measured against either model, probe
-grids included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **one
-token in one text on each**, the same recorded stray-mark boundary shape on both sides. What that
-took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
+**Every under-counting text in the cache is now accounted for, and there is no residue**
+(LIMITS.md §15, §16). The whole cache — every text ever measured against either model, probe grids
+included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **zero on both
+sides**, over 505,886 and 1,009,746 texts. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
 never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
 Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
 caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`); §12.2's dotted İ, which was
@@ -214,8 +213,19 @@ predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `�
 carries what is left on the over side, and §15.5 reports the one trade: 30 documents now read a
 small over-count that their under-count had been masking.
 
+The last row on each side was one shape, and §15 filed it as undecidable: a word after an
+unattached mark run reads one over on some right-hand words and one under on others, and neither
+spelling of that boundary reaches both. **It was two errors at one seam, and the frame that
+separates them varies the right-hand word** (LIMITS.md §16), because the mark's own price then
+cancels: the severed spelling's error moves with the word and the fused spelling's cannot move at
+all. It does not — for all 22 marks swept, in both families. A baseless mark and the letters after
+it are ONE word, the mark is its head, and a head that is a mark takes no case marker; the raw byte
+floor that used to price that head was standing in for the ⟨bow⟩ this fixes, and is gone. Under-count
+**0 in both families**, over-count down 462 tokens on v3 and 4,581 on v4.7 in the same change, with
+no cached row in either family made worse.
+
 **The last five UDHR documents over 1% are exact, and one of them had no corpus to mine**
-(LIMITS.md §16). Thai, Thai (2), Burmese, Mon and Chakma read +1.5% to +4.3%, the same five in
+(LIMITS.md §17). Thai, Thai (2), Burmese, Mon and Chakma read +1.5% to +4.3%, the same five in
 both families — and *identical* across two vocabularies of 48k and 15k pieces, which is what said
 the bulk of it was structure. It was: the astral border-marker law above, worth +512 on Chakma,
 +362 on Burmese and +315 on Mon by itself. The Myanmar asat is the fused `K⟨eow⟩` piece §7
@@ -238,14 +248,14 @@ class of run after another, is where most of this reconstruction's errors have l
 | run | `⟨bow⟩` on its left | `⟨eow⟩` on its right |
 |---|---|---|
 | **word** — letters and the marks inside them | always, unless a contraction apostrophe already opened it | always |
-| **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a letter follows, which continues that word |
+| **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a LETTER follows, which is not the next word but the rest of this one — it writes no `⟨bow⟩` either |
 | **accent, virama, tone mark** — `is_killer`, the marks that stand outside the word | only against a single space, and only if BMP | only against a single space, and only if BMP |
 | **punctuation, symbols, format characters** — including ZWSP and ZWJ | only against a single space, not where it opens a word, and only if BMP | only against a single space, and only if BMP |
 | **digit run** | only against a single space, and only if the run's FIRST character is a BMP non-ASCII digit | only against a single space, and only if its LAST character is |
 | **Han, Hangul, astral, whitespace** | never | never |
 
 **Nothing astral takes a marker**, whatever its category — that is one law with four discoveries,
-and the last two of them were the whole of the Chakma document (LIMITS.md §16). An emoji was known
+and the last two of them were the whole of the Chakma document (LIMITS.md §17). An emoji was known
 not to; so are astral punctuation and format characters; and as of 2026-08-10 so are all 30 astral
 viramas and every astral digit, measured exhaustively over both populations in both families.
 

@@ -104,7 +104,7 @@ def classify(c: str) -> str:
     return HARD
 
 
-def mark_case(span: str, allcaps_min: int | None = 4) -> str:
+def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False) -> str:
     """Cased span → the marked form the tiler consumes.
 
     A case marker fires only on a WHOLE span: a pure all-caps span of length >= ``allcaps_min``
@@ -138,7 +138,19 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
     `HNovunİ` and `hnovunİ` are not title-case, so the piece never budged there. İ at the span
     HEAD still blocks (⟨shift⟩ asserts a lowered first letter, which İ cannot supply), and ẞ
     measured literal in every position and stays an unconditional block.
+
+    **``head_mark`` — the span is the tail of a word an unattached mark run opened, so its head is
+    that mark and NEITHER marker can assert what it asserts.** The span is spelled literally.
+    Measured 2026-08-10 over 57 rows per family, on three marks (U+0363, U+05B1, U+2DE0):
+    ⟨shift⟩ kept reads +1 on `x ͣThe x` = 13/18, `x ͣJohn x` = 14/19, `x ͣHello x` = 14/18,
+    `x ͣXyz x`, `ͣThe x`, `!ͣThe x`, `x ͣThe`, `x ͣͣThe x`; ⟨caps⟩ kept reads −2 on
+    `x ͣHELLO x` = 17, −4 on `x ͣЖЖЖЖ x` = 21 and −5 on `x ͣЖЖЖЖЖ x` = 23 (v3, where ⟨caps⟩
+    exists at all). Literal is exact on all 57 in both families, including the rows where the
+    spellings coincide and settle nothing — `x ͣABCD x` `x ͣPARIS x` `x ͣabcd x` `x ͣАбв x` —
+    and the unfused controls `x The x` `x Abc x` are untouched.
     """
+    if head_mark:
+        return span
     if "ẞ" in span:
         return span
     if "İ" in span:
@@ -292,7 +304,7 @@ def _takes_right_border(cls: str, body: str) -> bool:
     alternative, and they behave alike everywhere in this module.
 
     An unattached mark run is NOT one of them. It writes an ⟨eow⟩ of its own, but it is a word
-    that writes it (see the ``_STRAY_MARK`` branch of :func:`stream_plan`), and a word lets the
+    that writes it (see the ``_STRAY_MARK`` branch of :func:`stream_norm`), and a word lets the
     contraction seam through: `x ͣ's x` `x ֿ's x` `x ͅ's x` `x ͣ're x` `x a̱ͅ's x` all read one
     OVER when it is counted here, in both families, against `x ͣ'zz x` and `x ͣ'v x` exact.
     """
@@ -499,9 +511,6 @@ def is_killer(c: str) -> bool:
 
 _KILLER = "killer"
 _STRAY_MARK = "stray_mark"
-# Annotation used only while constructing a stream plan. It is removed before the stream reaches
-# the tiler or public API; the corresponding position is forced through the byte floor.
-_FLOOR_G = "\ufdd5"
 
 
 def _stray_mark(c: str) -> bool:
@@ -525,6 +534,12 @@ def _stray_mark(c: str) -> bool:
     letter, and it is off by a factor of 24: marks manifestly ARE letters when they follow one, and
     treating them as punctuation shatters every accented word. The distinction this predicate draws
     is the only one the corpora support.
+
+    Only a BMP mark reaches this branch: an astral one is HARD and takes no word model at all
+    (:func:`is_hard_cp`), and a separator is a killer. Of the 2,435 cached `<mark>ꝛ` rows exactly
+    243 are stray-mark runs, every one of them BMP; the five marks §14.4 cited against dropping the
+    letter's ⟨bow⟩ — U+1BE6, U+2CEF, U+302A, U+3099, U+A8E0 — became ``SEPARATOR_ANNOTATIONS`` in
+    §15's fifth pass and have not been in this branch since.
     """
     if _syriac_vowel(c):
         return False                   # a baseless Syriac vowel is a word-forming letter instead
@@ -717,16 +732,12 @@ def stripped_head(text: str) -> bool:
     return bool(STRIP_CONTROL.match(t) or STRIP_PRIVATE.match(t))
 
 
-def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, frozenset[int]]:
-    """The marked stream plus positions whose character must use the raw byte floor.
+def stream_norm(norm: str, model, *, head_stripped: bool = False) -> str:
+    """The marked stream over already-normalized text.
 
-    A bare combining-mark piece is measured inside a letter run. The first mark of an unattached
-    mark run is a different pretoken position and does not get to use that word-context piece.
-    ``floor_positions`` carries exactly that distinction without changing the public stream text.
-
-    This is :func:`stream` over already-normalized text. It is split out so a document is NFC-folded
-    once and the caller can read the content-final newline run — which ``rstrip`` below drops — off
-    the same string it streams (see ``engine.frame_tail``).
+    This is :func:`stream` over text the caller has already folded. It is split out so a document
+    is NFC-folded once and the caller can read the content-final newline run — which ``rstrip``
+    below drops — off the same string it streams (see ``engine.frame_tail``).
     """
     # The frame's tail, for a family whose frame HAS one: `engine.tile` reads the run off the same
     # string before dropping it here. A "free" family is stripped on the raw text instead (see
@@ -743,7 +754,7 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
         norm = norm[1:]
     runs = _runs(norm, model)
     if not runs:
-        return "", frozenset()
+        return ""
     caps = model.allcaps_min
     n_runs = len(runs)
 
@@ -791,28 +802,50 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:
             # A wordy span is flanked on both sides, always — except where a contraction apostrophe
-            # is already its opening boundary (see `_contraction_seam`).
-            n = mark_case(body, caps)
+            # is already its opening boundary (see `_contraction_seam`), or where an unattached mark
+            # run in front of it already opened this very word (the `_STRAY_MARK` branch below).
+            # In that second case the span's head is the MARK, not this letter, which is why the
+            # case markers go with it (`mark_case(head_mark=...)`).
+            fused = bool(i) and runs[i - 1][0] == _STRAY_MARK
+            n = mark_case(body, caps, head_mark=fused)
             pre = ""
             while n[:1] in (SHIFT_G, CAPS_G):     # case markers precede ⟨bow⟩ in the file's spelling
                 pre, n = pre + n[0], n[1:]
-            bow = "" if _contraction_seam(runs, i) else BOW_G
+            bow = "" if (fused or _contraction_seam(runs, i)) else BOW_G
             out.append(pre + bow + n + EOW_G)
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken is a WORD: ⟨bow⟩ on the left even when it is adjacent to a
             # symbol, digit or punctuation run, and ⟨eow⟩ on the right against everything except a
-            # LETTER, which continues the same word. Its first mark byte-prices: the same codepoint
-            # is a piece inside a letter run, but here the pretokenizer's letter alternative cannot
-            # claim it.
+            # LETTER — which does not merely continue the word, it IS the rest of it. The mark run
+            # writes no ⟨eow⟩ and the letter writes no ⟨bow⟩ of its own (the WORDY branch above):
+            # `⟨bow⟩M abc⟨eow⟩`, one word, exactly as `_syriac_vowel` and U+0CF3 already fuse.
             #
-            # The letter still writes its own ⟨bow⟩, and that is measured rather than assumed: the
-            # 38 `<mark>ꝛ` rows of the cached probe grid — a baseless mark opening the message in
-            # front of a three-byte letter with no `ꝛ⟨eow⟩` piece — read one under when the ⟨bow⟩
-            # is dropped, and are the only place in the grid where the two spellings differ, since
-            # `⟨bow⟩x⟨eow⟩` costs what `x⟨eow⟩` costs. `x ͣก x` and `x ͣب x` read one OVER with the
-            # ⟨bow⟩ written and are recorded in LIMITS §14.6 rather than fitted.
+            # Measured 2026-08-10, on the frame that cancels the mark's own price. The two
+            # spellings differ ONLY by the word's ⟨bow⟩, so across right-hand words W the severed
+            # error moves with `cost(⟨bow⟩W⟨eow⟩) - cost(W⟨eow⟩)` and the fused error cannot move
+            # at all — whatever the mark costs, it costs the same in every column:
+            #
+            #     W          x     abc    the     ก      ꝛ     ся        (`x ͣW x`, v3 / v4.7)
+            #     severed    0/0  -1/0    0/-1   +1/+1  +1/+1  +1/+1
+            #     fused      0/0   0/0    0/0     0/0    0/0    0/0
+            #
+            # 22 marks spanning the combining Latin/Cyrillic letters, U+0345, the Hebrew points,
+            # the Arabic harakat and annotations, Samaritan, Thaana, Tibetan, Thai and Buginese,
+            # each on those six words in two frames (`x MW x`, `!MW x`) and both families: the
+            # severed spelling reads a SPREAD of −1/0/+1 for every mark and the fused spelling a
+            # constant, never the other way round. `x ͣabc x` = 14 on v3 and `x ͣthe x` = 18 on
+            # v4.7 — the last two under-counting texts in the cache — are two cells of it, and
+            # §14.6's `x ͣก x` `x ͣب x` over-counts are two more.
+            #
+            # The run head does NOT byte-price. That clause was standing in for this boundary: with
+            # the word's ⟨bow⟩ wrongly written, every mark that owns a unit piece read one under,
+            # and forcing the raw floor cancelled it. Separated, the floor is a constant over-charge
+            # on exactly those marks — U+064F U+0E38 U+05B0 +1 and U+0F72 U+064B +1/+2 in all nine
+            # frames of the head grid, exact without it, with U+0363 U+05B1 U+2DE0 U+0670 U+0EB8
+            # unmoved either way. That closes LIMITS §14.6's "three marks over-priced at a stray
+            # run head by a constant"; the marks reach their piece here as anywhere else.
             letter_follows = i + 1 < n_runs and runs[i + 1][0] == WORDY
-            out.append(BOW_G + _FLOOR_G + body + ("" if letter_follows else EOW_G))
+            out.append(BOW_G + body + ("" if letter_follows else EOW_G))
         elif cls == _KILLER:
             # A terminal separator run takes the same border markers punctuation does. Measured
             # 2026-08-08 on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each
@@ -846,21 +879,4 @@ def stream_plan(norm: str, model, *, head_stripped: bool = False) -> tuple[str, 
                        + (EOW_G if _digit_eow(body) and borders_space(i, +1) else ""))
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
-    annotated = SEAM_RE.sub(r"\1" + EOW_G + r"\2" + BOW_G, "".join(out))
-    clean, floor_positions = [], set()
-    force_next = False
-    for ch in annotated:
-        if ch == _FLOOR_G:
-            force_next = True
-            continue
-        if force_next:
-            floor_positions.add(len(clean))
-            force_next = False
-        clean.append(ch)
-    assert not force_next
-    return "".join(clean), frozenset(floor_positions)
-
-
-def stream_norm(norm: str, model, *, head_stripped: bool = False) -> str:
-    """The public marked stream over normalized text; floor annotations stay internal to tiling."""
-    return stream_plan(norm, model, head_stripped=head_stripped)[0]
+    return SEAM_RE.sub(r"\1" + EOW_G + r"\2" + BOW_G, "".join(out))

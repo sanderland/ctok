@@ -173,8 +173,9 @@ class TokenizerModel:
                             if len(c) == 1 and c not in MARKER_GLYPHS}
         self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
         # The byte prefixes alone, without whole-character vocabulary pieces folded into the floor.
-        # Stray combining-mark run heads use this: the same codepoint is a piece inside a letter
-        # run, but is byte-priced where the pretokenizer's letter alternative cannot claim it.
+        # The contextual dotted İ uses this: the character IS a unit piece, so the ordinary floor
+        # would hand it back the very token that position was measured NOT to reach
+        # (`engine._dotted_host_blocked`).
         self.raw_bytes = ByteFloor(tokens["bytes_fallback"])
         self.vocab, self.max_piece_len = build_vocab(pieces, tokens)
 
