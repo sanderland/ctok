@@ -188,6 +188,20 @@ def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
     return runs[i][1] == "'" and i + 1 < len(runs) and runs[i + 1][0] == WORDY
 
 
+def _takes_right_border(cls: str, body: str) -> bool:
+    """Does this run write a boundary marker of its own on its RIGHT edge?
+
+    The four populations that do: punctuation, symbols and format characters
+    (:func:`_marks_like_punct`'s three predicates and the ``PUNCT`` class), a terminal separator
+    run, an unattached mark run, and a digit run whose LAST character is a border digit
+    (:func:`_digit_eow`). They are the runs the pretokenizer's catch-all alternative owns rather
+    than its letter or number alternative, and they behave alike everywhere in this module.
+    """
+    return (cls in (PUNCT, _KILLER, _STRAY_MARK)
+            or _is_punct_text(body) or _is_symbol_text(body) or _is_format_text(body)
+            or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
+
+
 def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     """Does a lone apostrophe immediately left of wordy run ``i`` supply that word's ⟨bow⟩?
 
@@ -196,17 +210,40 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     for the boundary reads 4. It is the vocabulary that then decides whether a piece swallows the
     pair (`'s⟨eow⟩` does, at 1; `'ll⟨eow⟩` in this family does not, at 2).
 
-    Two conditions, both measured. The suffix must be in ``CONTRACTION_SUFFIXES``, whole-word and
-    lowercase. And the apostrophe must be a punct run of its OWN: one that follows other punctuation
+    Three conditions, all measured. The suffix must be in ``CONTRACTION_SUFFIXES``, whole-word and
+    lowercase. The apostrophe must be a punct run of its OWN: one that follows other punctuation
     belongs to that run and reaches the word with nothing — `}'s` = 3, `.'s.` = 4, `.'ve.` = 5,
-    `a)'s b` = 5, `.'ll.` = 5 are each one more than the seam allows. A letter, a digit, a space run
-    or the message edge on the left all let it through: `f's` = 2, `1'll` = 4, `a  'll b` = 5.
+    `a)'s b` = 5, `.'ll.` = 5 are each one more than the seam allows.
+
+    And the run on the far side of that apostrophe must not write a right-hand border marker of
+    its own (:func:`_takes_right_border`). That third condition began as "not punctuation", which
+    the second one already covers, and the population is wider: it is every run the catch-all
+    pretoken alternative owns. Measured 2026-08-10, one token under without it, in both families:
+
+        x a̱'s x   x a्'s x   x a่'s x   x a݀'s x       a terminal separator run
+        x ̱'re x   x .̱'re x   x 5̱'re x   x a̱ͅ's x     a separator or unattached mark run
+        x ½'s x   x ٥'s x   x a②'s x                  a border-digit run
+        x a←'s x   x a​'s x                            a symbol run, a format run (U+200B)
+
+    uniformly over all seven v3 suffixes and all four v4.7 ones (`x a̱'ve x` = 19 on v4.7 reads two
+    under, since `'ve⟨eow⟩` is a piece there and the split spelling pays three tokens for it).
+    Controls exact: `x a's x` `x 5's x` `x 文's x` `x 한's x` `x あ's x` `x Ⅷ's x` `x 55's x`
+    `x aͅ's x` `x aͣ's x` (marks that stay inside the word), `x ٥5's x` (a digit run ENDING in
+    ASCII writes no ⟨eow⟩, the same last-character test `_digit_eow` has, against `x 5٥'s x`
+    which does and blocks), `x a̱ 're x` and `x a̱  're x` (a space run between, which restores
+    it), `x a̱''re x` (not a lone apostrophe), and `x a̱'v x` `x a̱'e x` `x a̱'vez x` `x a̱'zz x`
+    (suffixes outside the contraction set, which never used the seam).
+
+    A letter, an ASCII digit, an ideograph, a space run or the message edge on the left all let it
+    through: `f's` = 2, `1'll` = 4, `a  'll b` = 5.
     """
     if runs[i][1] not in CONTRACTION_SUFFIXES or i == 0:
         return False
     prev_cls, prev_body = runs[i - 1]
     # A punct run is maximal, so a run that IS the apostrophe cannot have punctuation to its left.
-    return prev_cls == PUNCT and prev_body == "'"
+    if prev_cls != PUNCT or prev_body != "'":
+        return False
+    return i < 2 or not _takes_right_border(*runs[i - 2])
 
 
 def _is_nd_run(body: str) -> bool:
