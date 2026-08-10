@@ -500,14 +500,16 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = run_class(ch)
-        if cur_cls == _KILLER and 0x0740 <= ord(cur[0]) <= 0x074A \
-                and unicodedata.category(ch).startswith("M") and not _syriac_vowel(ch):
-            # A Syriac dot starts an unmarked mark run; later combining marks ride that run rather
-            # than opening a stray marked word. NOT a Syriac vowel point, though: a vowel written
-            # after the hard/soft dot (`ܒ݂ܶ`) is a word-forming letter — it opens a
-            # ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see `_syriac_vowel`).
-            cur += ch
-        elif cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
+        # A Syriac-dot absorb clause stood here: a non-vowel combining mark after U+0740–U+074A
+        # rode the killer run instead of opening a stray word. It predated §14 — its one motivating
+        # row, `x ݂́ܒ x`, has the ACUTE as the rider, and the acute has been a killer in its own
+        # right since the accent sweep, joining the run with no clause needed. For every rider the
+        # clause still touched it was one token UNDER: the stray-word spelling is exact on
+        # `x ݀ͅ x` = 16/20 and on ten bought predictions in both families — `x ݀ͣ x` `x ٰ݀ x`
+        # `݀ͅ` at message end, `x ݀ͅ 5`, the double rider `x ݀ͅͅ x`, `x ݀ͅa x` (a letter
+        # continues the stray word), `5݀ͅ5` — with `x ݂́ܒ x` and the vowel row `x ݂ܶ x` exact as
+        # controls. So the clause is gone rather than narrowed.
+        if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
             cur += ch                  # consecutive unattached marks are one regex-style run
         elif c == cur_cls:
             cur += ch
