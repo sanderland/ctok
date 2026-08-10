@@ -158,9 +158,10 @@ def _dotted_host_blocked(seg: str) -> bool:
     `DİN` `x DİREKTOR x` `TƏSDİQLƏMİSİNİZ` exact), word-final after a lowercase host (`aİ` `xİ`
     `x nİ x` `x dİ x` exact), after a bare uppercase mid-word tile (`RPİ` = 15 exact), after
     `⟨bow⟩İ` itself (`x İİ x` = 16 exact — İ is uppercase but not ASCII), and after a markerless
-    multi-letter tile (`xalqlarınİ` `x novunİ x` exact). `x Hüseynovunİ x` = 22 stays one under
-    and is reported in LIMITS.md: `(un)` is the same tile `x novunİ x` prices the piece after, so
-    no tile rule separates them out of our vocabulary.
+    multi-letter tile (`xalqlarınİ` `x novunİ x` exact). §12.2's `x Hüseynovunİ x` family, which
+    this rule could never reach, was never a tile question: those words are title-case, take
+    ⟨shift⟩ with the İ literal (see ``normalize.mark_case``), and stopped streaming through this
+    code path at all.
     """
     return seg[0] in (BOW_G, SHIFT_G, CAPS_G) and seg[-1].isascii() and seg[-1].isupper()
 

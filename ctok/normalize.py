@@ -111,13 +111,47 @@ def mark_case(span: str, allcaps_min: int | None = 4) -> str:
     becomes ⟨caps⟩ + lowercase, a pure title-case span becomes ⟨shift⟩ + lowercase. Everything
     else — internal, final or mixed capitals, and short all-caps runs — stays literal, so
     ``GaN``/``WiFi``/``QQ`` keep their bytes. ``allcaps_min=None`` disables ⟨caps⟩ (v4.7).
+
+    **A caseless letter anywhere in the span blocks ⟨caps⟩ — and only ⟨caps⟩.** ``str.isupper``
+    is True for ``ヲBUTTヲ`` — katakana has no case, so "all cased letters are upper" holds — and
+    the ⟨caps⟩ the old test wrote there is one to three tokens cheaper than the literal spelling
+    the oracle uses. Measured 2026-08-10 on `.ヲBUTTヲ.` = 19 and its six grid mates, and on the
+    corpus rows that led there (`அறிவியலNATIONAL`, `ロデオFUCK`, `BODYの`, `परिएाजनाÓ` — 36 texts
+    across Tamil, Japanese and Hindi documents); confirmed against bought predictions in both
+    families (`x ロデオFUCK x` `x BODYの x` `x アBUTT x` `x BUTTア x` `x அறிவியலNATIONAL x`
+    literal, `x BUTT x` exact as control). ⟨shift⟩ is NOT blocked, and extending the block to it
+    was tried and caught by the full-cache re-scan before it shipped: a title-case head with a
+    caseless tail keeps its marker — `.Collectionヲ.` `.Ghostヲ.` and eighteen more `bow`-template
+    witnesses read ±1 both ways as literal, and the Assamese corpus spans `Gৰ` and `Gলৈকে`
+    (one Latin capital opening a Bengali word) read −2. The block is per LETTER (category L
+    without a case), so combining marks — caseless but not letters — still ride their capitals
+    unharmed.
+
+    **İ is transparent to the title-case test and literal in its lowered body** (§12.2, closed
+    2026-08-10). `Hnovunİ` IS a title-case span to the oracle: it takes ⟨shift⟩, and the İ — which
+    has no clean lowercase byte form (it lowers to i + U+0307) — simply stays İ. That single
+    reading closes all thirteen §12.2 rows and was confirmed on their lowercase counterparts:
+    `x Hnİ x` = 14 = 1 + `x hnİ x`, `x Hnovunİİ x` = 15 = 1 + `x hnovunİİ x`, `x Hüseynovunİ x` =
+    18 = 1 + `x hüseynovunİ x`, and the never-measured shapes `x Hnİvo x` = 14 and `x Hİk x` = 13
+    step off their lowercase rows by exactly the ⟨shift⟩, in both families. The old reading — a
+    rule over a tile five tiles before the İ — was the literal tiling's coincidences: `HHnovunİ`,
+    `HNovunİ` and `hnovunİ` are not title-case, so the piece never budged there. İ at the span
+    HEAD still blocks (⟨shift⟩ asserts a lowered first letter, which İ cannot supply), and ẞ
+    measured literal in every position and stays an unconditional block.
     """
-    if "İ" in span or "ẞ" in span:
-        # Capitals with irregular case pairs are served literally through cased pieces: İ has no
-        # clean lowercase byte form (it lowercases to i + U+0307), and ẞ measured literal in every
-        # position. Both over-charge on the marker paths.
+    if "ẞ" in span:
         return span
-    if allcaps_min is not None and span.isupper() and len(span) >= allcaps_min:
+    if "İ" in span:
+        tail = span[1:]
+        if span[:1].isupper() and span[:1] != "İ" and \
+                not any(c.isupper() for c in tail if c != "İ"):
+            return SHIFT_G + span[0].lower() + "".join(c if c == "İ" else c.lower()
+                                                       for c in tail)
+        return span
+    caseless = any(unicodedata.category(c)[0] == "L" and not (c.islower() or c.isupper())
+                   for c in span)
+    if allcaps_min is not None and span.isupper() and len(span) >= allcaps_min \
+            and not caseless:
         return CAPS_G + span.lower()
     if span[:1].isupper() and not any(c.isupper() for c in span[1:]):
         return SHIFT_G + span.lower()
