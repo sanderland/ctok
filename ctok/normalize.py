@@ -86,6 +86,17 @@ def classify(c: str) -> str:
         return PUNCT
     if VARIATION_SELECTORS[0] <= o <= VARIATION_SELECTORS[1]:
         return HARD                   # gc=Mn, but they take no word model at all
+    if o == 0x0CF3:
+        # KANNADA SIGN COMBINING ANUSVARA ABOVE RIGHT, assigned in Unicode 15.0. Our tables are
+        # 14.0, so `unicodedata` reports Cn and the character fell through to HARD — no markers,
+        # no word model. The oracle knows it as the spacing mark it is (Mc, ccc 0), and every
+        # cached row prices as plain word material: word-forming when baseless (`◌ೳ` = 14/18,
+        # `x◌ೳ◌ೳx` = 24, `文ೳ` = 17, each one to three tokens more than the HARD reading pays),
+        # in-word after a letter (`aೳa` `aೳ` `ꝛೳ`), and FUSED into a following letter's word
+        # (`ೳꝛ` = 18 on v4.7, one less than a severed spelling). 27 cached rows plus eight bought
+        # in-script predictions (`x ೞೳ x` `ೞೳೞ` `ೞೳ` `x ೞೳ 5` `ೳೳ` `ೳೳz`), all exact in both
+        # families. Its Mc-ness never reaches `_stray_mark` (ccc 0), so WORDY alone is the fix.
+        return WORDY
     if cat[0] in ("L", "M") and not is_hard_cp(o):
         # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
         # vocabulary plus the per-codepoint byte floor as any other letter script.

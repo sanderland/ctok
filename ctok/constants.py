@@ -101,7 +101,16 @@ EXTRA_KILLERS = frozenset((
     "\u0aff",  # GUJARATI SIGN TWO-CIRCLE NUKTA ABOVE
     "\u0b3c",  # ORIYA SIGN NUKTA
     "\u0b55",  # ORIYA SIGN OVERLINE
-    "\u0c03",  # TELUGU SIGN VISARGA
+    # U+0C03 TELUGU SIGN VISARGA was here and is NOT a killer. It is a SPACING mark (Mc, ccc 0):
+    # the letter alternative claims it as word material, and word-final it closes the word with a
+    # `\u0c03\u27e8eow\u27e9` piece that is one token in both families (witnessed on the eow template, `.\u30f2\u0c03.`).
+    # As a killer it read one UNDER on every baseless non-space shape (`!\u0c03` `[\u0c03]` `aa\u0c03b` `\u25cc\u0c03`,
+    # 23 texts) and one OVER on every word-final space shape (`x \u0c15\u0c03 x` `a\u0c03 z` `x \u0c03 x`), in both
+    # families \u2014 the \u00a714 signature of a boundary in the wrong place. The word-material reading
+    # plus the piece is exact on all 178 cached rows and on 46 bought predictions it had never
+    # seen, including in-script `x \u0c03\u0c15 x` `\u0c15 \u0c03\u0c15` `\u0c15\u0c03\u0c03` `\u0c03\u0c03` `x \u0c15\u0c03\u0c155 x` and the fused `\u0c03\ua75b`/`x\u0c03\ua75b`
+    # (the visarga fuses INTO a following letter's word, where an Mn stray mark leaves the letter
+    # its own \u27e8bow\u27e9 \u2014 `\u0c03\ua75b` = 13/18 separates the spellings and refutes the stray reading).
     "\u0c3c",  # TELUGU SIGN NUKTA
     "\u0cbc",  # KANNADA SIGN NUKTA
     "\u0e47",  # THAI CHARACTER MAITAIKHU

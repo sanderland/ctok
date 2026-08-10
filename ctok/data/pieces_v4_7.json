@@ -4946,6 +4946,7 @@
       "ండ": {"probe": ".ヲండヲ.", "raw": 20, "kind": "mid"},
       "ంద": {"probe": ".ヲందヲ.", "raw": 20, "kind": "mid"},
       "ం⟨eow⟩": {"probe": ".ヲం.", "raw": 17, "kind": "eow"},
+      "ః⟨eow⟩": {"probe": ".ヲః.", "raw": 17, "kind": "eow"},
       "క": {"probe": "aకa", "raw": 14, "kind": "char"},
       "క⟨eow⟩": {"probe": ".ヲక.", "raw": 17, "kind": "eow"},
       "గ": {"probe": "aగa", "raw": 14, "kind": "char"},

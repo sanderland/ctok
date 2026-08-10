@@ -12495,6 +12495,7 @@
    "ంద": {"probe": ".ヲందヲ.", "raw": 16, "kind": "mid"},
    "ం⟨eow⟩": {"probe": ".ヲం.", "raw": 13, "kind": "eow"},
    "ః": {"probe": ".ヲఃヲ.", "raw": 16, "kind": "mid"},
+   "ః⟨eow⟩": {"probe": ".ヲః.", "raw": 13, "kind": "eow"},
    "అ": {"probe": "aఅa", "raw": 10, "kind": "char"},
    "క": {"probe": "aకa", "raw": 10, "kind": "char"},
    "క⟨eow⟩": {"probe": "getElementsByక", "raw": 9, "kind": "cased_eow"},
