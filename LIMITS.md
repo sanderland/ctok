@@ -1026,9 +1026,13 @@ combining Cyrillic letter U+2DED beside it does not.
 * **§11's UNEXPLAINED grid is gone.** `π̂` `xπ̂x` `чипа̄ли` `бимчэ̄` `о̄мачин` `мэ̄нэ` `до̄вани`
   `ба̄охан` `x b̃ 2 x` all reproduce, because there is no piece whose eligibility has to explain
   them.
-* **§12.1, §12.3 and §12.4 are gone.** 52 of their 53 rows are exact on v3 and 53 of 53 on v4.7,
-  controls included, and the closing rule was not about marks at all (14.4). **§12.2 is not** — see
-  14.6.
+* **§12.1, §12.3 and §12.4 are gone**, and the rule that closed them was not about marks at all
+  (14.4). **§12.2 is not** — see 14.6.
+
+Taken together that is **126 probes exact in both families**: everything §11's tile grid cites,
+everything its UNEXPLAINED grid cites, all 23 rows of the retired `_charging_border`, and §12.1,
+§12.3, §12.4 and the Syriac-vowel law with their controls. The one row excluded from the count is
+`x िी x`, which 12.1 listed as a control and which is one OVER on v3 and always was (14.6).
 
 ### 14.4 An unattached mark run is a word
 
