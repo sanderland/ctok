@@ -261,10 +261,16 @@ SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
 # Arabic ones do, on `د`, and U+08CA–U+08D3 / U+08E0–U+08E1 are pinned on both sides by U+08D4–
 # U+08DF, twelve Quranic word-abbreviations in the middle of the same block that read "inside the
 # word" on all three hosts.
+#
+# A fourth pass, steered the same way, added the four Mongolian free variation selectors
+# U+180B–U+180D and U+180F and the three Limbu SIGNs U+1939–U+193B. Limbu is the cleanest split in
+# the whole sweep: its six VOWEL SIGNs and its anusvara read "inside the word" and its three tone
+# and annotation signs read "closes before", on `q`, `б` and the in-script `ᠠ`, in both families.
 SEPARATOR_ANNOTATIONS = re.compile(
     "[\u0483-\u0489\u0591-\u05af\u0658\u06df-\u06e0\u06ea-\u06ec"
     "\u07eb-\u07f3\u07fd\u0859-\u085b\u0898-\u089f\u08ca-\u08d3\u08e0-\u08e1"
     "\u0818-\u0819\u082d\u08ea-\u08ef\u135d-\u135f"
+    "\u180b-\u180d\u180f\u1939-\u193b"
     "\u1ab0-\u1abe\u1ac1-\u1acb\u1cd0-\u1ce8\u1ced\u1cf4\u1cf8-\u1cf9"
     "\u1dc0-\u1dd2\u1df5-\u1dff\u20d0-\u20f0\ua66f-\ua672\ua67c-\ua67d"
     "\ufe20-\ufe2f]")
