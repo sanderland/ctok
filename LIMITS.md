@@ -1006,7 +1006,11 @@ inside the word U+0345  U+0363-U+036F                        both ends pinned fr
 ```
 
 Re-scored against the shipped encoder afterwards, the whole sweep — both frames, every mark, every
-host, 4,560 rows per family — reproduces exactly in both.
+host, 4,560 rows per family — reproduces exactly in both. So does the 418-mark annotation sweep,
+838 rows per family, except for six v3 rows: `x qި x` `x qު x` `x qް x` and their digit frames read
+one OVER, and the same three Thaana marks are exact on their own script's host (`x ހިހ x`), inside a
+word (`x qިq x`) and on the `char` template. That is the ヲ hazard in miniature — a word-final
+Thaana vowel on a Latin host — and it does not touch the verdict, which both frames agree on.
 
 That is exactly the range the retired `_charging_border` enumerated. Its population was right and
 its reading was one step late: the extra ⟨eow⟩ it wrote at a word-final space border is the ⟨eow⟩
