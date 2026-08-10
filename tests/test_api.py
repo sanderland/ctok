@@ -147,21 +147,31 @@ def test_the_accent_spelling_does_not_depend_on_the_host():
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
-def test_stray_mark_run_head_uses_the_raw_byte_floor(version: float):
-    """A mark piece is word-context vocabulary. At a stray run head the public marked stream is
-    unchanged, but tiling uses raw bytes; later non-killer marks can use their ordinary pieces.
+def test_a_stray_mark_run_is_a_word(version: float):
+    """An unattached mark run is a WORD — ⟨bow⟩ on the left, ⟨eow⟩ on the right against everything
+    except a letter, which it fuses with instead, the way a baseless Syriac vowel does. Its head
+    still uses the raw byte floor: the same codepoint is a piece inside a letter run, and here the
+    pretokenizer's letter alternative cannot claim it.
 
-    These content costs are live-measured in both families. The mixed row also covers NFC's
-    canonical reordering: U+0302 U+05B0 streams as U+05B0 U+0302, and both the run head and the
-    legacy killer byte-price.
+    The ⟨eow⟩ was previously written only against a space, which read one under everywhere else —
+    `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run. The
+    fusion is the other half: `x ͣก x` and `x ͣب x` read one OVER while a second ⟨bow⟩ was written.
     """
     overhead = _model(_family(version)).message_overhead
     rows = [
+        ("\u0363", "⟨bow⟩ͣ⟨eow⟩", 4),
+        ("\u0363\u0363", "⟨bow⟩ͣͣ⟨eow⟩", 6),
+        ("x \u0363 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+        ("x \u03635 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩5 ⟨bow⟩x⟨eow⟩", 8),
+        ("x \u0363", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩", 5),
+        # A letter after it is written bare: the mark run's ⟨bow⟩ is that word's.
+        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣx⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣa⟨eow⟩", 5),
+        # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
         ("\u0302", "⟨bow⟩̂", 3),
-        ("\u05b0", "⟨bow⟩ְ", 3),
         ("\u0302\u0302", "⟨bow⟩̂̂", 5),
-        ("\u05b0\u05b0", "⟨bow⟩ְְ", 4),
-        ("\u0302\u05b0", "⟨bow⟩ְ̂", 5),
+        ("\u0363\u0302", "⟨bow⟩ͣ⟨eow⟩̂", 6),
+        ("\u0302\u0363", "⟨bow⟩̂⟨bow⟩ͣ⟨eow⟩", 7),
     ]
     for text, stream, content in rows:
         assert marked_stream(text, version) == stream
@@ -170,13 +180,13 @@ def test_stray_mark_run_head_uses_the_raw_byte_floor(version: float):
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
 def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: float):
-    """A non-killer stray mark opens its own run after punctuation. A legacy killer shares the
-    punctuation run's opening boundary and then closes it. Both heads still use the byte floor."""
+    """A non-killer stray mark opens its own run after punctuation. A killer shares the
+    punctuation run's opening boundary. Both heads still use the byte floor."""
     overhead = _model(_family(version)).message_overhead
     assert marked_stream("!\u0302", version) == "⟨bow⟩!̂"
-    assert marked_stream("!\u05b0", version) == "⟨bow⟩!⟨bow⟩ְ"
+    assert marked_stream("!\u0363", version) == "⟨bow⟩!⟨bow⟩ͣ⟨eow⟩"
     assert token_count("!\u0302", version) - overhead == 3
-    assert token_count("!\u05b0", version) - overhead == 4
+    assert token_count("!\u0363", version) - overhead == 5
 
 
 def test_normalization_is_family_specific():
