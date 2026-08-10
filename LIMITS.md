@@ -668,8 +668,9 @@ probe that could refute it.
 
 ## 12. The last eight under-counts, 2026-08-09
 
-**SUPERSEDED 2026-08-10 — §14.** All four populations below reproduce now, and none of them was
-about what its heading says: 12.1–12.4 are one rule about unattached mark runs (§14.4), and the
+**MOSTLY SUPERSEDED 2026-08-10 — §14.** Three of the four populations below reproduce now, and none
+of the three was about what its heading says: 12.1, 12.3 and 12.4 are one rule about unattached
+mark runs (§14.4). 12.2, the dotted İ, is untouched and still open. The
 `_charging_border` half of the two rules that opened this section was the U+0300 block's word
 boundary read one character late (§14.1). The self-consistency check in the last paragraph — our
 digit frame agreeing with our letter frame in 30 rows — is why it went in wrong; both frames were
@@ -1025,16 +1026,17 @@ combining Cyrillic letter U+2DED beside it does not.
 * **§11's UNEXPLAINED grid is gone.** `π̂` `xπ̂x` `чипа̄ли` `бимчэ̄` `о̄мачин` `мэ̄нэ` `до̄вани`
   `ба̄охан` `x b̃ 2 x` all reproduce, because there is no piece whose eligibility has to explain
   them.
-* **§12.1–12.4 are gone.** 52 of their 53 rows are exact on v3 and 53 of 53 on v4.7, controls
-  included, and the closing rule was not about marks at all (14.4).
+* **§12.1, §12.3 and §12.4 are gone.** 52 of their 53 rows are exact on v3 and 53 of 53 on v4.7,
+  controls included, and the closing rule was not about marks at all (14.4). **§12.2 is not** — see
+  14.6.
 
 ### 14.4 An unattached mark run is a word
 
 A stray-mark pretoken already owned a ⟨bow⟩. It owns an ⟨eow⟩ too, against everything except a
 letter — which it fuses with, so the word after it is written bare and the mark run's ⟨bow⟩ is that
-word's. That single rule closes §12.1's junction population, §12.2's dotted İ, §12.3's message-end
-run and §12.4's Igbo word, which is the argument that it is a law and not a patch: none of the four
-was about the thing its section named it after.
+word's. That single rule closes §12.1's junction population, §12.3's message-end run and §12.4's
+Igbo word, which is the argument that it is a law and not a patch: none of the three was about the
+thing its section named it after. §12.2, the dotted İ, is untouched by it and stays open.
 
 ### 14.5 What it cost, measured before and after on everything
 
@@ -1060,6 +1062,19 @@ DOTTED CIRCLE — a stray-mark run, closed by 14.4.
 The one v4.7 under-count left in 302,418 rows is an `aze_latn` row; v3's five are all `tam_taml`
 and predate this campaign.
 
+The other read is every text ever cached against either family, probe grids included — the
+denominator the "under 18 → 8" figure of §12 was never measured over, which is how 793 synthetic
+rows sat under-counting through three campaigns without appearing in a report:
+
+| v3 | texts | exact | over | under |
+|---|---:|---:|---:|---:|
+| before | 405,312 | 379,241 | 95,041 in 25,246 rows | 885 in 825 rows |
+| after | SCANV3 |
+
+645 of the 825 under-counting rows were fixed and **two new ones appeared, both the same probe** —
+`x ݀ͅ x`, the Syriac row of 14.6. The `after` denominator is larger because this campaign bought
+about 4,600 probes of its own; none of them under-counts.
+
 ### 14.6 What is still open
 
 * **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
@@ -1067,9 +1082,17 @@ and predate this campaign.
   across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
   oracle reaches them in fewer tokens. Twelve other marks in the same grid are exact in all five.
   §12.3 predicted this: "a marker rule cannot split two stray marks that way; a piece can."
+* **§12.2's dotted İ is unchanged.** `x Hnİ x` `x Hnovunİ x` `x Hnovunİa x` `x Hnovunİl x`
+  `x Hnovunİİ x` `x Hüseynovunİ x` still read one under on both families, plus `x Hunİ x` and
+  `x Hovunİ x` on v4.7 (v3 gained those two), against twelve controls that are exact. The trigger
+  is still a rule over a tile five tiles away from the İ, which `engine._dotted_host_blocked`
+  cannot express, and nothing in this campaign bears on it.
 * **A Syriac dot with a rider is one under.** `x ݀ͅ x` = 16 / 20. U+0740–U+074A start an unmarked
   run that a following non-vowel mark joins (§0), and that joined run writes no boundary where a
   stray run now would. One row, one shape, not attributed.
+* **A title-cased word fused onto a stray-mark run, on v3 only.** `x ͣAbc x` = 14 reads one OVER;
+  `x ͣABCD x` `x ͣabc x` `x ͣthe x` and all four v4.7 counterparts are exact. ⟨shift⟩ and the mark
+  run's ⟨bow⟩ are being charged separately and the oracle charges once.
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.
