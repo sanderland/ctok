@@ -197,11 +197,10 @@ The gates moved this time, which they usually do not: UDHR 317 → 338 exact on 
 v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
 that corpus is 250/250.
 
-**Every under-counting text in the cache is now accounted for, and the residue is one probe per
-family** (LIMITS.md §15). The whole cache — every text ever measured against either model, probe
-grids included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **one
-token in one text on each**, the same recorded stray-mark boundary shape on both sides. What that
-took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
+**Every under-counting text in the cache is now accounted for, and there is no residue**
+(LIMITS.md §15, §16). The whole cache — every text ever measured against either model, probe grids
+included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **zero on both
+sides**, over 505,886 and 1,009,746 texts. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
 never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
 Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
 caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`); §12.2's dotted İ, which was
@@ -210,6 +209,17 @@ evidence; the oracle lowering ΣΚΙΕΣ to σκιεσ where Python writes σκ�
 predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `🎓 ‎⏰`). LIMITS.md §14.6
 carries what is left on the over side, and §15.5 reports the one trade: 30 documents now read a
 small over-count that their under-count had been masking.
+
+The last row on each side was one shape, and §15 filed it as undecidable: a word after an
+unattached mark run reads one over on some right-hand words and one under on others, and neither
+spelling of that boundary reaches both. **It was two errors at one seam, and the frame that
+separates them varies the right-hand word** (LIMITS.md §16), because the mark's own price then
+cancels: the severed spelling's error moves with the word and the fused spelling's cannot move at
+all. It does not — for all 22 marks swept, in both families. A baseless mark and the letters after
+it are ONE word, the mark is its head, and a head that is a mark takes no case marker; the raw byte
+floor that used to price that head was standing in for the ⟨bow⟩ this fixes, and is gone. Under-count
+**0 in both families**, over-count down 462 tokens on v3 and 4,581 on v4.7 in the same change, with
+no cached row in either family made worse.
 
 ## Where the boundary markers go
 
@@ -221,7 +231,7 @@ class of run after another, is where most of this reconstruction's errors have l
 | run | `⟨bow⟩` on its left | `⟨eow⟩` on its right |
 |---|---|---|
 | **word** — letters and the marks inside them | always, unless a contraction apostrophe already opened it | always |
-| **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a letter follows, which continues that word |
+| **unattached mark run** — combining marks with no letter in front of them | always: the run is a word | unless a LETTER follows, which is not the next word but the rest of this one — it writes no `⟨bow⟩` either |
 | **accent, virama, tone mark** — `is_killer`, the marks that stand outside the word | only against a single space | only against a single space |
 | **punctuation, symbols, format characters** — including ZWSP and ZWJ | only against a single space, and not where it opens a word | only against a single space |
 | **digit run** | only against a single space, and only if the run's FIRST character is a non-ASCII digit | only against a single space, and only if its LAST character is |

@@ -12,7 +12,7 @@ tiles.
 from __future__ import annotations
 
 from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
-from .normalize import nfc, stream_plan, stripped_head
+from .normalize import nfc, stream_norm, stripped_head
 from .notation import parse_marked
 
 
@@ -183,16 +183,11 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # of the Rosetta corpus, which is how this was found.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
-    s, floor_positions = stream_plan(norm, model, head_stripped=stripped_head(text))
+    s = stream_norm(norm, model, head_stripped=stripped_head(text))
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
-    floor_prefix = [0] * (len(s) + 1)
-    for at in floor_positions:
-        floor_prefix[at + 1] = 1
-    for i in range(len(s)):
-        floor_prefix[i + 1] += floor_prefix[i]
     # The dotted capital İ, in its one measured byte-pricing spot: word-final or followed by an
     # ASCII lowercase letter, and not word-initial (`⟨bow⟩İ` covers that position as a piece).
     # There its unit piece prices 1 only after a tile `_dotted_host_tile` admits; after a
@@ -200,7 +195,6 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     ctx_dotted = frozenset(
         j for j, ch in enumerate(s)
         if ch == "İ" and 0 < j < len(s) - 1 and s[j - 1] not in MARKER_GLYPHS
-        and j not in floor_positions
         and (s[j + 1] == EOW_G or "a" <= s[j + 1] <= "z"))
     ctx_prefix = [0] * (len(s) + 1)
     for at in ctx_dotted:
@@ -217,16 +211,9 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # never fires in practice; it stays as the floor under a file that lost one.
         if ch in MARKER_GLYPHS:
             return 1
-        if j in floor_positions:
-            return model.raw_bytes.cost_char(ch)
         return char_cost(model, ch)
 
     def cost_fn(j: int, i: int) -> int | None:
-        # A forced-floor codepoint is outside the context where ordinary vocabulary pieces were
-        # measured. No piece may span across it; its one-character raw-byte tiling is the only edge
-        # offered to the DP.
-        if floor_prefix[i] != floor_prefix[j]:
-            return unit_floor(j) if i - j == 1 and j in floor_positions else None
         if ctx_prefix[i] != ctx_prefix[j]:
             # A span touching the tile-contextual İ. Alone, the character pays its raw bytes; the
             # only way to its one-token piece is a combined edge [host tile][piece], which costs
@@ -234,7 +221,7 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
             if i - j == 1:
                 return model.raw_bytes.cost_char(s[j])
             last = i - 1
-            if ctx_prefix[last] != ctx_prefix[j] or floor_prefix[last] != floor_prefix[j]:
+            if ctx_prefix[last] != ctx_prefix[j]:
                 return None
             host = s[j:last]
             # Any tile may precede it at price 1 except the measured marker-carrying-uppercase
@@ -266,11 +253,10 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
             else:
                 out.extend(model.bytes.chunks(host.encode()))
             out.append(seg[-1])
-        elif j not in floor_positions and (seg in pieces or unit_floor(j) == 1):
+        elif seg in pieces or unit_floor(j) == 1:
             out.append(seg)
         else:
-            floor = model.raw_bytes if j in floor_positions else model.bytes
-            chunks = floor.chunks(seg.encode())
+            chunks = model.bytes.chunks(seg.encode())
             out.extend(chunks if len(chunks) > 1 else [seg])
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)

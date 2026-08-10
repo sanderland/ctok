@@ -1144,24 +1144,18 @@ one place this campaign did break something (14.4).
   pass folded in the forty marks whose grids the cache already held, and U+0C03 was never a killer
   at all.
 
-* **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
-  one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
-  across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
-  oracle reaches them in fewer tokens. Twelve other marks in the same grid are exact in all five.
-  §12.3 predicted this: "a marker rule cannot split two stray marks that way; a piece can."
+* ~~**Three marks are over-priced at a stray run head, by a constant.**~~ **Closed by §16**: the
+  constant was the forced raw-byte floor, and the floor was standing in for the missing word
+  boundary beside it. §12.3's prediction — "a marker rule cannot split two stray marks that way; a
+  piece can" — was right that it is a piece question, and the piece was one the mark already had.
 * ~~**§12.2's dotted İ is unchanged.**~~ **Closed by §15.3**: the words are title-case, and İ is
   transparent to the no-other-capitals test.
 * ~~**A Syriac dot with a rider is one under.**~~ **Closed by §15.4**: the absorb clause predated
   §14 and is gone.
-* **A word after a stray-mark run is one over on some hosts and one under on others**, and no
-  spelling of that boundary gets both. This is now the ONLY under-counting shape in the whole
-  cache, one row per family: `x ͣabc x` = 14 reads one under on v3 (exact on v4.7) and
-  `x ͣthe x` = 18 one under on v4.7 (exact on v3), while `x ͣก x` and `x ͣب x` = 13 / 17 read one
-  OVER with the word's ⟨bow⟩ written and `x ͣx x` `!ͣa` are exact under both spellings. The fused
-  spelling swaps which rows are wrong rather than fixing them — on v4.7 it prices `x ͣthe x` right
-  at 18 and breaks `x ͣabc x`, and on v3 exactly the reverse — at the cost of the 38 `<mark>ꝛ`
-  rows of §14.4. Two texts, two probes, and no single boundary spelling reaches both: listed, not
-  fitted.
+* ~~**A word after a stray-mark run is one over on some hosts and one under on others**, and no
+  spelling of that boundary gets both.~~ **Closed by §16**: there was a third spelling, and the
+  reason the first two both failed is that the mark's own price was wrong at the same time. The
+  word after a baseless mark is not a next word at all — it is the rest of THAT word.
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.
@@ -1227,7 +1221,8 @@ re-scanned since §14.7 landed, so its stale 489 was never the number — were *
 112 texts on v3** and **359 in 306 on v4.7**. Every group in both lists is now either fixed with a
 measured rule or listed with the probe that fails to decide it, and after the campaign the whole
 of both caches under-counts by **one token in one text per family**, the same recorded shape on
-each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on v4.7).
+each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on v4.7). **§16 closed
+that last row too, so the number below is now zero on both sides.**
 
 ### 15.1 The inventory, both families
 
@@ -1242,7 +1237,7 @@ each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on 
 | Greek all-caps final sigma | 2 | — | fixed — oracle lowers Σ→σ without Final_Sigma |
 | `⁉️` (VS16 in a punct body) | — | 1 | fixed — selector rides its base in `_is_punct_text` |
 | emoji ⟨bow⟩ loss after format chars | — | 1 | fixed — astral is not punct KIND; mixed runs borderable |
-| stray-mark word boundary (§14.6) | 1 | 1 | **listed** — no spelling reaches both rows |
+| stray-mark word boundary (§14.6) | 1 | 1 | listed then **fixed — §16**, the mark and the letter are one word |
 
 The counts sum to each family's list (the Shona/Japanese document and the Devanagari `परिएाजनाÓ`
 row are inside the caseless-⟨caps⟩ 36; the Sorani document carried both of the last two v4.7
@@ -1358,3 +1353,137 @@ instrument.
 The held-out gates, read once at the end, moved the way they should: UDHR **338 → 340** exact on
 v3 (mass 0.187%) and **472 → 474** on v4.7 and v5 (0.058%); Rosetta 1741/1741 in all three
 families, the 250-document holdout 250/250, MultiPL-E 22/22; 219 tests pass.
+
+## 16. The last under-count: a baseless mark and the letter after it are ONE word
+
+**Measured 2026-08-10.** The whole cache under-counted by exactly one token in one text per family
+when this campaign opened — `x ͣabc x` = 14 on v3 and `x ͣthe x` = 18 on v4.7, both the U+0363
+shape §14.6 filed as undecidable. It is decidable. Both families now under-count **zero tokens in
+zero texts** over 505,886 v3 and 1,009,746 v4.7 cached texts, and the same change removes 462 v3
+and 4,581 v4.7 tokens of over-count.
+
+### 16.1 Why the two candidate spellings both failed, and what the third one is
+
+§14.6 tried the word's ⟨bow⟩ written (severed) and dropped (fused) and found each right where the
+other was wrong. That is the signature of TWO errors, not one, and they were on opposite sides of
+the same seam: the boundary was wrong, and the mark's own head price was wrong with it.
+
+The word after an unattached mark run is not a next word. It is the rest of THAT word:
+
+```
+severed   ⟨bow⟩M            ⟨bow⟩abc⟨eow⟩
+fused     ⟨bow⟩M abc⟨eow⟩                      one word, and the mark is its head
+```
+
+which is what a baseless Syriac vowel (§7's `_syriac_vowel`), the Telugu visarga and the Kannada
+U+0CF3 (§15.2) were each measured to do already, one script at a time.
+
+### 16.2 The frame that cancels the mark's own price
+
+The two spellings differ by the word's ⟨bow⟩ and by nothing else, so the mark's price — whatever
+it is, wrong or right — appears identically on both sides. Vary the right-hand word instead: the
+severed prediction moves with `cost(⟨bow⟩W⟨eow⟩) − cost(W⟨eow⟩)`, which is a vocabulary accident
+of W, and the fused prediction cannot move at all. **A spread across W refutes; a constant is
+consistent, and the constant is the mark's own price.**
+
+```
+ours − oracle, `x ͣW x` and `!ͣW x`, v3 / v4.7
+
+W            x       abc      the       ก       ꝛ       ся
+severed     0/0     -1/0     0/-1     +1/+1   +1/+1   +1/+1
+fused       0/0      0/0      0/0      0/0     0/0     0/0
+```
+
+22 marks — the combining Latin and Cyrillic letters (U+0363, U+036F, U+1ABF, U+1ACC, U+1DD3,
+U+2DE0, U+2DED, U+A674, U+A69E), U+0345, the Hebrew points, the Arabic harakat, superscript alef
+and small-high annotations, Samaritan, Thaana, Tibetan, Thai and Buginese — each on those six
+words in two frames, both families, 528 oracle rows. **Every mark reads a spread under the severed
+spelling and a constant under the fused one. Not one reads it the other way round.** `x ͣabc x`
+and `x ͣthe x` are two cells of that table, and §14.6's `x ͣก x` `x ͣب x` over-counts are two more.
+
+The 38 `<mark>ꝛ` rows §14.4 cited against dropping the letter's ⟨bow⟩ do not bear on this. Of the
+2,435 cached `<mark>ꝛ` rows exactly 243 are stray-mark runs; the five marks §14.4 names — U+1BE6,
+U+2CEF, U+302A, U+3099, U+A8E0 — became `SEPARATOR_ANNOTATIONS` in §15's fifth pass and are killer
+runs now, and every astral mark is HARD and takes no word model at all. The evidence that once
+refused this spelling had left the population before this campaign began.
+
+### 16.3 The head price was the other half, and it was the floor
+
+`stream_plan` forced the first mark of a stray run through the RAW byte floor — the byte-prefix
+vocabulary with whole-character pieces deliberately left out — on the reading that "the same
+codepoint is a piece inside a letter run, but here the pretokenizer's letter alternative cannot
+claim it". With the word's ⟨bow⟩ wrongly written, every mark that owns a unit piece read one under,
+and that floor cancelled it. Separate the two and the floor is a pure over-charge on exactly those
+marks:
+
+```
+ours − oracle with the floor / without it, nine frames each
+(`x Mabc x` `!Mabc x` `x Mthe x` `x M x` `x M` `!M` `x M5 x` `x Mꝛ x` `Mabc x`)
+
+U+064F  U+0E38  U+05B0     +1 / 0  in all nine, both families
+U+0F72  U+064B             +1 or +2 / 0  (the +2 frames are the ones with no letter after)
+U+0363  U+05B1  U+2DE0  U+0670  U+0EB8      0 / 0  — unmoved either way
+```
+
+That closes §14.6's "three marks are over-priced at a stray run head, by a constant" without a
+piece being mined: the piece was one the mark already had and the encoder was refusing it. The
+forced-floor mechanism had no other caller, so `_FLOOR_G`, `stream_plan`'s second return value and
+the floor branches of `engine.tile` and `witness` are gone with it; `raw_bytes` survives for the
+contextual dotted İ, which is the same idea in the one place it is still measured.
+
+### 16.4 A fused span takes no case marker
+
+A case marker fires on a WHOLE span, and this span's head is the mark, which is neither an
+uppercase letter (⟨shift⟩ asserts a lowered first letter) nor a case at all. Literal, then —
+measured on 57 rows per family over three marks:
+
+* **⟨shift⟩ kept reads +1**: `x ͣThe x` = 13/18, `x ͣJohn x` = 14/19, `x ͣHello x` = 14/18,
+  `x ͣXyz x`, and `ͣThe x` `!ͣThe x` `x ͣThe` `x ͣͣThe x` at every other position.
+* **⟨caps⟩ kept reads −2 to −5** where v3 has ⟨caps⟩ at all: `x ͣHELLO x` = 17, `x ͣЖЖЖЖ x` = 21,
+  `x ͣЖЖЖЖЖ x` = 23, `x ͣHELLOX x` = 18.
+* **Literal is exact on all 57 in both families**, including `x ͣABCD x` `x ͣPARIS x` `x ͣabcd x`
+  `x ͣАбв x` where the spellings coincide and settle nothing, and the unfused controls
+  `x The x` `x Abc x` are untouched.
+
+It is the İ head rule of §15.3 generalized, and it arrives from the other direction: ⟨shift⟩ blocks
+at the span head because the head cannot supply a lowered first letter, whoever the head is.
+
+### 16.5 What it cost, over every text that could move
+
+Only a text holding a BMP non-killer combining mark can change, which is 47,140 of the cached rows.
+Priced both ways, before and after:
+
+| | rows | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 9,725 | 8,118 | 14,347 in 1,534 rows | 103 in 73 rows |
+| v3, after | 9,725 | **8,504** | **13,885 in 1,221** | **0** |
+| v4.7, before | 37,415 | 27,162 | 40,925 in 10,191 rows | 71 in 62 rows |
+| v4.7, after | 37,415 | **30,065** | **36,344 in 7,350** | **0** |
+
+**No row in either family got worse, and none that was exact stopped being exact.** Over-count
+fell with under-count again — 462 tokens on v3 and 4,581 on v4.7 — which is the §14 signature of a
+misplaced boundary rather than a missing piece, twice over: once for the ⟨bow⟩ and once for the
+floor it was hiding behind. The under rows are larger than §15's residue of one because ~900 probes
+bought during this campaign are in the denominator; every one of them was under-counting by the old
+model too, which is the check that separates "a probe we had not bought" from "a row we broke".
+
+The whole-cache scans, the numbers this campaign is judged on:
+
+| | texts | under before | under after |
+|---|---:|---:|---:|
+| v3 | 505,886 | 1 token in 1 text | **0 in 0** |
+| v4.7 | 1,009,746 | 1 token in 1 text | **0 in 0** |
+
+The held-out gates, read once at the end: UDHR **346 exact on v3, unmoved** (mass 0.096%) and
+**474 → 475 on v4.7 and v5** (0.058%); Rosetta 1741/1741 in both families, the 250-document
+holdout 250/250, MultiPL-E 22/22; witness coverage 100% in both vocabularies with no piece added or
+removed; 219 tests pass.
+
+### 16.6 What this does not close
+
+* **`x िी x` = 11 on v3** (§14.6) is untouched: two Devanagari vowel signs with no consonant, one
+  OVER on v3 and always was.
+* The over-count that remains in the affected population — 13,885 tokens on v3 and 36,344 on v4.7
+  — is overwhelmingly ordinary vocabulary coverage in texts that merely contain a mark somewhere,
+  not a boundary question. Nothing in it under-counts, which is the property that matters: the
+  model no longer believes anything is cheaper than it is.
