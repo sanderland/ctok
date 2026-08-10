@@ -8,7 +8,7 @@
   "fold_quotes": true,
   "allcaps_min": 4,
   "digit_group": 3,
-  "built": "2026-08-10T18:04:08.828647+00:00",
+  "built": "2026-08-10T18:37:36.834732+00:00",
   "provenance": "every token measured with count_tokens against this family's source model",
   "witness": {
    "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 9933,
+    "bow": 9937,
     "cased_bow": 877,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -44,16 +44,16 @@
     "digit_eow": 235,
     "digit_mid": 811,
     "digit_word": 114,
-    "eow": 7727,
+    "eow": 7735,
     "fitness": 16,
     "glued": 1110,
     "mark_mid": 4,
     "mark_sep": 19,
-    "mid": 4609,
+    "mid": 4611,
     "prefix": 467,
     "raw": 6410,
     "special": 4,
-    "word": 13198
+    "word": 13199
    }
   }
  },
@@ -45271,7 +45271,22 @@
    "ති⟨eow⟩": {"probe": ".ヲති.", "raw": 13, "kind": "eow"},
    "ික⟨eow⟩": {"probe": ".ヲික.", "raw": 13, "kind": "eow"},
    "ං⟨eow⟩": {"probe": ".ヲං.", "raw": 13, "kind": "eow"},
-   "ො⟨eow⟩": {"probe": ".ヲො.", "raw": 13, "kind": "eow"}
+   "ො⟨eow⟩": {"probe": ".ヲො.", "raw": 13, "kind": "eow"},
+   "ച⟨eow⟩": {"probe": ".ヲച.", "raw": 13, "kind": "eow"},
+   "ള⟨eow⟩": {"probe": ".ヲള.", "raw": 13, "kind": "eow"},
+   "⟨bow⟩း⟨eow⟩": {"probe": ".း.", "raw": 10, "kind": "word"},
+   "ື⟨eow⟩": {"probe": ".ヲື.", "raw": 13, "kind": "eow"},
+   "ும⟨eow⟩": {"probe": ".ヲும.", "raw": 13, "kind": "eow"},
+   "ော⟨eow⟩": {"probe": ".ヲော.", "raw": 13, "kind": "eow"},
+   "ា⟨eow⟩": {"probe": ".ヲា.", "raw": 13, "kind": "eow"},
+   "ី⟨eow⟩": {"probe": ".ヲី.", "raw": 13, "kind": "eow"},
+   "ု⟨eow⟩": {"probe": ".ヲု.", "raw": 13, "kind": "eow"},
+   "ករ": {"probe": ".ヲករヲ.", "raw": 16, "kind": "mid"},
+   "⟨bow⟩များ": {"probe": ".များヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩េ": {"probe": ".េヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩െ": {"probe": ".െヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩േ": {"probe": ".േヲ.", "raw": 13, "kind": "bow"},
+   "െെ": {"probe": ".ヲെെヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
