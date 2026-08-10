@@ -39,18 +39,13 @@ spellings, which is why it alone could not tell them apart). The same law closes
 Syriac-vowel family (`ܑ` `!ܑ` `1ܑ` `z ◌ܑ` `x◌ܑ◌ܑx`): all 2,526 cached Syriac rows now read
 2,515 exact / 8 over / 3 under, from 2,332 / 27 / 167.
 
-There is a second, host-sensitive class. On a Syriac letter, every assigned mark in the existing
-`CHARGING_MARK` range U+0300–U+0362 except U+0345 closes the run after the complete combining-mark
-suffix. U+0345 and U+0363–U+036F do not. A complete block sweep on a noncomposing Latin host showed
-that the newly found population does not close Latin runs. This is one script-host rule over an
-already defined range, not 85 enumerated exceptions.
-
-Five one-character pieces — U+0302, U+0303, U+0304, U+0327 and U+0331 — are pretoken-context
-vocabulary. A six-host Latin grid gives at least three discriminating rows per mark and supports one
-shared piece over per-pair explanations; standalone and Syriac-host rows byte-price them. The
-Syriac-host floor still holds; the rest of the condition was re-measured 2026-08-09 and is
-TILE-contextual, not host-character-contextual — see `engine._mark_host_tile` for the grid and §11
-for what remains unexplained.
+This section also carried a second, host-sensitive class — on a Syriac letter the U+0300–U+0362
+range closes the run, on a noncomposing Latin host it does not — and five pretoken-context mark
+pieces to go with it. **Both were retracted 2026-08-10 (§14).** The range closes the word on every
+host, and it closes it BEFORE the mark rather than after; there is no Syriac exception and there
+are no mark pieces but U+0301. The Latin block sweep that produced the host rule was run against
+`x H M z x` on hosts whose word costs two tokens, where the two spellings are arithmetically
+identical — it could only ever have returned "Latin does not close".
 
 On the 100 Goldfish rows used to develop the rule, exact reproduction moved from 38 to 98, absolute
 error from 1,551 to 4, and the worst row from −504 to −3. On a second frozen 100-row Goldfish draw,
@@ -608,10 +603,12 @@ looking — not to conclude the encoder works differently.
 
 ## 9. Two UDHR documents are unexplained
 
-Shipibo-Conibo (+4.38% v3, +3.14% v4.7) and Lamnso' (+3.27% / +2.84%) are the worst documents in
-both families and nothing in this campaign touched them. Lamnso' has no reachable corpus at all —
-eBible has no `lns`, Glot500 has no `lns`, the Wikimedia Incubator has no `Wp/lns`, and SIL's Bloom
-Library has it behind a gate — so the question cannot be asked without spending the held-out gate.
+**CLOSED 2026-08-10 — §14.** Shipibo-Conibo (+4.38% v3, +3.14% v4.7) and Lamnso' (+3.27% / +2.84%)
+were the worst documents in both families and no campaign had touched them. They now read +0.01% /
++0.00% and +0.02% / +0.01%. Neither needed a corpus and neither needed a piece: both write their
+tone with combining accents, and the accent's word boundary was in the wrong place. The section
+stands as a reminder that "no reachable corpus" is a statement about one line of attack — Lamnso'
+still has no `lns` in eBible, Glot500 or the Wikimedia Incubator, and it did not matter.
 
 ## 10. Access and scale
 
@@ -623,6 +620,11 @@ Library has it behind a gate — so the question cannot be asked without spendin
   disk; it is not something one session finishes.
 
 ## 11. The contextual-mark residual: what 2026-08-09 pinned, and what it could not
+
+**SUPERSEDED 2026-08-10 — §14.** The five pieces this section is about are gone, and so is the
+grid of unexplained rows below: they were the in-word spelling of a mark that stands outside its
+word. Kept as written because the instrument lesson is the point — a tile-eligibility rule that
+fits 434 rows and leaves 9 is what a wrong factorization looks like from the inside.
 
 The five word-context mark pieces (U+0302 0303 0304 0327 0331) are tile-contextual
 (`engine._mark_host_tile`): the piece prices 1 after a single-letter tile of at most two UTF-8
@@ -665,6 +667,13 @@ would put a marker-carrying multi-letter tile before the İ) would, and is not a
 probe that could refute it.
 
 ## 12. The last eight under-counts, 2026-08-09
+
+**SUPERSEDED 2026-08-10 — §14.** All four populations below reproduce now, and none of them was
+about what its heading says: 12.1–12.4 are one rule about unattached mark runs (§14.4), and the
+`_charging_border` half of the two rules that opened this section was the U+0300 block's word
+boundary read one character late (§14.1). The self-consistency check in the last paragraph — our
+digit frame agreeing with our letter frame in 30 rows — is why it went in wrong; both frames were
+ours.
 
 Two rules landed this day and took the under-count over Goldfish, Glot500 and the FineWeb/Stack
 slices from 18 to 8. Both were the same shape — **a border marker that is invisible wherever a
@@ -947,3 +956,118 @@ of the affected rows unaffected and reported Bengali at 882/1,000 where the true
 1,000/1,000 — a wrong answer in the direction that looks like a modest success, which is the
 dangerous direction. Any filter that decides what not to measure has to be applied to the same
 string the tiler sees.
+
+## 14. A combining accent stands outside its word, and §§11–12 were consequences of it
+
+**Measured 2026-08-10.** The five word-context mark pieces of §11 and all four open populations of
+§12 were one mistake, made on an instrument that could not see the thing it was measuring.
+
+### 14.1 The instrument, and why the old one could not work
+
+`EXTRA_KILLERS` held nine members of the U+0300 block, put there by
+`cost(H M H) == cost(H M) + cost(H)` on **byte-floor consonant hosts**. On such a host the two
+candidate spellings are arithmetically identical:
+
+```
+the word closes AFTER the mark   ⟨bow⟩H M ⟨eow⟩ ⟨bow⟩X⟨eow⟩
+the word closes BEFORE it        ⟨bow⟩H⟨eow⟩ M ⟨bow⟩X⟨eow⟩
+```
+
+because `⟨bow⟩H⟨eow⟩` and `⟨bow⟩H` + `⟨eow⟩` cost the same when no piece covers `H`. Every mark
+reads "splits" there and no mark can read anything else, so the test was measuring the host, not the
+mark. Grid B of the reconnaissance that opened this campaign — the mark's increment over the bare
+host word, `x H M z x` minus `x H z x` — has the same defect for the same reason, and it is what
+made the split look host-dependent: `q` and `б` read +2 where `ก` and `ب` read +3 because
+`x q x` = 10 and `x ก x` = 11, not because the mark behaves differently.
+
+Two frames on a host whose whole word is ONE token separate them, and both are oracle-only:
+
+```
+m   = `x qM x` - `x q x` - 1     the mark's own cost — both spellings charge m + 1 here
+gap = `x qM5 x` - `x q5 x`       m if the word closes BEFORE the mark, m + 1 if it does not
+```
+
+The right neighbour has to be an ASCII digit. Against a letter the seam deletes the difference;
+against `5` nothing opens a word, so the marker survives to be counted. `x q̊5 x` = 14 is the row:
+the in-word spelling charges 15.
+
+### 14.2 What the sweep says
+
+Every codepoint of U+0300–U+036F, on 21 one-token hosts spanning Latin, Greek, Cyrillic, Armenian,
+Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Thai, Myanmar and Hiragana, in both families.
+**No host and no family dissents about any mark.**
+
+```
+closes before   U+0300-U+033F  U+0342  U+0346-U+0362        (0340 0341 0343 0344 fold away in NFC)
+inside the word U+0345  U+0363-U+036F                        both ends pinned from inside the block
+```
+
+That is exactly the range the retired `_charging_border` enumerated. Its population was right and
+its reading was one step late: the extra ⟨eow⟩ it wrote at a word-final space border is the ⟨eow⟩
+the word already had, one character earlier.
+
+Asked of the other 418 combining marks of the BMP, on in-script one-token hosts as well as `q`, the
+answer is orthographic and not numeric — the same distinction `is_killer` already draws for Thai:
+accents, tone marks, cantillation and annotation stand outside the word; vowel points and combining
+LETTERS stay inside it. `гдⷭ҇и` carries both in one word: U+0487 pokrytie separates, and the
+combining Cyrillic letter U+2DED beside it does not.
+
+### 14.3 What that made true, and what it made false
+
+* **The five mark pieces are false pieces.** On the `mark_sep` template every mark of the block
+  except one reads cost 2 — its UTF-8 byte count — in both families. `q̃x` = 11 is
+  `⟨bow⟩q⟨eow⟩` + two bytes + `⟨bow⟩x⟨eow⟩`, which is what the one-token piece plus an in-word
+  ⟨eow⟩ was standing in for, and the whole of §11's tile-eligibility grid with it.
+* **U+0301 is a token.** `.ᛒ́ᛒ.` = 20 / 24, cost 1 on the same template, with fifteen negative
+  controls at cost 2. §12's "+2 in the letter frame" for `а́` was this piece, unattributed.
+* **§11's UNEXPLAINED grid is gone.** `π̂` `xπ̂x` `чипа̄ли` `бимчэ̄` `о̄мачин` `мэ̄нэ` `до̄вани`
+  `ба̄охан` `x b̃ 2 x` all reproduce, because there is no piece whose eligibility has to explain
+  them.
+* **§12.1–12.4 are gone.** 52 of their 53 rows are exact on v3 and 53 of 53 on v4.7, controls
+  included, and the closing rule was not about marks at all (14.4).
+
+### 14.4 An unattached mark run is a word
+
+A stray-mark pretoken already owned a ⟨bow⟩. It owns an ⟨eow⟩ too, against everything except a
+letter — which it fuses with, so the word after it is written bare and the mark run's ⟨bow⟩ is that
+word's. That single rule closes §12.1's junction population, §12.2's dotted İ, §12.3's message-end
+run and §12.4's Igbo word, which is the argument that it is a law and not a patch: none of the four
+was about the thing its section named it after.
+
+### 14.5 What it cost, measured before and after on everything
+
+| | v3 exact | over | under | | v4.7 exact | over | under |
+|---|---:|---:|---:|---|---:|---:|---:|
+| Goldfish + Glot500 + FineWeb/Stack/github-code, before | 280,262 | 49,283 | 6 | | 288,392 | 40,598 | 8 |
+| after | 280,271 | 49,262 | **5** | | 289,105 | 38,399 | **1** |
+
+**Over-count fell with under-count, by 2,199 tokens on v4.7**, which is what distinguishes a
+misplaced boundary from a missing piece: it was wrong in both directions at once. The languages
+that moved are the ones that write their marks separately — `yor_latn` 537 → 999 of 1,000 rows
+exact and its over-count 1,163 → 1, `abk_cyrl` 949 → 992 (449 → 9), `zap_latn` 992 → 999,
+`oss_cyrl` 989 → 997, `mrj_cyrl` 877 → 902 — and four Glot500 files (`ibo` `lin` `yor` `zul`) went
+from imperfect to exact. The v3 side is smaller because v3's larger vocabulary already covered many
+of the accented words whole.
+
+The held-out gates, read once at the end: UDHR 317 → 338 exact on v3 (mass 0.322% → 0.188%) and
+443 → 472 on v4.7 (0.163% → 0.058%), with the >5% band going 2 → 1 and 1 → 0; Rosetta's 1,741
+mining documents and MultiPL-E's 22 stay at every document exact; and the 250-document Rosetta
+holdout goes 249 → **250**, the last one being the Swift file whose combining marks sit on U+25CC
+DOTTED CIRCLE — a stray-mark run, closed by 14.4.
+
+The one v4.7 under-count left in 302,418 rows is an `aze_latn` row; v3's five are all `tam_taml`
+and predate this campaign.
+
+### 14.6 What is still open
+
+* **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
+  one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
+  across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
+  oracle reaches them in fewer tokens. Twelve other marks in the same grid are exact in all five.
+  §12.3 predicted this: "a marker rule cannot split two stray marks that way; a piece can."
+* **A Syriac dot with a rider is one under.** `x ݀ͅ x` = 16 / 20. U+0740–U+074A start an unmarked
+  run that a following non-vowel mark joins (§0), and that joined run writes no boundary where a
+  stray run now would. One row, one shape, not attributed.
+* **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
+  and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
+  is not a shape the corpora contain.

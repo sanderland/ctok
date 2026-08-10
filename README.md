@@ -77,33 +77,35 @@ is 25 HumanEval problems in 22 programming languages. The third is the opposite:
 [Rosetta Code](https://huggingface.co/datasets/christopher/rosetta-code) source in hundreds of
 languages, which varies everything at once.
 
-**Two of the three corpora are finished and have left the table.** Rosetta Code (1,741 documents)
-and MultiPL-E (22 languages) reproduce *every* document exactly, on v3, v4.7 and v5 alike. They are
-still gated — asserted at every document rather than at a rate, so the first regression names the
-file it broke — but a row of zeroes is not a measurement, and keeping one invites reading a finished
-corpus as evidence about an unfinished model. Code is done; what follows is about natural language.
+**Every code corpus is finished and has left the table.** Rosetta Code — all 1,741 mining
+documents and, since 2026-08-10, all 250 held-out ones — and MultiPL-E's 22 languages reproduce
+*every* document exactly, on v3, v4.7 and v5 alike. They are still gated, asserted at every
+document rather than at a rate so the first regression names the file it broke, but a row of zeroes
+is not a measurement and keeping one invites reading a finished corpus as evidence about an
+unfinished model. Code is done; what follows is about natural language.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.322% | 0.195% | 317/501 | 94.8% |
-| UDHR | v4.7 | 0.163% | 0.105% | 443/501 | 96.4% |
-| UDHR | v5 | 0.163% | 0.105% | 443/501 | 96.4% |
-| Rosetta Code, held out (250) | v4.7 | 0.008% | 0.009% | 249/250 | 99.6% |
-| Rosetta Code, held out (250) | v5 | 0.008% | 0.009% | 249/250 | 99.6% |
+| UDHR (501 languages) | v3 | 0.188% | 0.098% | 338/501 | 97.8% |
+| UDHR | v4.7 | 0.058% | 0.028% | 472/501 | 99.0% |
+| UDHR | v5 | 0.058% | 0.028% | 472/501 | 99.0% |
 
-Two v3 documents and one v4.7 one sit over 5% — Tem (+6.23% / +6.08%) and, on v3 only, Maldivian
-(+6.13%) — with 24 more v3 documents and 17 v4.7 ones in the 1–5% band; the worst of those are
-Navajo (+4.86% / +4.41%), Shipibo-Conibo (+4.38% / +3.14%) and Lamnso' (+4.07% / +3.53%), languages
-for which no marked-text source has been found. Weighted by speakers rather than by document, the
-error is 0.063% (v3) and 0.030% (v4.7). Part of the UDHR residual is deliberate: the 2026-08-09
-mark-eligibility work (LIMITS.md §11) converted under-counts in tone-marked orthographies into
-honest over-counts, which moved several of these documents up the table rather than off it.
+**No v4.7 document is over 5% off any more, and one v3 document is** — Maldivian (+6.13%), which
+this campaign did not touch. Tem, the worst document in both families for a month at +6.23% /
++6.08%, reproduces exactly, and so do Navajo, Lingala and Yoruba, with Shipibo-Conibo at +0.01%
+and Lamnso' at +0.02%: the tone-marked orthographies that used to head this list are gone from it. Ten v3 documents and five
+v4.7 ones remain in the 1–5% band and every one of them is Brahmic or SEA — Thai (+3.96% / +2.66%),
+Thai (2) (+4.33% / +2.38%), Burmese (+4.03% / +2.33%), Mon, Sinhala. Weighted by speakers rather
+than by document the error is 0.058% (v3) and 0.025% (v4.7). What moved was the combining-mark
+spelling: an accent closes its word BEFORE itself rather than after, which is one boundary marker
+per accent across every decomposed and tone-marked orthography in the corpus (LIMITS.md §14).
 
-The one held-out Rosetta document that does not reproduce is a Swift file of Unicode escapes, where
-a combining mark sits on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing
-piece. [LIMITS.md](LIMITS.md) records what is still open, and — more useful — what each instrument
-can and cannot prove: the ヲ grid measures a Brahmic cluster on a base its script never uses, and
-aggregate corpus fitness proposes a piece without proving one.
+The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
+marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
+was the mark spelling above that settled it. [LIMITS.md](LIMITS.md) records what is still open,
+and — more useful — what each instrument can and cannot prove: the ヲ grid measures a Brahmic
+cluster on a base its script never uses, aggregate corpus fitness proposes a piece without proving
+one, and a mark grid on a byte-floored host cannot see where the mark's word ends (§14).
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
@@ -114,7 +116,8 @@ decides which candidate gets asked.
 
 15 documents in each family sat over 5% off before the akshara law (a mark that closes its
 orthographic syllable also closes the word, so a conjunct is two words and carries the boundary
-markers that say so); one or two do now, and what is left is vocabulary rather than structure.
+markers that say so); one v3 document does now and no v4.7 one does, and what is left is
+vocabulary rather than structure.
 
 Where that vocabulary is missing was measured rather than guessed, by scoring 350,000 rows across
 the 350 languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`:
@@ -145,20 +148,35 @@ LIMITS.md records what the instruments can and cannot prove, including two piece
 to *retract*: both were admitted on ablation witnesses that only looked convincing while the real
 piece was missing.
 
-**Under-count is nearly gone, and the last of it is listed rather than guessed at.** Across the
-three replay corpora — 45 Goldfish languages, 43 Glot500 files and 242,188 rows of
-FineWeb/Stack/github-code — under-count stands at **8 tokens in 302,418 rows**, from 18 on
-2026-08-09. Both rules that closed the gap were the same kind of thing, and neither could be seen
-from the Latin frames the model was mostly built on: a border ⟨eow⟩ that the seam deletes wherever
-a ⟨bow⟩ follows the space, so only a right neighbour with no ⟨bow⟩ of its own — a CJK letter, an
-ASCII digit run — can price it. One belongs to non-ASCII digit runs (`８ 取`, `文 ½ 文`), the other
-to a word ending in a combining charging mark (`x ẹ̀ 2 x`), and the second was measured on a
-15-host grid spanning nine scripts where the digit frame read exactly one below the letter frame in
-every row. The gates were unmoved by both — Rosetta and MultiPL-E still reproduce every document,
-and UDHR did not stir until the Bengali pieces above — which is the usual reading: the held-out
-corpora hold almost none of the material these rules are about. [LIMITS.md](LIMITS.md) §12 carries
-the eight that remain, each with the control that refutes its obvious explanation, and the Bengali
-campaign after it left every one of them exactly where it was.
+**Under-count is down to one token, and it was a word boundary in the wrong place.** Across the
+three replay corpora — Goldfish, Glot500 and 242,188 rows of FineWeb/Stack/github-code — v4.7
+under-count stands at **1 token in 302,418 rows**, from 8 on 2026-08-09, and v3 at 5 in 286,856,
+from 6. Over-count fell with it, by 2,199 tokens on v4.7, which is the unusual part: a boundary the
+model was writing one character too late is a defect in both directions at once.
+
+**A combining accent closes its word BEFORE itself, exactly as a virama does** (LIMITS.md §14).
+Nine members of the U+0300 block used to close it after the mark and five others carried a
+one-token piece with a tile-contextual eligibility rule; both were artefacts of an instrument that
+could not see the difference. The old test ran on byte-floored hosts, where `⟨bow⟩H⟨eow⟩` and
+`⟨bow⟩H` + `⟨eow⟩` cost the same and every mark reads "splits". On a host whose whole word is one
+token they separate — `x q̊5 x` = 14 against the 15 an in-word mark charges — and the answer is
+uniform: every codepoint of U+0300–U+0362 except U+0345 closes before itself, on 21 hosts spanning
+thirteen scripts, in both families, with U+0345 and U+0363–U+036F pinning both ends of the range
+from inside the same block. The same two frames over the other 418 combining marks of the BMP split
+them the way orthography does and not the way Unicode does: accents, tone marks, cantillation and
+annotation stand outside the word; vowel points and combining LETTERS stay inside it.
+
+The vocabulary moved with it, in both directions. **U+0301 is a token** — `.ᛒ́ᛒ.` = 20 / 24, cost 1
+on the shipped `mark_sep` template, with fifteen marks of the same block reading cost 2 as controls
+— and it is the most frequent non-composing combining mark in written text. The five mark pieces
+are not tokens: they were the in-word spelling wearing a piece, and they are gone. Yoruba goes 537 →
+999 of 1,000 Goldfish rows exact, Abkhaz 949 → 992, and the four Glot500 tone-marked files that
+were not exact now are.
+
+The gates moved this time, which they usually do not: UDHR 317 → 338 exact on v3 and 443 → 472 on
+v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
+that corpus is 250/250. [LIMITS.md](LIMITS.md) §14 carries what is left: three marks our raw byte
+floor over-prices at a stray run head, and two single rows.
 
 ## What each piece rests on
 
