@@ -1094,6 +1094,13 @@ about 4,600 probes of its own; none of them under-counts.
 
 ### 14.6 What is still open
 
+* **The sweep is not finished, and the probe scan says exactly where to point it next.** After the
+  third pass the cached short probes that still under-count cluster on U+0E3A (Thai phinthu),
+  U+0C03 (Telugu visarga), the Mongolian free variation selectors U+180B–U+180F and U+1939
+  (Limbu) — blocks nobody has put through the two frames yet. The first two are already killers, so
+  those rows are the head-price residual below rather than a missing separator; the last two are
+  simply unswept. A fourth pass is a few hundred probes.
+
 * **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
   one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
   across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
