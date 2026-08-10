@@ -230,9 +230,17 @@ def _is_borderable_text(body: str) -> bool:
     2026-08-10 on the Sorani corpus row's `🎓 ‎⏰` (LRM + alarm clock, one under while glued
     markerless) and the grid bought from it: `1 ‎⏰ 1` `1 ⏰‎ 1` `1 €‎ 1` `1 ‎€ 1` `x ‎⏰ 5`.
     Ideographic punctuation and astral characters exclude their runs, exactly as they always
-    excluded themselves; a trailing variation selector rides its base."""
+    excluded themselves; a trailing variation selector rides its base.
+
+    A body of ONLY selectors is borderable too — a lone selector is still the catch-all
+    alternative's material, whatever it failed to ride. Measured 2026-08-10, the row an in-situ
+    window deletion manufactured and both families then confirmed on a bought grid: `5 ️ 5` reads
+    two under with no markers, `a️ 5` `1️ 5` `!️ 5` `Э️ 5` `x ️ 5` `️ 5` `x ️️ 5` and `5 ️`
+    one, while `a️ z` `x ️ x` (the seam cancels), `a️5` (no space), `a️` (message end) and the
+    space-run rows `x ️  5` `a️  5` are exact. `_is_symbol_text`'s "only selectors is not a
+    symbol" stands — the run is not a SYMBOL — but it takes the markers all the same."""
     core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
-    return bool(core) and all(_marks_like_punct(c) for c in core)
+    return bool(body) and all(_marks_like_punct(c) for c in core)
 
 
 def _is_format_text(body: str) -> bool:
