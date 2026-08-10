@@ -141,14 +141,14 @@ def test_the_witness_reader_serves_a_borrowing_family():
 @pytest.mark.parametrize("name", FILES)
 def test_every_vocabulary_piece_is_witnessed_or_special(name):
     """CI's target is literal: every shipped text piece has evidence; only structure is special."""
-    from tests.gates import MISSING, UNRESOLVED
+    from tests.gates import ARGUED, MISSING, UNRESOLVED
 
     gaps = {group: {kind: [piece for piece, witness in entries.items()
                            if witness.get("kind") == kind]
-                    for kind in MISSING + UNRESOLVED
+                    for kind in MISSING + UNRESOLVED + ARGUED
                     if any(witness.get("kind") == kind for witness in entries.values())}
             for group, entries in _doc(name)["tokens"].items()
-            if any(witness.get("kind") in MISSING + UNRESOLVED
+            if any(witness.get("kind") in MISSING + UNRESOLVED + ARGUED
                    for witness in entries.values())}
     missing = sum(len(pieces) for kinds in gaps.values() for pieces in kinds.values())
     assert not missing, (

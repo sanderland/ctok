@@ -403,8 +403,8 @@ GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 # tiling candidates that restore two or more exact probes — and it is true relative to the rest of
 # the vocabulary rather than to the oracle alone. `ownscript` was the same kind of thing and is now
 # retired: every piece it certified was re-asked on a fixed template, and 481 of 1,157 were refuted
-# by it (LIMITS.md §6). The 22 `fitness` records that remain are counted, named, and kept out of the
-# headline number rather than folded in with either a witness or a gap.
+# by it (LIMITS.md §6). The last fitness records were promoted on fixed `mark_mid` and `eow`
+# templates; keeping the kind here makes any future one visible and fails the literal CI target.
 ARGUED = ("fitness",)
 
 
