@@ -975,10 +975,12 @@ the word closes BEFORE it        ⟨bow⟩H⟨eow⟩ M ⟨bow⟩X⟨eow⟩
 
 because `⟨bow⟩H⟨eow⟩` and `⟨bow⟩H` + `⟨eow⟩` cost the same when no piece covers `H`. Every mark
 reads "splits" there and no mark can read anything else, so the test was measuring the host, not the
-mark. Grid B of the reconnaissance that opened this campaign — the mark's increment over the bare
-host word, `x H M z x` minus `x H z x` — has the same defect for the same reason, and it is what
-made the split look host-dependent: `q` and `б` read +2 where `ก` and `ب` read +3 because
-`x q x` = 10 and `x ก x` = 11, not because the mark behaves differently.
+mark. The obvious repair — take the mark's increment over the bare host word, `x H M z x` minus
+`x H z x`, so the host's own pricing cancels — has the same defect for a subtler reason: under the
+right spelling the word `Hz` becomes TWO words, so the host's pricing does not cancel at all. That
+is what makes the split look host-dependent, and it is a trap worth naming, because the arithmetic
+looks like a controlled experiment: `q` and `б` read +2 where `ก` and `ب` read +3 only because
+`x q x` = 10 and `x ก x` = 11.
 
 Two frames on a host whose whole word is ONE token separate them, and both are oracle-only:
 
