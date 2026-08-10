@@ -22,6 +22,7 @@ from importlib.resources import files
 import pytest
 
 from ctok.main import FAMILIES, _family, _model, pieces, witness
+from ctok.constants import MARKER_GLYPHS
 from ctok.notation import parse_marked
 from ctok.witness import cost, places, position, surface, verify
 
@@ -43,9 +44,7 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     doc = _doc(name)
     # `prefix` is a witness but not a template: a byte prefix is verified by the floor
     # reproducing a character it predicts, not by a probe costing one token.
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {
-        "prefix", "ownscript", "fitness"
-    }
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix", "fitness"}
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
         for piece, w in entries.items():
@@ -107,7 +106,7 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
-            if w["kind"] in ("prefix", "ownscript", "fitness"):
+            if w["kind"] in ("prefix", "fitness"):
                 continue                     # these kinds validate placement in their own verifier
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
@@ -116,8 +115,13 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             named = w["kind"].removeprefix("cased_").removeprefix("digit_")
             # A contraction is stored bare (`'s`) and tiled glued (`'s⟨eow⟩`), so its stored form
             # reads `mid` while the piece it stands for closes a word.
+            # `mark_mid` and `mark_sep` share the probe `.ᛒ{}ᛒ.` and differ only in overhead: a
+            # mark that closes its own word puts an ⟨eow⟩ and a ⟨bow⟩ into the probe that the
+            # anchor has not got, and `mark_sep` carries those two in its constant. Both are
+            # word-interior frames, so both read `mid`.
             expect = {"raw": ("word", "bow"), "word": ("word",), "char": ("mid",),
-                      "glued": ("mid", "word"), "contraction": ("mid",)}.get(w["kind"], (named,))
+                      "glued": ("mid", "word"), "contraction": ("mid",),
+                      "mark_mid": ("mid",), "mark_sep": ("mid",)}.get(w["kind"], (named,))
             assert pos in expect, f"{piece} sits at {pos} but is witnessed as {w['kind']}"
 
 
@@ -137,14 +141,14 @@ def test_the_witness_reader_serves_a_borrowing_family():
 @pytest.mark.parametrize("name", FILES)
 def test_every_vocabulary_piece_is_witnessed_or_special(name):
     """CI's target is literal: every shipped text piece has evidence; only structure is special."""
-    from tests.gates import MISSING, UNRESOLVED
+    from tests.gates import ARGUED, MISSING, UNRESOLVED
 
     gaps = {group: {kind: [piece for piece, witness in entries.items()
                            if witness.get("kind") == kind]
-                    for kind in MISSING + UNRESOLVED
+                    for kind in MISSING + UNRESOLVED + ARGUED
                     if any(witness.get("kind") == kind for witness in entries.values())}
             for group, entries in _doc(name)["tokens"].items()
-            if any(witness.get("kind") in MISSING + UNRESOLVED
+            if any(witness.get("kind") in MISSING + UNRESOLVED + ARGUED
                    for witness in entries.values())}
     missing = sum(len(pieces) for kinds in gaps.values() for pieces in kinds.values())
     assert not missing, (
@@ -185,3 +189,27 @@ def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
     """The terminal consonant is one measured suffix, not a family of count-equivalent patches."""
     assert witness("ங⟨eow⟩", 4.7) == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
     assert {piece for piece in pieces(4.7) if "ங" in piece} == {"ங⟨eow⟩"}
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_no_piece_mixes_whitespace_with_other_material(name):
+    """A space, tab or newline is either the WHOLE piece or not in it.
+
+    Whitespace does not sit inside a token here: the stream absorbs a seam space into the following
+    ``⟨bow⟩`` and spells anything it cannot absorb as its own run, which is why there is a
+    ``whitespace`` group at all. A piece holding a letter and a space is therefore not a token that
+    was measured; it is a modelling device standing in for an absorption the stream failed to
+    perform, and it prices correctly only while the material after it happens to open a word.
+
+    Five such pieces shipped — a virama glued to a space, in Devanagari, Tamil, Malayalam, Sinhala
+    and Myanmar. They carried most of those languages' accuracy AND all of their under-count, and
+    their witness could not tell ``्`` from ``् ``: the probe ``.ᛒ् ᛒ.`` reads the same as
+    ``.ᛒ्ᛒ.``, because a following letter absorbs the space and it costs nothing. See LIMITS.md §7.
+    """
+    doc = _doc(name)
+    bad = [piece for entries in doc["tokens"].values() for piece in entries
+           if (body := "".join(c for c in piece if c not in MARKER_GLYPHS))
+           and any(c.isspace() for c in body) and not all(c.isspace() for c in body)]
+    assert not bad, (f"{_family_of(name)}: {len(bad)} pieces mix whitespace with other material: "
+                     f"{bad}. Whitespace is its own run — a piece like this is compensating for a "
+                     f"stream rule that is missing.")

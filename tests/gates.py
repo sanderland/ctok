@@ -45,6 +45,23 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 # Thresholds carry margin so ordinary per-piece churn passes but a real regression trips. ``None``
 # means the metric is reported but not asserted.
+#
+# ``"exact": ALL`` is not a threshold at all — it asserts that EVERY document reproduces, and it is
+# the right gate once a corpus is finished. A fraction, however tight, has to sit strictly below the
+# real rate to leave room for churn, which means it silently permits the first regression it was
+# meant to catch. Nothing to spare is the whole point: a corpus at 100% has one failure mode, and it
+# is any document at all. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
+# error has nothing left for them to measure.
+ALL = "all"
+
+# **v5 is not gated here, and that is a claim rather than an omission.** It reads v4.7's vocabulary
+# and differs only in its message frame, so on every corpus below it lands on exactly the same
+# documents with exactly the same errors — scoring it doubled the gate's cost to re-derive numbers
+# that were equal by construction. What actually guards it is cheaper and more direct: the frame
+# rules are pinned on constructed strings in `test_api.py`, and
+# `test_v5_tracks_v4_7_document_for_document` asserts the equality this omission rests on, over real
+# documents of the corpora below and against both families' recorded counts. If v5 ever stops
+# tracking v4.7, that test fails and v5 comes back into this table.
 GATES: dict[str, dict] = {
     "udhr": {
         "title": "UDHR",
@@ -52,17 +69,20 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Measured 2026-08-01, after the akshara law and the cluster re-spelling. The law took the
-        # Brahmic/South-East-Asian under-count out structurally — no document in either family is
-        # over 5% now, where 15 in each were — and the re-spelling took most of what was left. These
-        # are four times tighter than the thresholds that preceded both, and a revert of either
-        # trips every one of them. What remains is unmined vocabulary.
+        # Re-measured 2026-08-07 against the readings this model actually produces: 313/501 exact
+        # and 0.107% mean on v3, 363/501 and 0.064% on v4.7. The thresholds that stood here were set
+        # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
+        # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
+        # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0022, "within1": 0.95, "exact": 0.53},
-            "v4.7": {"version": 4.7, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
-            # v5 reads the v4.7 vocabulary through its own measured frame and lands on the SAME
-            # documents: the residual here is the Brahmic/South-East-Asian one, shared whole.
-            "v5": {"version": 5.0, "mean": 0.0020, "within1": 0.95, "exact": 0.57},
+            "v3": {"version": 3.0, "mean": 0.0020, "within1": 0.94, "exact": 0.61},
+            # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
+            # and 0.043% mean. Retiring `ownscript` then gave 439, and removing the five pieces
+            # that glued a virama to a space gave 430. Both are deliberate steps backwards: a piece
+            # that is not a token cannot stay because it happens to help. Each converts a hidden
+            # error into an honest over-count, which is a thing that can be mined. UDHR selected
+            # none of it either way.
+            "v4.7": {"version": 4.7, "mean": 0.0011, "within1": 0.95, "exact": 0.86},
         },
     },
     "rosetta": {
@@ -71,14 +91,16 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # Measured 2026-08-01. v4.7 reproduces every document; the floor is set just under so that
-        # a single regressing document trips it. v3 still carries a vocabulary tail.
+        # FINISHED, 2026-08-07: all three families reproduce all 1,741 documents, so the gate is
+        # every document rather than a rate. v3 was the last to close — it carried a vocabulary tail
+        # through the apostrophe and akshara work and reads exact since the terminal-mark spelling.
+        # Still every document on all three families through the `ownscript` retirement. One file
+        # did break when 439 refuted pieces were removed, and it came back when the single-codepoint
+        # ones among them were re-asked on the `char` template instead of the ヲ grid — the `known`
+        # allowlist in `assert_gate` held the gate up in between rather than lowering it to a rate.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0009, "within1": 0.96, "exact": 0.87},
-            "v4.7": {"version": 4.7, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
-            # v5 reproduces every document too, once its own frame rules are modelled — the two
-            # families differ at the message edges and nowhere else this corpus can see.
-            "v5": {"version": 5.0, "mean": 0.0001, "within1": 0.995, "exact": 0.995},
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta_holdout": {
@@ -88,16 +110,14 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # Measured 2026-08-01 at 99.6% exact / 0.006% mass, against 89.6% / 0.096% for the model
-        # shipped before the apostrophe work. v3 has no held-out sample measured yet. The akshara
-        # law moved this by exactly one document, which is all it could move: two of the 250 hold a
-        # killer at all, and one of those two is the document that flipped. `►⟨eow⟩` took the
-        # second, leaving one — a Unicode-notation file where the same marked span costs 3 after a
-        # word boundary and 2 after a symbol's last byte, which no single piece covers.
+        # FINISHED 2026-08-10, and gated at every document from then: the last failure was a Swift
+        # file of Unicode escapes whose combining marks sit on U+25CC DOTTED CIRCLE, which the §14
+        # accent law settled — a stream-spelling question, exactly as this comment used to predict.
+        # It stayed a rate while that spelling was open, on the principle that a threshold is not a
+        # target; leaving it a rate now would be the opposite mistake, since `exact: 0.99` on 250
+        # documents silently permits the next two regressions. v3 has no held-out sample measured.
         "families": {
-            "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
-            # The same documents as v4.7, and no others.
-            "v5": {"version": 5.0, "mean": 0.0002, "within1": 0.99, "exact": 0.97},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "multipl_e": {
@@ -106,15 +126,13 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # Measured 2026-08-01. v4.7 reproduces all 22 files exactly since the word-opening
-        # apostrophe, the contraction's word-side anchor and the space-spelled punct duplicates
-        # landed, so ``exact`` is asserted there — it used to be one file, where asserting it would
-        # have measured luck. v3 (15/22) still carries a vocabulary tail. Thresholds are compared
-        # with a STRICT >, so a perfect corpus cannot be gated at 1.0.
+        # FINISHED, 2026-08-07: every family reproduces all 22 files, so the gate is every file.
+        # v4.7 closed first, with the word-opening apostrophe, the contraction's word-side anchor
+        # and the space-spelled punct duplicates; v3 followed on the same vocabulary work that
+        # closed Rosetta for it.
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0012, "within1": 0.95, "exact": 0.55},
-            "v4.7": {"version": 4.7, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
-            "v5": {"version": 5.0, "mean": 0.0005, "within1": 0.99, "exact": 0.90},
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
 }
@@ -172,6 +190,23 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
     assert agg["n"] == cfg["n"], f"[{name}/{family}] corpus size changed: {agg['n']} != {cfg['n']}"
     assert agg["exact"] + agg["under1"] + agg["mid"] + agg["over5"] == agg["n"], "buckets must partition"
     exact, within1 = agg["exact"] / agg["n"], (agg["exact"] + agg["under1"]) / agg["n"]
+    if limits["exact"] is ALL:
+        # Named rather than counted: "3 of 1741 documents regressed" is the report a reader wants,
+        # and an exact-rate percentage rounds the first regression out of sight.
+        #
+        # `known` is an allowlist of documents already understood to fail, named one by one. It is
+        # how a corpus keeps an every-document gate while carrying an open defect: dropping the gate
+        # to a rate to accommodate one document would silently readmit the next eight. A document
+        # that starts reproducing is also reported, so the list cannot rot into a wish.
+        known = set(limits.get("known", ()))
+        bad = [str(r.get("name") or r[cfg["key"]]) for r in agg["rows"] if r["rel"]]
+        fixed = known - set(bad)
+        assert not fixed, (f"[{name}/{family}] {sorted(fixed)} reproduce again — "
+                           f"drop them from `known`")
+        new = [b for b in bad if b not in known]
+        assert not new, (f"[{name}/{family}] {len(new)} of {agg['n']} documents no longer "
+                         f"reproduce: {', '.join(new[:8])}{' …' if len(new) > 8 else ''}")
+        return
     if limits["mean"] is not None:
         assert agg["mean"] < limits["mean"], \
             f"[{name}/{family}] mean |rel err| regressed to {100 * agg['mean']:.3f}%"
@@ -249,13 +284,21 @@ def report_vocabulary(markdown: bool = False) -> None:
     """
     cov = witness_coverage()
     groups = sorted({g for fam in cov.values() for g in fam})
-    cols = ("missing", "unresolved", "special")
+    # Every kind the numerator withholds needs a column, or the table shows a rate below 100% with
+    # nothing to explain it. `argued` was missing and `fitness` is the only thing in it, so
+    # `word_pieces` read 99.96% with all three gap cells empty. `other` is the same guarantee for a
+    # kind nobody has classified yet: unknown kinds used to fall through to the witnessed side,
+    # which is the direction that flatters.
+    cols = ("missing", "unresolved", "argued", "special", "other")
+    known = known_kinds()
 
     def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
         total, w = sum(counts.values()), witnessed(counts)
         bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
                   "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
-                  "special": sum(counts.get(k, 0) for k in SPECIAL)}
+                  "argued": sum(counts.get(k, 0) for k in ARGUED),
+                  "special": sum(counts.get(k, 0) for k in SPECIAL),
+                  "other": sum(n for k, n in counts.items() if k not in known)}
         pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
         return total, w, pct, bucket
 
@@ -283,8 +326,11 @@ def report_vocabulary(markdown: bool = False) -> None:
 
     print("Vocabulary and witness coverage by group\n")
     for fam, by_group in cov.items():
-        total, w, pct, _ = cells(totals(by_group))
-        print(f"  [{fam}] {w:,} of {total:,} pieces witnessed or special ({pct})")
+        tot = totals(by_group)
+        total, w, pct, _ = cells(tot)
+        argued = sum(tot.get(k, 0) for k in ARGUED)
+        print(f"  [{fam}] {w:,} of {total:,} pieces on a fixed template or special ({pct})"
+              + (f", plus {argued:,} argued from natural text (see LIMITS.md §6)" if argued else ""))
         for g in groups:
             if g not in by_group:
                 continue
@@ -343,10 +389,55 @@ MISSING = ("unmeasured", "no-instrument")
 UNRESOLVED = ("refuted",)
 GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
+# ARGUED is weaker than a witness and is reported apart from one.
+#
+# A template witness is a FIXED probe: `meta.witness.templates` holds the string, `verify` requires
+# the probe to be that template applied to this exact piece, and the arithmetic lands on one token.
+# There is nothing per-piece to choose, so a template witness cannot be shaped to fit its piece.
+#
+# `fitness` is not that. It is a bespoke per-piece argument over natural text — an intersection of
+# tiling candidates that restore two or more exact probes — and it is true relative to the rest of
+# the vocabulary rather than to the oracle alone. `ownscript` was the same kind of thing and is now
+# retired: every piece it certified was re-asked on a fixed template, and 481 of 1,157 were refuted
+# by it (LIMITS.md §6). The last fitness records were promoted on fixed `mark_mid` and `eow`
+# templates; keeping the kind here makes any future one visible and fails the literal CI target.
+ARGUED = ("fitness",)
+
+
+def known_kinds() -> frozenset[str]:
+    """Every kind a witness record may carry, DERIVED from the files rather than listed here.
+
+    `witnessed` subtracts the known non-witness kinds from the total, so a kind it has never heard
+    of lands silently on the witnessed side — the one direction a coverage number must never round.
+    The guard is only as good as its list, and a hand-written list is exactly the thing that goes
+    stale. Writing one by hand missed `digit_bow` — a shipped template carrying 28 v3 punctuation
+    pieces — so the template names now come from each vocabulary's own `meta.witness.templates`,
+    the same place `verify` reads them. `prefix` is added on top because `verify` dispatches it
+    before that lookup: 467 byte-fallback pieces per file rest on it and no template declares it.
+    Anything outside the union is reported in the `other` column instead of passing as evidence.
+    """
+    import json
+    from importlib.resources import files
+
+    from ctok.main import FAMILIES
+
+    # `verify` dispatches `prefix` before the template lookup — a byte-prefix piece is pinned by
+    # three characters agreeing, not by a probe string, so it is a real witness with no template.
+    # It is named here because `witness.verify` names it, which is the only authority on what a
+    # witness kind is.
+    names: set[str] = set(GAP_KINDS) | set(ARGUED) | {"prefix"}
+    for key, owner in vocabulary_owners().items():
+        if owner != key:
+            continue
+        doc = json.loads(
+            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+        names |= set(doc["meta"]["witness"]["templates"])
+    return frozenset(names)
+
 
 def witnessed(counts: dict[str, int]) -> int:
-    """How many of ``counts`` are witnessed text pieces or explicitly structural-special."""
-    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED)
+    """Pieces resting on a fixed approved template, plus the structural-special marker atoms."""
+    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED + ARGUED)
 
 
 def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:

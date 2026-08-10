@@ -54,11 +54,21 @@ SYMBOL_LETTERS = (
 # selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
+# The one canonical-combining-class-9 character that does NOT separate word runs. `is_killer`
+# DEFINES the 65 viramas by ccc rather than listing them, which is honest about where the rule
+# comes from and is also the reason this one was never asked: a defined population has no
+# membership test to fail. Asked ours-against-oracle on a consonant of its own script — the only
+# host that can answer, since a Thai mark on a Latin host is the ヲ hazard — the phinthu reads +2
+# over on `x กฺก x` and `กฺก` in both families where its script-mate `่` mai ek and the eight
+# other dissent candidates read 0, and it under-counts by 1 or 2 wherever it stands with no letter
+# in front of it. See :func:`normalize.is_killer` for the grid.
+NON_KILLERS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
+
 # Marks that separate word runs the way a virama does, but that Unicode does not give combining
 # class 9.
-# NOT only Brahmic: the U+0300 combining block is here too. Those accents close a word AFTER the
-# mark rather than standing outside it; `normalize.is_terminal_separator` keeps that independently
-# measured spelling separate from the terminal-mark population.
+# The U+0300 combining block used to be here, nine members of it, on the strength of the byte-floor
+# host test below. It is a RANGE and it is all of it: see :data:`SEPARATOR_MARKS`, whose instrument
+# is a host whose whole word is ONE token and which can therefore tell the two spellings apart.
 # MEASURED, one character at a time, and the population MUST stay enumerated — the rule is
 # orthographic, not numeric, and the neighbouring codepoint is usually a vowel sign that does NOT
 # split. Test: `cost(H M H) == cost(H M) + cost(H)` at three cuts on three byte-floor CONSONANT hosts
@@ -66,15 +76,17 @@ VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 # not a detail — measured against a script's independent vowels the same test called all 21 Gujarati
 # marks splitters, and the corpus refuted it at once.
 EXTRA_KILLERS = frozenset((
-    "\u0300",  # COMBINING GRAVE ACCENT
-    "\u0301",  # COMBINING ACUTE ACCENT
-    "\u0302",  # COMBINING CIRCUMFLEX ACCENT
-    "\u0303",  # COMBINING TILDE
-    "\u0304",  # COMBINING MACRON
-    "\u0308",  # COMBINING DIAERESIS
-    "\u030c",  # COMBINING CARON
-    "\u0327",  # COMBINING CEDILLA
-    "\u0331",  # COMBINING MACRON BELOW
+    "\u0740",  # SYRIAC FEMININE DOT
+    "\u0741",  # SYRIAC QUSHSHAYA
+    "\u0742",  # SYRIAC RUKKAKHA
+    "\u0743",  # SYRIAC TWO VERTICAL DOTS ABOVE
+    "\u0744",  # SYRIAC TWO VERTICAL DOTS BELOW
+    "\u0745",  # SYRIAC THREE DOTS ABOVE
+    "\u0746",  # SYRIAC THREE DOTS BELOW
+    "\u0747",  # SYRIAC OBLIQUE LINE ABOVE
+    "\u0748",  # SYRIAC OBLIQUE LINE BELOW
+    "\u0749",  # SYRIAC MUSIC
+    "\u074a",  # SYRIAC BARREKH
     "\u093c",  # DEVANAGARI SIGN NUKTA
     "\u0951",  # DEVANAGARI STRESS SIGN UDATTA
     "\u0952",  # DEVANAGARI STRESS SIGN ANUDATTA
@@ -89,7 +101,16 @@ EXTRA_KILLERS = frozenset((
     "\u0aff",  # GUJARATI SIGN TWO-CIRCLE NUKTA ABOVE
     "\u0b3c",  # ORIYA SIGN NUKTA
     "\u0b55",  # ORIYA SIGN OVERLINE
-    "\u0c03",  # TELUGU SIGN VISARGA
+    # U+0C03 TELUGU SIGN VISARGA was here and is NOT a killer. It is a SPACING mark (Mc, ccc 0):
+    # the letter alternative claims it as word material, and word-final it closes the word with a
+    # `\u0c03\u27e8eow\u27e9` piece that is one token in both families (witnessed on the eow template, `.\u30f2\u0c03.`).
+    # As a killer it read one UNDER on every baseless non-space shape (`!\u0c03` `[\u0c03]` `aa\u0c03b` `\u25cc\u0c03`,
+    # 23 texts) and one OVER on every word-final space shape (`x \u0c15\u0c03 x` `a\u0c03 z` `x \u0c03 x`), in both
+    # families \u2014 the \u00a714 signature of a boundary in the wrong place. The word-material reading
+    # plus the piece is exact on all 178 cached rows and on 46 bought predictions it had never
+    # seen, including in-script `x \u0c03\u0c15 x` `\u0c15 \u0c03\u0c15` `\u0c15\u0c03\u0c03` `\u0c03\u0c03` `x \u0c15\u0c03\u0c155 x` and the fused `\u0c03\ua75b`/`x\u0c03\ua75b`
+    # (the visarga fuses INTO a following letter's word, where an Mn stray mark leaves the letter
+    # its own \u27e8bow\u27e9 \u2014 `\u0c03\ua75b` = 13/18 separates the spellings and refutes the stray reading).
     "\u0c3c",  # TELUGU SIGN NUKTA
     "\u0cbc",  # KANNADA SIGN NUKTA
     "\u0e47",  # THAI CHARACTER MAITAIKHU
@@ -194,8 +215,84 @@ CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 # ---- the seam law -------------------------------------------------------------------------------
 
 # ⟨eow⟩ ' ' [case markers] ⟨bow⟩ -> ⟨eow⟩ [case markers] ⟨bow⟩: a single space between two marked
-# spans IS the seam and is not written as a character. Exception: a word ending in a combining mark
-# from the measured range U+0300-U+0362 (minus U+0345 iota) does not let the seam absorb the space,
-# so the space stays a literal token.
+# spans IS the seam and is not written as a character.
 SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW_G)
-CHARGING_MARK = re.compile("[\u0300-\u0344\u0346-\u0362]")
+
+# ---- marks that stand outside the word -----------------------------------------------------------
+
+# Combining marks that close the word BEFORE themselves, exactly as a virama does; `normalize.
+# is_killer` folds this range into that population.
+#
+# Two ORACLE frames per mark decide it, and neither consults our own count:
+#
+#     m   = `x qM x` - `x q x` - 1     the mark's own cost — both spellings charge m + 1 here
+#     gap = `x qM5 x` - `x q5 x`       m if the word closes before the mark, m + 1 if it does not
+#
+# The host must be one whose whole word is a single token (`x q x` = 10 on v3), because that is the
+# only place the two spellings differ at all: on a byte-floored host `⟨bow⟩H⟨eow⟩` and
+# `⟨bow⟩H` + `⟨eow⟩` cost the same and both frames collapse. That collapse is why this block was
+# previously read as nine splitting marks under a host-dependent predicate — the earlier test ran on
+# byte-floor consonant hosts, where every mark reads "splits" and no mark can read anything else.
+#
+# Swept over every codepoint of U+0300–U+036F on 21 one-token hosts spanning Latin, Greek, Cyrillic,
+# Armenian, Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Thai, Myanmar and Hiragana, both
+# families: U+0300–U+033F, U+0342 and U+0346–U+0362 read "closes before" on every host in both
+# families, with no host and no family dissenting on any mark, while U+0345 YPOGEGRAMMENI and the
+# combining Latin letters U+0363–U+036F read "inside the word" just as uniformly and so pin both
+# ends of the range from outside it. U+0340 0341 0343 0344 cannot be measured — NFC folds them to
+# 0300 0301 0313 0308+0301 — and are inside the range for that reason alone.
+#
+# `q́z` = `⟨bow⟩q⟨eow⟩` + the mark + `⟨bow⟩z⟨eow⟩`, so a word is TWO words either side of an
+# accent. This range is also exactly the population the retired `_charging_border` enumerated from
+# its digit-frame/letter-frame differential: that differential was the same fact read one step too
+# late, as an extra ⟨eow⟩ the word writes at a space border rather than as the word ending early.
+SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
+
+# The same question asked of every other combining block of the BMP, on the same two frames and on
+# in-script one-token hosts where the script has any (Cyrillic бвдзйэя, Hebrew אי, Arabic دسم,
+# Devanagari कतनम) as well as on `q`. 418 marks swept, both families, no host and no family
+# dissenting on any one of them, and the answer is orthographic rather than numeric — the same
+# distinction `is_killer` already draws for Thai:
+#
+#   OUTSIDE the word   accents, tone marks, cantillation and annotation — Cyrillic titlo and its
+#                      relatives, the Hebrew te'amim, Vedic tone, Ethiopic gemination, the Arabic
+#                      tone marks and empty-centre stops, and the four cross-script combining
+#                      supplements (U+1AB0, U+1DC0, U+20D0, U+FE20)
+#   INSIDE the word    vowel points and combining LETTERS — Hebrew niqqud, Arabic harakat, the
+#                      Syriac vowels and superscript alaph, Thaana, Samaritan vowels, and every
+#                      block of combining Latin/Cyrillic letters (U+0363, U+1ABF, U+1ACC, U+1DD3,
+#                      U+2DE0, U+A674)
+#
+# Most of these ranges are pinned on BOTH sides by an inside-the-word neighbour in the same block,
+# which is the strongest form this evidence takes: 0658 between 064B–0657 and 0659–065F, 06DF–06E0
+# between 06D6–06DC and 06E1–06E8, 08EA–08EF between 08E3–08E9 and 08F0–08FF, 0818–0819 and 082D
+# among the Samaritan vowels, 1AB0–1ABE / 1AC1–1ACB around 1ABF–1AC0, 1DC0–1DD2 and 1DF5–1DFF
+# around 1DD3–1DF4, A66F–A672 and A67C–A67D around A674–A67B, and the Hebrew accents 0591–05AF
+# against the niqqud 05B0–05C7. Where a range abuts unassigned codepoints or non-marks instead
+# (0483–0489, 135D–135F, 20D0–20F0, FE20–FE2F, the Vedic tones) the block edge is all there is,
+# and the range is written to the assigned marks that were actually probed.
+#
+# A second pass took the blocks the first one missed, found by scanning every cached probe that
+# still under-counted after it: the N'Ko tone marks U+07EB–U+07F3 and dantayalan U+07FD, the three
+# Mandaic marks U+0859–U+085B, and the Arabic Extended-B annotations U+0898–U+089F, U+08CA–U+08D3
+# and U+08E0–U+08E1. The N'Ko and Mandaic ones read "closes before" on `q` and `б` only — neither
+# script has a letter whose whole word is one token, so they have no in-script confirmation. The
+# Arabic ones do, on `د`, and U+08CA–U+08D3 / U+08E0–U+08E1 are pinned on both sides by U+08D4–
+# U+08DF, twelve Quranic word-abbreviations in the middle of the same block that read "inside the
+# word" on all three hosts.
+#
+# A fourth pass, steered the same way, added the four Mongolian free variation selectors
+# U+180B–U+180D and U+180F and the three Limbu SIGNs U+1939–U+193B. Limbu is the cleanest split in
+# the whole sweep: its six VOWEL SIGNs and its anusvara read "inside the word" and its three tone
+# and annotation signs read "closes before", on `q`, `б` and the in-script `ᠠ`, in both families.
+SEPARATOR_ANNOTATIONS = re.compile(
+    "[\u0483-\u0489\u0591-\u05af\u0658\u06df-\u06e0\u06ea-\u06ec"
+    "\u07eb-\u07f3\u07fd\u0859-\u085b\u0898-\u089f\u08ca-\u08d3\u08e0-\u08e1"
+    "\u0818-\u0819\u082d\u08ea-\u08ef\u135d-\u135f"
+    "\u180b-\u180d\u180f\u1939-\u193b"
+    "\u1ab0-\u1abe\u1ac1-\u1acb\u1cd0-\u1ce8\u1ced\u1cf4\u1cf8-\u1cf9"
+    "\u1be6\u1c37\u1cf7"
+    "\u1dc0-\u1dd2\u1df5-\u1dff\u20d0-\u20f0\ua66f-\ua672\ua67c-\ua67d"
+    "\u2cef-\u2cf1\u302a-\u302f\u3099-\u309a"
+    "\ua6f0-\ua6f1\ua8e0-\ua8f1\ua92b-\ua92d\uaabf\uaac1\uabec"
+    "\ufe20-\ufe2f]")

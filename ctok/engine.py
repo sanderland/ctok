@@ -11,8 +11,8 @@ tiles.
 
 from __future__ import annotations
 
-from .constants import EOW_G, MARKER_GLYPHS
-from .normalize import nfc, stream_norm
+from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
+from .normalize import nfc, stream_plan, stripped_head
 from .notation import parse_marked
 
 
@@ -147,6 +147,25 @@ def frame_tail(n: int, model) -> list[str]:
     return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
 
 
+def _dotted_host_blocked(seg: str) -> bool:
+    """Is ``seg`` a tile after which the dotted capital İ byte-prices, in İ's contextual spot —
+    a marker-carrying tile ending in an uppercase ASCII letter?
+
+    Measured 2026-08-09, cached grid. Word-final İ after such a tile pays its two bytes: `Bİ Dİ
+    Kİ Lİ Rİ Sİ Tİ` = 15 each and `x Aİ x` `x Eİ x` `x Sİ x` = 17, where the unit piece would
+    read one less. So does İ before a LOWERCASE ASCII letter: `Dİs` = 15, `x Dİl x` = 17. Every
+    other neighbourhood keeps the piece at 1: mid-word before an uppercase letter (`AİD` `BİR`
+    `DİN` `x DİREKTOR x` `TƏSDİQLƏMİSİNİZ` exact), word-final after a lowercase host (`aİ` `xİ`
+    `x nİ x` `x dİ x` exact), after a bare uppercase mid-word tile (`RPİ` = 15 exact), after
+    `⟨bow⟩İ` itself (`x İİ x` = 16 exact — İ is uppercase but not ASCII), and after a markerless
+    multi-letter tile (`xalqlarınİ` `x novunİ x` exact). §12.2's `x Hüseynovunİ x` family, which
+    this rule could never reach, was never a tile question: those words are title-case, take
+    ⟨shift⟩ with the İ literal (see ``normalize.mark_case``), and stopped streaming through this
+    code path at all.
+    """
+    return seg[0] in (BOW_G, SHIFT_G, CAPS_G) and seg[-1].isascii() and seg[-1].isupper()
+
+
 def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
 
@@ -164,11 +183,30 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # of the Rosetta corpus, which is how this was found.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
-    s = stream_norm(norm, model)
+    s, floor_positions = stream_plan(norm, model, head_stripped=stripped_head(text))
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
+    floor_prefix = [0] * (len(s) + 1)
+    for at in floor_positions:
+        floor_prefix[at + 1] = 1
+    for i in range(len(s)):
+        floor_prefix[i + 1] += floor_prefix[i]
+    # The dotted capital İ, in its one measured byte-pricing spot: word-final or followed by an
+    # ASCII lowercase letter, and not word-initial (`⟨bow⟩İ` covers that position as a piece).
+    # There its unit piece prices 1 only after a tile `_dotted_host_tile` admits; after a
+    # marker-carrying tile ending in an uppercase ASCII letter it pays its two UTF-8 bytes.
+    ctx_dotted = frozenset(
+        j for j, ch in enumerate(s)
+        if ch == "İ" and 0 < j < len(s) - 1 and s[j - 1] not in MARKER_GLYPHS
+        and j not in floor_positions
+        and (s[j + 1] == EOW_G or "a" <= s[j + 1] <= "z"))
+    ctx_prefix = [0] * (len(s) + 1)
+    for at in ctx_dotted:
+        ctx_prefix[at + 1] = 1
+    for i in range(len(s)):
+        ctx_prefix[i + 1] += ctx_prefix[i]
 
     def unit_floor(j: int) -> int:
         """What one character costs where no piece covers it — a marker is a token, anything else
@@ -177,9 +215,34 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # A marker the vocabulary somehow does not hold still costs one token — it is structure, not
         # text, and the byte floor would price its three UTF-8 bytes. The `markers` group means this
         # never fires in practice; it stays as the floor under a file that lost one.
-        return 1 if ch in MARKER_GLYPHS else char_cost(model, ch)
+        if ch in MARKER_GLYPHS:
+            return 1
+        if j in floor_positions:
+            return model.raw_bytes.cost_char(ch)
+        return char_cost(model, ch)
 
     def cost_fn(j: int, i: int) -> int | None:
+        # A forced-floor codepoint is outside the context where ordinary vocabulary pieces were
+        # measured. No piece may span across it; its one-character raw-byte tiling is the only edge
+        # offered to the DP.
+        if floor_prefix[i] != floor_prefix[j]:
+            return unit_floor(j) if i - j == 1 and j in floor_positions else None
+        if ctx_prefix[i] != ctx_prefix[j]:
+            # A span touching the tile-contextual İ. Alone, the character pays its raw bytes; the
+            # only way to its one-token piece is a combined edge [host tile][piece], which costs
+            # the pair of tokens it is. No ordinary piece may span the position.
+            if i - j == 1:
+                return model.raw_bytes.cost_char(s[j])
+            last = i - 1
+            if ctx_prefix[last] != ctx_prefix[j] or floor_prefix[last] != floor_prefix[j]:
+                return None
+            host = s[j:last]
+            # Any tile may precede it at price 1 except the measured marker-carrying-uppercase
+            # shape (`_dotted_host_blocked`).
+            if _dotted_host_blocked(host):
+                return None
+            host_cost = 1 if host in pieces else (unit_floor(j) if last - j == 1 else None)
+            return None if host_cost is None else host_cost + 1
         if s[j:i] in pieces:
             return 1
         return unit_floor(j) if i - j == 1 else None
@@ -191,10 +254,24 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]
-        if seg in pieces or unit_floor(j) == 1:
+        if j in ctx_dotted:
+            # A contextual position that no eligible host tile precedes: its raw-byte chunks.
+            out.extend(model.raw_bytes.chunks(seg.encode()))
+        elif i - 1 in ctx_dotted and i - j > 1:
+            # A combined [host tile][piece] edge, split where the DP priced it. The host is a
+            # piece or a single character, which may itself expand to byte chunks.
+            host = seg[:-1]
+            if host in pieces or unit_floor(j) == 1:
+                out.append(host)
+            else:
+                out.extend(model.bytes.chunks(host.encode()))
+            out.append(seg[-1])
+        elif j not in floor_positions and (seg in pieces or unit_floor(j) == 1):
             out.append(seg)
         else:
-            out.extend(model.bytes.chunks(seg.encode()))
+            floor = model.raw_bytes if j in floor_positions else model.bytes
+            chunks = floor.chunks(seg.encode())
+            out.extend(chunks if len(chunks) > 1 else [seg])
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out
