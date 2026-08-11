@@ -22,6 +22,9 @@ from .constants import (
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
+_KILLER = "killer"
+_STRAY_MARK = "stray_mark"
+
 
 def nfc(text: str, *, fold_quotes: bool = True) -> str:
     """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control and private-use
@@ -69,8 +72,11 @@ def is_hard_cp(o: int) -> bool:
     )
 
 
+@cache
 def classify(c: str) -> str:
-    """The class of a single character."""
+    """The stream class of one codepoint, derived from Unicode data and measured tables."""
+    if is_killer(c):
+        return _KILLER
     o = ord(c)
     cat = unicodedata.category(c)
     if cat[0] == "Z" or c in "\t\n\r\f\v":
@@ -435,16 +441,6 @@ def is_killer(c: str) -> bool:
             or bool(SEPARATOR_ANNOTATIONS.fullmatch(c)))
 
 
-_KILLER = "killer"
-_STRAY_MARK = "stray_mark"
-
-
-@cache
-def _run_class(ch: str) -> str:
-    """Classify a codepoint once; the result depends only on Unicode data and measured tables."""
-    return _KILLER if is_killer(ch) else classify(ch)
-
-
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
@@ -518,11 +514,11 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     """
     if not norm:
         return []
-    out, cur, cur_cls = [], norm[0], _run_class(norm[0])
+    out, cur, cur_cls = [], norm[0], classify(norm[0])
     if cur_cls == WORDY and _stray_mark(norm[0]):
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
-        c = _run_class(ch)
+        c = classify(ch)
         # A Syriac-dot absorb clause stood here: a non-vowel combining mark after U+0740–U+074A
         # rode the killer run instead of opening a stray word. It predated §14 — its one motivating
         # row, `x ݂́ܒ x`, has the ACUTE as the rider, and the acute has been a killer in its own
