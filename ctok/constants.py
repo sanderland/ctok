@@ -72,7 +72,7 @@ NON_KILLERS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
 # MEASURED, one character at a time, and the population MUST stay enumerated — the rule is
 # orthographic, not numeric, and the neighbouring codepoint is usually a vowel sign that does NOT
 # split. Test: `cost(H M H) == cost(H M) + cost(H)` at three cuts on three byte-floor CONSONANT hosts
-# per script (evidence and the full no-split list: `data_v4_7/mark_split.json`). Consonant hosts are
+# per script (the populations and controls are summarized in LIMITS.md §14.2). Consonant hosts are
 # not a detail — measured against a script's independent vowels the same test called all 21 Gujarati
 # marks splitters, and the corpus refuted it at once.
 EXTRA_KILLERS = frozenset((
@@ -243,7 +243,7 @@ SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW
 # 0300 0301 0313 0308+0301 — and are inside the range for that reason alone.
 #
 # `q́z` = `⟨bow⟩q⟨eow⟩` + the mark + `⟨bow⟩z⟨eow⟩`, so a word is TWO words either side of an
-# accent. This range is also exactly the population the retired `_charging_border` enumerated from
+# accent. This range is also exactly the population the retired charging-border rule enumerated from
 # its digit-frame/letter-frame differential: that differential was the same fact read one step too
 # late, as an extra ⟨eow⟩ the word writes at a space border rather than as the word ending early.
 SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")

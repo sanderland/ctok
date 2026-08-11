@@ -181,64 +181,12 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
 # ---- the marked stream --------------------------------------------------------------------------
 
 
-def _is_punct_text(body: str) -> bool:
-    """Unicode punctuation, regardless of which internal class it lands in
-
-    Measurement record of the homogeneous population; the stream gate itself is
-    :func:`_is_borderable_text`, which also admits the MIXED runs these each refuse. — the Devanagari danda,
-    the ideographic full stop, the Arabic and Ethiopic stops are all category Po but classify HARD,
-    and they take the same markers as ASCII punctuation.
-
-    A trailing variation selector rides its base here exactly as it does in :func:`_is_symbol_text`
-    (the sub-run split in :func:`_runs` glues it on): `⁉️` is a punctuation body and takes the
-    punctuation markers. Measured 2026-08-10 — with the selector counted as part of the test,
-    the predicate failed and every marker was lost: `1 ⁉️ 1` = 22 and `1 ‼️ 1` = 21 read two
-    under, `1 ⁉️1` `1⁉️ 1` `x ⁉️ 5` and the Mongolian corpus row's `ВЭ⁉️ 2019` one under, in
-    both families, against `1 ⁉ 1` `x ⁉ 5` `ВЭ⁉ 2019` exact. A body of ONLY selectors is not
-    punctuation."""
-    core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
-    return (bool(core) and all(unicodedata.category(c).startswith("P") for c in core)
-            and not any(_ideographic_punct(c) for c in core))
-
-
-def _is_symbol_text(body: str) -> bool:
-    """Unicode symbols (category S*), which take the same whitespace markers as punctuation.
-
-    Measurement record of the homogeneous population; the stream gate itself is
-    :func:`_is_borderable_text`, which also admits the MIXED runs these each refuse.
-
-    Measured 2026-07-31 (`hard_boundary` grids): with digit anchors, `1c1` is exact for every such
-    character — the intrinsic cost was never wrong — while `1 c1` and `1c 1` each cost one more than
-    we charged and `1 c 1` two more, which is a ⟨bow⟩ and an ⟨eow⟩ at the space borders. `1c  1` is
-    exact, so run-kills-marker applies here too.
-
-    Confirmed on 44 characters the rule was not derived from. Three of them — `±`, `©`, `®` — first
-    looked like exceptions, showing no gap on the right; they are not. Each has a single-token
-    `X⟨eow⟩` piece, so the oracle charges 1 for character-plus-marker where `←` pays 2, and the gap
-    reads 0 while the marker is written all the same. The rule is uniform; only the vocabulary
-    differs. `›` disagrees in the other direction and is recorded as open in
-    `data_v4_7/hard_boundary.json`.
-
-    ASTRAL symbols are excluded, and that is measured on the same grid: `🐫` `😀` `🚀` read `1c1`
-    exact but `1 c1` and `1c 1` one MORE than we charge and `1 c 1` two more — a boundary written
-    where the oracle writes none, the exact mirror of what the BMP characters do. `文 🐫` = 6 is
-    the row it costs on real text.
-
-    A trailing variation selector rides its base (see the sub-run split in :func:`_runs`), so it
-    is transparent here: `⚖️` is a symbol body and takes the symbol's markers (`1 ⚖️ 1` = 22).
-    A body of ONLY selectors is not a symbol.
-    """
-    core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
-    return bool(core) and all(unicodedata.category(c).startswith("S") and ord(c) < 0x10000
-                              for c in core)
-
-
 def _is_borderable_text(body: str) -> bool:
     """Does this HARD body take the punctuation border markers — every character punctuation,
     symbol or format, judged PER CHARACTER by :func:`_marks_like_punct`?
 
-    The three homogeneous predicates below each demand a pure body, so a MIXED one — a format
-    character against a BMP symbol — fell through all three and lost its markers. Measured
+    This is deliberately per-character: the earlier homogeneous run tests let a MIXED body — a
+    format character against a BMP symbol — fall through and lose its markers. Measured
     2026-08-10 on the Sorani corpus row's `🎓 ‎⏰` (LRM + alarm clock, one under while glued
     markerless) and the grid bought from it: `1 ‎⏰ 1` `1 ⏰‎ 1` `1 €‎ 1` `1 ‎€ 1` `x ‎⏰ 5`.
     Ideographic punctuation and astral characters exclude their runs, exactly as they always
@@ -249,33 +197,10 @@ def _is_borderable_text(body: str) -> bool:
     window deletion manufactured and both families then confirmed on a bought grid: `5 ️ 5` reads
     two under with no markers, `a️ 5` `1️ 5` `!️ 5` `Э️ 5` `x ️ 5` `️ 5` `x ️️ 5` and `5 ️`
     one, while `a️ z` `x ️ x` (the seam cancels), `a️5` (no space), `a️` (message end) and the
-    space-run rows `x ️  5` `a️  5` are exact. `_is_symbol_text`'s "only selectors is not a
-    symbol" stands — the run is not a SYMBOL — but it takes the markers all the same."""
+    space-run rows `x ️  5` `a️  5` are exact. The run is not a symbol, but it takes the markers
+    all the same."""
     core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
     return bool(body) and all(_marks_like_punct(c) for c in core)
-
-
-def _is_format_text(body: str) -> bool:
-    """A run of format characters (category Cf) — ZWSP, ZWNJ, ZWJ and their relatives.
-
-    Measurement record of the homogeneous population; the stream gate itself is
-    :func:`_is_borderable_text`, which also admits the MIXED runs these each refuse.
-
-    These reach `classify` with no branch of their own and fall through to HARD, which writes no
-    markers at all. Measured 2026-08-08, they take the same border markers punctuation does:
-
-        aZb     3     no space border, so no marker, exactly as `a!b` gets a bare `!`
-        aZ b    4     `Z⟨eow⟩`, then the seam deletes the space
-        aZ 5    5     `Z⟨eow⟩` with no ⟨bow⟩ to its right, so the space survives and the ⟨eow⟩ stands
-        aZ  5   4     a space RUN kills the marker, the same rule punct has
-        a Zb    4     `⟨bow⟩Z`, and the seam deletes the space to its left
-        5 Za    6     `⟨bow⟩Z` with no ⟨eow⟩ to its left, so nothing is deleted
-
-    Treating them as HARD reproduces the first, second, fourth and fifth of those and misses the
-    third and sixth by one token each — which is the whole of the Khmer and Lao under-count, since
-    ZWSP is the word separator in both. (Z is U+200B here.)
-    """
-    return bool(body) and all(unicodedata.category(c) == "Cf" for c in body)
 
 
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
@@ -615,9 +540,9 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
             cur, cur_cls = ch, c
     out.append((cur_cls, cur))
 
-    # A HARD run is not homogeneous. `文？` is one run by class, so the whole-run predicates
-    # `_is_punct_text`/`_is_symbol_text` see a mixed body, fail, and the `？` loses the border
-    # markers it is entitled to — while the same character in a run of its own gets them. Measured
+    # A HARD run is not homogeneous. `文？` is one run by class, so a whole-run test sees a mixed
+    # body and the `？` loses the border markers it is entitled to — while the same character in a
+    # run of its own gets them. Measured
     # 2026-08-08: `文？ 文` and `文 ？文` each cost one more than that spelling charges, `文？文`
     # and `文？  文` are exact, and `あ？ 文` (already its own run) was exact all along. So the run
     # is split where the character KIND changes, and the existing predicates then apply per piece.
@@ -691,8 +616,8 @@ def _marks_like_punct(ch: str) -> bool:
     because the marker sits on the `？` side, while `1？。 1` and `1 。？1` are one over if the run
     is judged as a whole.
 
-    ASTRAL characters are excluded too, the same population :func:`_is_symbol_text` already
-    excludes: an emoji takes no border marker, so it must not be the punct KIND either — a format
+    ASTRAL characters are excluded too: an emoji takes no border marker, so it must not be the
+    punct KIND either — a format
     character in front of one would be glued into a single markerless sub-run and lose the ⟨bow⟩
     it is entitled to. Measured 2026-08-10 on the Sorani corpus row's three sites and the grid
     bought from them: `📐 ‎📝` `🎓 ‎⏰` `🔍 ‎📝` `📐 ‎👨` (LRM before an emoji) each read one
@@ -710,8 +635,8 @@ def stream(text: str, model) -> str:
     """Text → the marked stream, in the internal glyph form ``pieces.json`` keys parse to.
 
     A WORDY run is bracketed ⟨bow⟩…⟨eow⟩ and case-normalized. A single space between two such runs
-    is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal. Nothing
-    else is marked here: whether punctuation wants a marker is for the tiling to reveal.
+    is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal.
+    Punctuation-like, digit, killer, and stray-mark runs receive their measured boundary markers.
     """
     return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
                        head_stripped=stripped_head(text))

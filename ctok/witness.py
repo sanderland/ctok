@@ -12,7 +12,8 @@ v4.7, 7 on v5 — so it is a known single token measured through the same frame,
 ``overhead`` is calibrated against it. That is the whole reason the surrounding material never has to
 be measured on its own: the anchors are not summed, they are subtracted as a template constant.
 
-The templates are the mining repo's `PROBES.md` inventory, not an invention of this file:
+The vocabulary file's ``meta.witness.templates`` table is the inventory; README.md explains the
+public contract:
 
     raw         X                               the span IS the message
     word        .X.                             a wordy span between Latin anchors
@@ -21,12 +22,6 @@ The templates are the mining repo's `PROBES.md` inventory, not an invention of t
     char        aXa                             one non-ASCII codepoint's intrinsic cost
     glued       aXb                             an ASCII digit piece
 
-A ``fitness``
-witness records two or more exact natural probes and checks the next strongest membership claim:
-after deleting the piece, enumerate every single stream span whose addition restores each count.
-The claimed piece must be the unique candidate common to every row.  This is deliberately a
-fewest-new-tokens proof; ambiguity remains a gap rather than being broken by corpus frequency.
-
 Which one applies is a property of the piece: a piece's marked form says where in a word it lives
 (``⟨bow⟩p⟨eow⟩`` whole, ``⟨bow⟩p`` prefix, ``p⟨eow⟩`` suffix, bare ``p`` interior), and a probe that
 puts it anywhere else measures a different thing. `verify` re-checks that placement against the
@@ -34,8 +29,6 @@ encoder rather than trusting the recorded kind.
 """
 
 from __future__ import annotations
-
-import copy
 
 from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
 from .normalize import nfc, stream_norm
@@ -82,8 +75,6 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     it stands? A template whose text no longer places the piece is measuring something else, and no
     amount of correct arithmetic on it means anything.
     """
-    if witness.get("kind") == "fitness":
-        return _verify_fitness(key, witness, model)
     if set(FIELDS) - set(witness):
         return f"missing {sorted(set(FIELDS) - set(witness))}"
     templates = meta["witness"]["templates"]
@@ -104,126 +95,6 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
         key = glued_contraction(key)
     if model is not None and not places(key, witness["probe"], model):
         return "the encoder no longer writes this piece into that probe"
-    return None
-
-
-def _without_key(model, key: str):
-    """A shallow model clone with one vocabulary key removed, including the unit-character floor."""
-    from .engine import ByteFloor
-
-    without = copy.copy(model)
-    without.vocab = frozenset(set(model.vocab) - {key})
-    without.max_piece_len = max(map(len, without.vocab), default=1)
-    if len(key) == 1 and key not in MARKER_GLYPHS:
-        without.unit_pieces = set(model.unit_pieces) - {key}
-        without.bytes = ByteFloor(set(model.bytes.tokens) - {key.encode().hex()},
-                                  without.unit_pieces)
-        without._char_cost_cache = {}
-    return without
-
-
-def _with_key(model, key: str):
-    """A shallow model clone with one vocabulary key added, for fitness-candidate verification."""
-    from .engine import ByteFloor
-
-    with_key = copy.copy(model)
-    with_key.vocab = frozenset(set(model.vocab) | {key})
-    with_key.max_piece_len = max(model.max_piece_len, len(key))
-    if len(key) == 1 and key not in MARKER_GLYPHS:
-        with_key.unit_pieces = set(model.unit_pieces) | {key}
-        with_key.bytes = ByteFloor(model.bytes.tokens, with_key.unit_pieces)
-        with_key._char_cost_cache = {}
-    return with_key
-
-
-def _fitness_candidates(model, probe: str, raw: int) -> set[str]:
-    """Every one-piece vocabulary addition that makes ``probe`` reproduce ``raw``.
-
-    Prefix and suffix costs identify candidate spans in quadratic time; the full tokenizer then
-    verifies each survivor because adding a unit character also changes the byte floor everywhere
-    that character occurs.
-    """
-    from .engine import char_cost, tile
-
-    norm = nfc(probe, fold_quotes=model.fold_quotes)
-    if norm.endswith("\n"):
-        return set()                    # fitness rows intentionally avoid frame-tail arithmetic
-    stream = stream_norm(norm, model)
-    n = len(stream)
-
-    def span_cost(j: int, i: int) -> int | None:
-        if stream[j:i] in model.vocab:
-            return 1
-        if i - j == 1:
-            if stream[j] in MARKER_GLYPHS:
-                return 1
-            return char_cost(model, stream[j])
-        return None
-
-    inf = float("inf")
-    prefix = [0.0] + [inf] * n
-    for i in range(1, n + 1):
-        for j in range(max(0, i - model.max_piece_len), i):
-            cost_ = span_cost(j, i)
-            if cost_ is not None:
-                prefix[i] = min(prefix[i], prefix[j] + cost_)
-    suffix = [inf] * n + [0.0]
-    for j in range(n - 1, -1, -1):
-        for i in range(j + 1, min(n, j + model.max_piece_len) + 1):
-            cost_ = span_cost(j, i)
-            if cost_ is not None:
-                suffix[j] = min(suffix[j], cost_ + suffix[i])
-
-    target = raw - model.message_overhead
-    possible = set()
-    for i in range(n):
-        for j in range(i + 1, n + 1):
-            key = stream[i:j]
-            if key in model.vocab or not any(c not in MARKER_GLYPHS for c in key):
-                continue
-            if prefix[i] + 1 + suffix[j] == target:
-                possible.add(key)
-    return {key for key in possible
-            if tile(probe, _with_key(model, key))[0] + model.message_overhead == raw}
-
-
-def _verify_fitness(key: str, witness: dict, model) -> str | None:
-    """Verify that ``key`` is the unique common one-token explanation of natural probe rows."""
-    if model is None:
-        return None
-    rows = witness.get("rows", ())
-    if len(rows) < 2:
-        return "fitness witness needs at least two independent rows"
-    without = _without_key(model, key)
-    from .engine import tile
-
-    common = None
-    for row in rows:
-        if set(("probe", "raw", "without")) - set(row):
-            return "fitness row is missing probe, raw or without"
-        probe, raw = row["probe"], row["raw"]
-        stream = stream_norm(nfc(probe, fold_quotes=model.fold_quotes), model)
-        if key not in stream:
-            return f"the encoder does not place this piece in {probe!r}"
-        with_n = tile(probe, model)[0] + model.message_overhead
-        without_n = tile(probe, without)[0] + model.message_overhead
-        if with_n != raw:
-            return f"the shipped vocabulary counts {probe!r} at {with_n}, not recorded {raw}"
-        if without_n != row["without"]:
-            return (f"ablating the piece counts {probe!r} at {without_n}, "
-                    f"not recorded {row['without']}")
-        if without_n <= raw:
-            return f"ablating the piece does not make {probe!r} more expensive"
-        if common is None:
-            common = _fitness_candidates(without, probe, raw)
-        else:
-            # Only candidates surviving earlier rows can belong to the final intersection.  Testing
-            # those directly avoids re-enumerating every span in long corroborating documents.
-            common = {candidate for candidate in common if candidate in stream and
-                      tile(probe, _with_key(without, candidate))[0] +
-                      model.message_overhead == raw}
-    if common != {key}:
-        return f"common one-token explanations are {sorted(common or ())!r}, not this piece alone"
     return None
 
 

@@ -155,11 +155,11 @@ The obvious reading is that the scaffold is at fault: `.ヲXヲ.` supplies a kat
 becomes the cluster's base, and Thai does not put it there. So the campaign was re-run with the
 scaffold removed entirely.
 
-**The own-script instrument fails harder.** `witness._fitness_candidates` needs no anchor at all: it
+**The own-script instrument fails harder.** The retired fitness enumerator needs no anchor at all: it
 takes a Thai line and its recorded count and enumerates, from the tiling DP, every single piece
 whose addition would make that line reproduce. The probe is the Thai. Requiring at least two
-independent lines to agree on exactly one piece — `_verify_fitness`, the strictest test in the
-repo — yields 175 pieces from 1,200 lines. On 17,962 lines of FineWeb-2 Thai and Tamil:
+independent lines to agree on exactly one piece yielded 175 pieces from 1,200 lines. On 17,962 lines
+of FineWeb-2 Thai and Tamil:
 
 | vocabulary | over-charge | under-count | total \|err\| | exact |
 |---|---:|---:|---:|---:|
@@ -233,12 +233,12 @@ a³   +0     a³.  +0     a³ b  +0        ¹ ½ ¼ ¾ ⁴ ₂ read +0 in every 
 ```
 
 It is not a class rule: `³ ¹ ½ ¼ ¾ ⁴ ₂` share `²`'s category (`No`) and its HARD class and are exact
-in the same frames, so this is a vocabulary difference, the same shape as the `±`/`©`/`®` note in
-`normalize._is_symbol_text`. Nor is it a stream rule about absorbing the space: absorbing it would
+in the same frames, so this is a vocabulary difference, the same shape as the `±`/`©`/`®` symbol
+examples. Nor is it a stream rule about absorbing the space: absorbing it would
 take `a³ b` *below* its recorded count.
 
-The fitness enumerator names the missing pieces — `² ` and `².` — and no shipped template can price
-either. `²` is HARD, a space and a full stop are not, and `mine_stream.probe_of` refuses mixed
+The retired fitness enumerator named the missing pieces — `² ` and `².` — and no shipped template
+can price either. `²` is HARD, a space and a full stop are not, and the probe generator refuses mixed
 material because no template owns it: the ヲ grid would put a letter against it, and the digit
 anchors would read a punctuation run. So this is a **no-instrument** gap rather than an unmined one.
 
@@ -461,7 +461,8 @@ and 8 without, and 7 is recorded. **But it produces it for the wrong reason**, a
 ```
 
 The space costs nothing when a letter follows, because the oracle absorbs it into the next `⟨bow⟩`
-like any other seam — and `_seam_sub` exempts terminal marks from exactly that. So the space was
+like any other seam — and the retired seam exception exempted terminal marks from exactly that. So
+the space was
 never a token, the `virama + space` piece is a modelling device standing in for an absorption the
 stream does not perform, and the `mark_sep` witness attached to it during the `ownscript` retirement
 is degenerate: it cannot tell `्` from `् `, so it certifies the bare virama and says nothing about
@@ -514,8 +515,8 @@ stream builder never gave boundary markers to. ZWSP is category **Cf**, not a te
 it falls through to HARD, which writes no markers at all. It is also the word separator of Khmer and
 Lao, which is why those two carried the residual.
 
-Format characters take the border markers punctuation already takes (`normalize.py`, the
-`_is_punct_text`/`_is_symbol_text` branch). Ten oracle readings pin it, and the two that discriminate
+Format characters take the border markers punctuation already takes (`normalize.py`,
+`_is_borderable_text`). Ten oracle readings pin it, and the two that discriminate
 were named by an adversarial review of an earlier and wrong version of this section:
 
 ```
@@ -647,8 +648,8 @@ grid of unexplained rows below: they were the in-word spelling of a mark that st
 word. Kept as written because the instrument lesson is the point — a tile-eligibility rule that
 fits 434 rows and leaves 9 is what a wrong factorization looks like from the inside.
 
-The five word-context mark pieces (U+0302 0303 0304 0327 0331) are tile-contextual
-(`engine._mark_host_tile`): the piece prices 1 after a single-letter tile of at most two UTF-8
+The five word-context mark pieces (U+0302 0303 0304 0327 0331) were made tile-contextual by a
+now-retired host rule: the piece prices 1 after a single-letter tile of at most two UTF-8
 bytes, with or without ⟨bow⟩/case markers, and after a markerless multi-letter ASCII tile; it pays
 its own bytes after everything else. That rule took the 434-row probe grid from 402 exact / 68
 under to 445 / 9, and every one of the 9 residual unders predates it. They are the UNEXPLAINED
@@ -692,7 +693,7 @@ probe that could refute it.
 **MOSTLY SUPERSEDED 2026-08-10 — §14.** Three of the four populations below reproduce now, and none
 of the three was about what its heading says: 12.1, 12.3 and 12.4 are one rule about unattached
 mark runs (§14.4). 12.2, the dotted İ, is untouched and still open. The
-`_charging_border` half of the two rules that opened this section was the U+0300 block's word
+retired charging-border rule that opened this section was the U+0300 block's word
 boundary read one character late (§14.1). The self-consistency check in the last paragraph — our
 digit frame agreeing with our letter frame in 30 rows — is why it went in wrong; both frames were
 ours.
@@ -704,8 +705,8 @@ right neighbour that writes no ⟨bow⟩ of its own can see it:
 
 * a non-ASCII digit run takes ⟨eow⟩ as well as ⟨bow⟩, per border CHARACTER, and a HARD run splits
   at the number boundary (`normalize._digit_eow`, `_hard_kind`) — Japanese 4 → 0;
-* a word ending in a charging mark takes the same right-hand ⟨eow⟩, which is what the seam block
-  in `_seam_sub` was standing in for (`normalize._charging_border`) — Yoruba 5 → 0, and the last
+* a word ending in a charging mark takes the same right-hand ⟨eow⟩, which is what the retired seam
+  exception was standing in for — Yoruba 5 → 0, and the last
   Glot500 Yoruba row with it.
 
 |  | exact | over | under |
@@ -761,7 +762,7 @@ refutation is exact and same-script: `ٖٗ` (U+0656 + U+0657) rides at 19 while 
 U+0658) splits at 20 — same combining classes (220 then 230), same byte lengths, same block, same
 ascending canonical order, differing only in which characters they are. `ٙٚ` `ٚٛ` `ٖٙ` `ٗٙ` ride
 too, `ٗ٘` `٘ٗ` `٘ٛ` `ﬞ٘` `ﬞ֑` split. So the boundary is real and the oracle's vocabulary swallows
-it for particular pairs, exactly as `±`/`©`/`®` swallow the symbol ⟨eow⟩ in `_is_symbol_text`.
+it for particular pairs, exactly as `±`/`©`/`®` swallow the symbol ⟨eow⟩.
 Writing it unconditionally would break every identical-neighbour row above — a clean population
 that reproduces today — to buy five tokens. It is listed, not implemented.
 
@@ -964,7 +965,7 @@ v3    asm_beng 4 rows, ben_beng 1 row, +1 each
 
 So the residual is two different things and neither is Bengali vocabulary. The rows with no wrong
 word are a joining question, the Lombard shape of §0 in a script where it accounts for 2% rather
-than 79%. The Latin-glued words are a mixed-script, case-carrying span, which `mine_stream.probe_of`
+than 79%. The Latin-glued words are a mixed-script, case-carrying span, which the probe generator
 refuses on purpose (§6: the `cased_*` templates answer a different question about a fused case
 marker) — they need a campaign with a frame of their own, not a template stretched to cover them.
 
@@ -1045,7 +1046,7 @@ one OVER, and the same three Thaana marks are exact on their own script's host (
 word (`x qިq x`) and on the `char` template. That is the ヲ hazard in miniature — a word-final
 Thaana vowel on a Latin host — and it does not touch the verdict, which both frames agree on.
 
-That is exactly the range the retired `_charging_border` enumerated. Its population was right and
+That is exactly the range the retired charging-border rule enumerated. Its population was right and
 its reading was one step late: the extra ⟨eow⟩ it wrote at a word-final space border is the ⟨eow⟩
 the word already had, one character earlier.
 
@@ -1076,7 +1077,7 @@ what a sweep should be steered by, and it is cheaper than guessing which block t
   (14.4). **§12.2 is not** — see 14.6.
 
 Taken together that is **126 probes exact in both families**: everything §11's tile grid cites,
-everything its UNEXPLAINED grid cites, all 23 rows of the retired `_charging_border`, and §12.1,
+everything its UNEXPLAINED grid cites, all 23 rows of the retired charging-border rule, and §12.1,
 §12.3, §12.4 and the Syriac-vowel law with their controls. The one row excluded from the count is
 `x िी x`, which 12.1 listed as a control and which is one OVER on v3 and always was (14.6).
 
@@ -1243,7 +1244,7 @@ that last row too, so the number below is now zero on both sides.**
 | dotted İ words (§12.2 + corpus) | 6 | 26 | fixed — title-case ⟨shift⟩, İ transparent |
 | Syriac dot + rider | 2 | 2 | fixed — absorb clause removed |
 | Greek all-caps final sigma | 2 | — | fixed — oracle lowers Σ→σ without Final_Sigma |
-| `⁉️` (VS16 in a punct body) | — | 1 | fixed — selector rides its base in `_is_punct_text` |
+| `⁉️` (VS16 in a punct body) | — | 1 | fixed — selector rides its base in `_is_borderable_text` |
 | emoji ⟨bow⟩ loss after format chars | — | 1 | fixed — astral is not punct KIND; mixed runs borderable |
 | stray-mark word boundary (§14.6) | 1 | 1 | listed then **fixed — §16**, the mark and the letter are one word |
 

@@ -44,13 +44,12 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     doc = _doc(name)
     # `prefix` is a witness but not a template: a byte prefix is verified by the floor
     # reproducing a character it predicts, not by a probe costing one token.
-    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix", "fitness"}
+    kinds = set(doc["meta"]["witness"]["templates"]) | GAP_KINDS | {"prefix"}
     for group, entries in doc["tokens"].items():
-        assert isinstance(entries, dict), f"{group} is still a list — run scripts/witness_pieces.py"
+        assert isinstance(entries, dict), f"{group}: expected a piece-to-witness mapping"
         for piece, w in entries.items():
             # `bytes_fallback` used to be null here — a prefix is not a token, so there was thought
             # to be nothing to ask. There is: it predicts what characters sharing it cost.
-            assert isinstance(w, dict) and w.get("kind"), f"{piece}: no witness record"
             assert isinstance(w, dict) and w.get("kind"), f"{piece}: no witness record"
             assert w["kind"] in kinds, f"{piece}: unknown kind {w['kind']!r}"
 
@@ -62,7 +61,7 @@ def test_each_witness_holds_under_the_arithmetic_that_ships_with_it(name):
     model = _model(_family_of(name))
     for group, entries in doc["tokens"].items():
         for piece, w in entries.items():
-            if not w or w["kind"] in GAP_KINDS:
+            if w["kind"] in GAP_KINDS:
                 continue
             why = verify(parse_marked(piece), w, doc["meta"], model)
             assert why is None, f"{piece} ({w.get('probe')!r}): {why}"
@@ -77,7 +76,7 @@ def test_a_refutation_records_what_refuted_it(name):
     templates = doc["meta"]["witness"]["templates"]
     for group, entries in doc["tokens"].items():
         for piece, w in entries.items():
-            if not w or w["kind"] != "refuted":
+            if w["kind"] != "refuted":
                 continue
             assert w.get("refused"), f"{piece}: refuted by nothing recorded"
             for r in w["refused"]:
@@ -93,21 +92,18 @@ def test_a_refutation_records_what_refuted_it(name):
 def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
     """A ``bow`` template on a suffix piece would be measuring the wrong end of a word.
 
-    WHICH template a piece is entitled to is the mining repo's question — the hazards that decide it
-    are `PROBES.md`'s and they need the probe inventory to answer (`tests/test_witness_file.py`).
-    What is checkable from here is that a recorded witness and the piece's own marked form agree
-    about where in a word it sits, and that a gap kind carries no measurement.
+    Choosing the template requires the measurement inventory and its controls. What is checkable
+    here is that a recorded witness and the piece's own marked form agree about where in a word it
+    sits, and that a gap kind carries no measurement.
     """
     doc = _doc(name)
     for group, entries in doc["tokens"].items():
         for piece, w in entries.items():
-            if not w:
-                continue
             if w["kind"] in GAP_KINDS:
                 assert "probe" not in w, f"{piece}: a {w['kind']} record carries a measurement"
                 continue
-            if w["kind"] in ("prefix", "fitness"):
-                continue                     # these kinds validate placement in their own verifier
+            if w["kind"] == "prefix":
+                continue                     # this kind validates placement in its own verifier
             pos = position(parse_marked(piece))
             # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
             # its own — so the glued frame that pins it reads at `mid`. Every other template names
@@ -141,14 +137,14 @@ def test_the_witness_reader_serves_a_borrowing_family():
 @pytest.mark.parametrize("name", FILES)
 def test_every_vocabulary_piece_is_witnessed_or_special(name):
     """CI's target is literal: every shipped text piece has evidence; only structure is special."""
-    from tests.gates import ARGUED, MISSING, UNRESOLVED
+    from tests.gates import MISSING, UNRESOLVED
 
     gaps = {group: {kind: [piece for piece, witness in entries.items()
                            if witness.get("kind") == kind]
-                    for kind in MISSING + UNRESOLVED + ARGUED
+                    for kind in MISSING + UNRESOLVED
                     if any(witness.get("kind") == kind for witness in entries.values())}
             for group, entries in _doc(name)["tokens"].items()
-            if any(witness.get("kind") in MISSING + UNRESOLVED + ARGUED
+            if any(witness.get("kind") in MISSING + UNRESOLVED
                    for witness in entries.values())}
     missing = sum(len(pieces) for kinds in gaps.values() for pieces in kinds.values())
     assert not missing, (
@@ -162,9 +158,9 @@ def test_no_shipped_piece_is_one_its_own_probe_refutes(name):
 
     Unlike the other gap kinds this is not a state to pass through: `unmeasured` is work not yet
     bought and `no-instrument` is a piece the inventory cannot reach, but a refuted piece is one we
-    have already asked about and been told no. `scripts/retire_refuted.py` is what clears them — it
-    judges the set on the mining corpus first, because a fabricated piece can be masking a missing
-    one and dropping it blind trades a wrong tiling for a worse one.
+    have already asked about and been told no. Removal still needs a leave-one-out corpus check,
+    because a fabricated piece can mask a missing one and dropping it blind can expose that second
+    error.
     """
     from tests.gates import totals, witness_coverage
 
@@ -172,8 +168,15 @@ def test_no_shipped_piece_is_one_its_own_probe_refutes(name):
     by_group = witness_coverage()[family]
     culprits = {g: c["refuted"] for g, c in by_group.items() if c.get("refuted")}
     assert not totals(by_group).get("refuted"), (
-        f"{family} ships {totals(by_group)['refuted']} refuted pieces {culprits} — run "
-        f"scripts/retire_refuted.py --family {family} --leave-one-out")
+        f"{family} ships {totals(by_group)['refuted']} refuted pieces {culprits}; "
+        "remove them or replace them with fixed-template witnesses")
+
+
+def test_unknown_witness_kinds_do_not_count_as_evidence():
+    """Coverage must fail closed when a new kind has not been classified."""
+    from tests.gates import witnessed
+
+    assert witnessed({"word": 2, "special": 1, "unknown": 5}) == 3
 
 
 def test_a_witness_is_readable_without_reading_the_file():

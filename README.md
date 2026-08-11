@@ -304,7 +304,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15146
+len(pieces(4.7))                # 15147
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -378,8 +378,8 @@ the rest of the vocabulary rather than to the oracle, and 33 records deep. It wa
 from the witnessed number rather than folded into it, so the two vocabularies read 99.96% and
 99.87% while every gap column showed nothing — the coverage table now carries a column for every
 kind its own rate withholds, which is how those records became visible enough to go and measure.
-All 33 were then bought on the fixed `mark_mid` and `eow` templates and hold at cost 1, and
-`tests/test_witness.py` fails on any future `fitness` record rather than reporting one.
+All 33 were then bought on the fixed `mark_mid` and `eow` templates and hold at cost 1. The retired
+`fitness` verifier has been removed; any future record using that kind is rejected as unknown.
 
 That guard has a second half, for the direction a coverage number must never round: a witness kind
 nobody has classified used to count as evidence. The kind list is derived from each file's own

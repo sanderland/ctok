@@ -75,54 +75,54 @@ def _family(version: float | str) -> str:
 
 
 @cache
-def _model(family: str) -> "TokenizerModel":
-    if family not in FAMILIES:
-        raise NotImplementedError(f"Unknown Claude tokenizer family: {family!r}")
-    pieces = FAMILIES[family].pieces
-    if pieces is None:
+def _document(filename: str) -> dict:
+    """Load one vocabulary document once, shared by counting and witness inspection."""
+    path = files("ctok").joinpath("data", filename)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _pieces_file(family: str) -> str:
+    """The vocabulary file for a reconstructed family, with one consistent failure path."""
+    try:
+        filename = FAMILIES[family].pieces
+    except KeyError:
+        raise NotImplementedError(f"Unknown Claude tokenizer family: {family!r}") from None
+    if filename is None:
         raise NotImplementedError(
             f"The {family!r} Claude tokenizer family is not reconstructed yet; "
             f"available families: {', '.join(k for k, f in FAMILIES.items() if f.pieces)}."
         )
-    path = files("ctok").joinpath("data", pieces)
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    # A family may borrow another's vocabulary file and carry its own measured scalars over it (see
-    # v5 above). The override is applied to the loaded copy only — the file on disk stays the one
-    # its own family compiled.
-    doc["meta"] = {**doc["meta"], **dict(FAMILIES[family].meta)}
-    return TokenizerModel(doc)
+    return filename
 
 
 @cache
+def _model(family: str) -> "TokenizerModel":
+    doc = _document(_pieces_file(family))
+    # A family may borrow another's vocabulary file and carry its own measured scalars over it (see
+    # v5 above). Replace the metadata mapping rather than mutating the cached document.
+    family_doc = {**doc, "meta": {**doc["meta"], **dict(FAMILIES[family].meta)}}
+    return TokenizerModel(family_doc)
+
+
 def _vocabulary(family: str) -> dict:
-    """The raw vocabulary document for ``family`` — read again, and cached separately.
-
-    `_model` consumes its copy into the tiling structures and keeps no vocabulary document, which is
-    right for counting and useless for the question this answers: what is this piece, and what was
-    measured to put it there. Two small readers of one file beat one structure serving both.
-    """
-    path = files("ctok").joinpath("data", FAMILIES[family].pieces)
-    return json.loads(path.read_text(encoding="utf-8"))
+    """The vocabulary document for ``family``, including its published witness records."""
+    return _document(_pieces_file(family))
 
 
-def pieces(version: float | str = 3.0) -> dict[str, dict | None]:
+def pieces(version: float | str = 3.0) -> dict[str, dict]:
     """Every piece in the vocabulary, mapped to its witness — the evidence that it is one token.
 
-    A witness is one probe and the count that accepts it: ``{"probe": "the", "n": 1, "kind":
-    "bare"}`` says the bare message ``the`` was measured at one content token, so ``⟨bow⟩the⟨eow⟩``
-    is a token and nothing about the rest of the vocabulary is involved in saying so. ``kind`` is
-    the rung — ``bare`` (the piece IS the message), ``edge`` (one anchor word beside it), ``frame``
-    (one on each side) — and ``n`` is always ``1 + anchors``.
-
-    Three values are not witnesses and each says which it is: ``{"kind": "unframeable"}`` for a
-    word-interior piece no probe can isolate, ``{"kind": "unmeasured"}`` for one nobody has paid the
-    API call for yet, and ``None`` for a ``bytes_fallback`` prefix, which is not a token at all.
+    A token witness records a probe, its raw message count, and the fixed template used to isolate
+    the piece, for example ``{"probe": "the", "raw": 12, "kind": "raw"}``. Byte prefixes use
+    ``kind="prefix"`` because they predict a character's fallback cost rather than representing a
+    token. Unmeasured, unreachable, and refuted pieces carry an explicit gap kind; structural marker
+    atoms carry ``kind="special"``.
     """
     doc = _vocabulary(_family(version))
     return {p: w for group, entries in doc["tokens"].items() for p, w in entries.items()}
 
 
-def witness(piece: str, version: float | str = 3.0) -> dict | None:
+def witness(piece: str, version: float | str = 3.0) -> dict:
     """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
     Raises ``KeyError`` for a string that is not a piece — which is itself the membership answer."""
     return pieces(version)[piece]
@@ -229,7 +229,7 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="ctok", description="Claude tokenizer count tool")
     ap.add_argument("text")
     ap.add_argument("--version", default=3.0,
-                    help="tokenizer version (default 3.0; 4.7 also available)")
+                    help="tokenizer version (default 3.0; 4.7 and 5.0 also available)")
     args = ap.parse_args(argv)
 
     overhead = _model(_family(args.version)).message_overhead
