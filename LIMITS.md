@@ -2568,86 +2568,127 @@ No UDHR document under-counts and none is over 1%. UDHR chose none of this.
   row. Catalan's control set was capped at 4,000 of its 5,729 hot words, so those are ordinary word
   vocabulary the miner did not get to rather than anything structural.
 
-## 24. Tibetan is one two-mark cluster on v3, and the probe that would land it is unbought
+## 24. Tibetan was one two-mark cluster, and both axes of its grid say it is that one
 
-**Measured 2026-08-11, entirely against measurements already on disk** — the session that ran this
-had no API access, so nothing below cost a probe and nothing below could buy one. It names v3's
-largest remaining defect precisely, and stops where the evidence stops.
-
-On the 35,774-line Goldfish sample (190 languages, every line counted in both families):
+**Measured 2026-08-11.** v3 over-charged Tibetan by 180 tokens on 794 Goldfish rows and Dzongkha by
+8 on 420, where v4.7 reproduced every one of them — **58% of v3's entire residue on that corpus**,
+through identical code. Both languages now reproduce every row in both families, on one piece:
 
 ```
-v3     35,540 exact   over 310   under 1     bod_Tibt 679/794 exact, over 180   dzo_Tibt 413/420, over 8
-v4.7   35,749 exact   over  26   under 0     bod_Tibt 794/794             dzo_Tibt 420/420
+ློ    U+0FB3 TIBETAN SUBJOINED LETTER LA + U+0F7C TIBETAN VOWEL SIGN O
 ```
 
-**Tibetan is 58% of everything v3 gets wrong here and v4.7 gets it right**, through identical code.
-§18.1's query — is the cross-family difference real vocabulary, or an artefact of one family's set
-being a subset of the other's? — comes out the other way from Tamil:
+### 24.1 §18.1's query first, and this time the cross-family tell was real
+
+For Tamil the two vocabularies were nested, so the families were bound to agree whatever the cause
+and the tell was worth nothing. Tibetan is the other case, and the same one query says so:
 
 ```
 Tibetan-bearing pieces   v3 36   v4.7 35   shared 34
-v4.7-only   ློ     U+0FB3 TIBETAN SUBJOINED LETTER LA + U+0F7C TIBETAN VOWEL SIGN O
-v3-only     གག  པ
+v4.7-only  ློ          v3-only  གག  པ  (neither changes a row here)
 ```
 
-One piece, and it is the whole residue. `ློ` is a two-mark cluster in the middle of ordinary
-words — `སློབ` *slob*, "study", and its compounds — where v3 spends a token on each mark and the
-oracle spends one on the pair.
+The single piece one family had and the other lacked was the whole difference. **A cross-family
+tell is only evidence where the two vocabularies actually differ on the script**, and it costs one
+query to find out which situation you are in.
 
-### 24.1 The corpus says so before any candidate is proposed
+### 24.2 The corpus partitions on the surface before any probe is bought
 
-All 115 over-charging Tibetan rows contain `ློ`; **not one of the 679 exact rows does**. Dzongkha
-repeats it independently: 7 of 7 over-charging rows hold it, 0 of 413 exact rows do. Every one of
-the 60 mispriced Tibetan words priced alone from the cache holds it too.
-
-Added to v3 and courted alone, at cache scale — a piece can only change a text whose *stream* holds
-its surface (§13.8):
+Localizing (every distinct word of every over-charging row priced alone) covered 280 of 622 words
+and explained 38% — not enough to call the split, so the rows were asked instead:
 
 ```
-220 cached texts hold it     before  exact   0   over 457   under 0     <- not one already reproduced
-                             after   exact 220   over   0   under 0
-                             repaired 220   broken 0   pushed below 0
-
-Goldfish rows, v3           bod_Tibt 679 -> 794 exact, 180 -> 0 over
-                            dzo_Tibt 413 -> 420 exact,   8 -> 0 over
-                            corpus total 35,540 -> 35,662 exact, over 310 -> 122, under 1 -> 1
+bod_Tibt   115 over-charging rows   ALL hold ློ     679 exact rows   NONE holds it
+dzo_Tibt     7 over-charging rows   ALL hold ློ     413 exact rows   NONE holds it
+             60 of 60 mispriced words hold it
 ```
 
-No other language of the 190 moves by a token. Held out and read once at the end, as a consequence
-and never a reason: UDHR v3 would go **393 -> 395** exact, with the Tibetan document +15 -> 0 and
-the Dzongkha document +6 -> 0.
-
-The control runs in the other family as well, and that is the cleanest form of it: **739 cached
-v4.7 texts hold the same surface and every one of them already reproduces**, because v4.7 ships the
-piece. One surface, one encoder — 220 of 220 wrong in the family that lacks it, 739 of 739 right in
-the family that has it.
-
-### 24.2 Why the piece is not in this file
-
-Because a corpus delta has never been allowed to admit a piece here, and `ློ` has no v3 probe:
+Two languages, independently, and the surface separates the wrong rows from the right ones exactly.
+The tiles say why — `སློབ` *slob*, "study", and its many compounds:
 
 ```
-v3    mark_mid  '.ᛒློᛒ.'   accepts at raw 18      never bought
-      char      'aློa'     accepts at raw 10      never bought
-      mid       '.ヲློヲ.'   accepts at raw 16      never bought
-v4.7  mid       '.ヲློヲ.'   = 20 -> cost 1         bought, and it is why v4.7 is exact here
+oracle 11    before   bow-ས · ླ · ོ · བ · eow      two tokens on the cluster
+             after    bow-ས · ློ · བ · eow           one, which is what the oracle spends
 ```
 
-All three templates place the piece bare in a word interior, and the span each prices is
-character-for-character the span the corpus writes — the check §18.4 uses against §1's hazard,
-which matters because Tibetan is squarely in the script family where unconstrained fragment mining
-manufactures pieces. v3's Tibetan grid was bought one mark at a time — `.ヲླヲ.` = 16 is how `ླ`
-itself became a piece — and the pair was never asked about.
+### 24.3 The probe, and the two axes that pin it to this cluster
 
-Two shortcuts were available and both are wrong:
+`mid`, `.ヲ{}ヲ.`, `cost = raw − BASE + 1 − 8`; the span it prices is character-for-character the
+span the corpus writes, which is §18.4's check against §1's hazard — and §1's hazard is exactly this
+script family, so it is worth doing rather than asserting:
 
-* **v4.7's witness does not transfer.** Its raw 20 read through v3's BASE is cost 5, which records
-  the piece as refuted, not accepted. A spelling and a reading are per-family (meta-rule 1).
-* **The bare message is not a template for this piece.** `'ློ'` alone is cached at 10, which is
-  consistent with the cluster costing one token inside its two border markers — but a piece that
-  OPENS ON A MARK is exactly the case where the frame edge is charged (§17.1), and the routing
-  refuses the `raw` template for it. Corroboration, recorded as corroboration.
+```
+              v3 raw   cost      v4.7 raw   cost
+ློ          16       1         20         1        MEMBER in both
+ླ           16       1         20         1        already a piece in both
+```
 
-**One probe in one family closes this**, and until it is bought v3 over-charges Tibetan and
-Dzongkha text by roughly one token per `ློ`.
+Both axes of the grid were then swept, in both families:
+
+```
+ླ + each of the seven vowel signs   ི ུ ེ ཻ ོ ཽ ྀ      one cell at cost 1: ོ.  The rest read 2 or 3.
+each of the 44 subjoined letters + ོ                   one cell at cost 1: ླ.  The rest read 3 or 5.
+```
+
+**One cell on each axis, identical in both families.** It is not a rule about subjoined letters and
+not a rule about the vowel; it is this cluster, the same shape §20.2 found for Devanagari zero.
+
+### 24.4 The court, and what it cost
+
+One candidate, courted alone. A piece can only change a text whose *stream* holds its surface
+(§13.8), so that set is tiled twice:
+
+```
+v3    220 cached texts hold it   before  exact   0   over 457   under 0   <- not one already reproduced
+                                 after   exact 220   over   0   under 0
+                                 repaired 220   broken 0   pushed below 0
+```
+
+The control also runs from the other side, which is the cleanest form of it: **739 cached v4.7 texts
+hold the same surface and every one already reproduced**, because v4.7 ships the piece. One surface,
+one encoder — 220 of 220 wrong in the family that lacked it, 739 of 739 right in the family that had
+it.
+
+Rows against recorded counts, 35,774 Goldfish lines over 190 languages, both families fully counted:
+
+| | v3 exact | v3 over | v4.7 exact | v4.7 over |
+|---|---|---:|---|---:|
+| `bod_Tibt` 794 rows | 679 → **794** | 180 → **0** | 794 | 0 |
+| `dzo_Tibt` 420 rows | 413 → **420** | 8 → **0** | 420 | 0 |
+| whole corpus | 35,540 → **35,662** | 310 → **122** | 35,749 | 26 |
+
+Under-count is 1 before and after on v3 — one Shan row that another campaign owns — and 0 on v4.7.
+No other of the 190 languages moves by a token. The whole-store under scan — every cached text
+tiled — reads **196 tokens in 141 of 1,247,766 v3 texts and 4 in 4 of 1,709,308 v4.7 ones, and not
+one of them holds this piece's surface**, so none of them is this campaign's; v4.7's file was not
+touched at all.
+
+Held out and read once at the end: UDHR v3 **393 → 395** exact, with the Tibetan document +15 → 0
+and the Dzongkha document +6 → 0; v4.7 and v5 unmoved at 490. Rosetta 1,741/1,741, the 250-document
+holdout 250/250, MultiPL-E 22/22, witness coverage 100% in both files, 223 tests pass.
+
+### 24.5 The grid is closed: 1,318 more cells, and not one of them is a token
+
+The obvious worry after a one-piece campaign is that the corpus simply did not exercise the rest of
+the gap. So every Tibetan cell any v4.7 campaign ever bought — 176 `mid`, 168 `bow`, 174 `eow` and
+819 `word` surfaces — was asked again on **v3's own templates**, 1,318 probes for the ones v3 had
+neither as a piece nor in its cache:
+
+```
+mid   cost 2: 72   3: 58   4: 26   5: 4   6: 4
+bow   cost 2: 25   3: 72   4: 50   5: 15  6: 6
+eow   cost 2: 30   3: 58   4: 53   5: 20  6: 3   7: 3
+word  cost 2: 29   3: 119  4: 201  5: 252 6: 118  7: 58   8: 34   9: 5   10: 1   11: 2
+                                                                      cost 1:  ZERO
+```
+
+Not one span reads as a token. v3's Tibetan vocabulary was exactly one piece short of v4.7's, and
+this is what says so rather than the corpus going quiet.
+
+### 24.6 Residue
+
+**Zero on Tibetan, in both families**: 11,198 Tibetan-bearing cached v3 texts and 17,772 v4.7 ones
+now reproduce, with 0 tokens of over-charge in either. The eleven v3 texts in that set that
+under-count by a token are the whole-Unicode sweep strings a different campaign bought — they under
+count identically without this piece and none of them holds its surface, which is §14.5's check for
+telling a row this campaign broke from one it never touched.

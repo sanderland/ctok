@@ -48,7 +48,7 @@
     "glued": 1110,
     "mark_mid": 19,
     "mark_sep": 19,
-    "mid": 4642,
+    "mid": 4643,
     "prefix": 467,
     "raw": 6413,
     "special": 4,
@@ -45463,7 +45463,8 @@
    "⟨bow⟩vegeu⟨eow⟩": {"probe": ".vegeu.", "raw": 10, "kind": "word"},
    "⟨bow⟩naix": {"probe": ".naixヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩èp": {"probe": ".èpヲ.", "raw": 13, "kind": "bow"},
-   "ustust": {"probe": ".ヲustustヲ.", "raw": 16, "kind": "mid"}
+   "ustust": {"probe": ".ヲustustヲ.", "raw": 16, "kind": "mid"},
+   "ློ": {"probe": ".ヲློヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
