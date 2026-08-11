@@ -2234,3 +2234,336 @@ the failure mode looks exactly like an honest refusal and reports clean. The tel
 whose own probe reads cost 1 repairing zero rows it demonstrably fixes by hand. Anything that builds
 a model with extra pieces has to rebuild the derived structures, and a trial model that cannot
 change a row it should is worth one assertion before a campaign trusts it.
+
+## 22. CJK, Greek and the Arabic-script tail: eleven languages, three sites and one recorded lead
+
+**Measured 2026-08-11.** Eleven Goldfish languages carried 215 tokens of over-charge on v4.7 —
+Kanuri 58, Chinese 39, Japanese 36, South Azerbaijani 19, Min Nan 15, Ancient Greek 13, Modern
+Greek 9, Sindhi 9, Korean 8, Sorani 5, Uyghur 4. **All eleven now reproduce every cached row in
+both families**, and the whole sweep moves 348,368 → 348,593 exact, 844 → 521 tokens of
+over-charge, 226 → 259 languages clean.
+
+Nineteen pieces on v4.7 and thirteen on v3. None of them is a word.
+
+### 22.1 The instruments the brief warned about, and what each one actually said
+
+The pool was chosen because the usual vocabulary does not apply to it: Han, Hangul and astral
+characters take no border markers (§17), so there is no word-and-seam campaign to run in Chinese,
+Japanese or Korean at all. What is left is the punctuation and the numerals *around* the ideographs,
+and that is where every one of the CJK tokens turned out to be.
+
+**The ヲ hazard (§1) reverses in this pool and does not bite.** In Japanese the anchor is the
+language's own script, so "measuring a cluster against a base its script never writes" is not the
+objection; the objection would be that ヲ *merges* with a kana candidate. Not one candidate here is
+kana. The Arabic and Greek candidates were asked on the ヲ grid and independently in their own
+script — `x َحل x` `x َيا x` against `x حل x` `x يا x`, and 21 real Greek `ββ` rows — and the two
+frames agree on every one. Where a frame did lie it lied for a different reason, and §22.4 records
+it.
+
+**Localize first (§20) says: not here.** In Han and in unspaced text "word" is barely a notion —
+`classify` puts every ideograph in the isolated HARD class, so the word localizer returns *nothing*
+for a pure Chinese row and cannot speak. In-situ window deletion (§18.3, never building a new
+string) is the instrument that can, and on the pool's 157 over-charging rows it returned a single
+character, or a span ending exactly at one, in all but a dozen.
+
+### 22.2 Three sites, and each one's refutation grid
+
+**A word that opens on a baseless Arabic FATHA.** Kanuri, Sindhi and South Azerbaijani are one
+cause: 23 of Kanuri's 45 bad rows localize onto a lone `َ`, and nine more onto the space in front of
+one. §16 already fixed the *spelling* — a baseless mark and the letter after it are one word — so
+this is the vocabulary the fused spelling then needs: `⟨bow⟩َ`. All 24 Arabic combining marks asked
+on `bow` (`.{}ヲ.`) in both families:
+
+```
+cost 1   َ  U+064E                                    MEMBER, both families
+cost 2   ً ُ ِ ّ ْ                                      the other five harakat
+cost 3   ٌ ٍ ٓ ٔ ٕ ٰ ٖ ٗ ٘ ٙ ٚ ٛ ٜ ٝ ٞ ٟ                  everything else in the block
+```
+
+One cell of twenty-four, in both families, and the own-script grid agrees exactly: `x َحل x` and
+`x َيا x` read one over while the eight rival marks read zero on the same two hosts. Kanuri's
+residue after it was a *doubled* fatha (`إِلـََيْكَ`, `مَالاََئِكَ`), which is `ََ` on §6's `mark_mid`
+frame — cost 1 in both families, and 186 cached rows repaired with none broken.
+
+**A CJK punctuation PAIR, not a doubled punctuation rule.** Chinese localizes onto `）` in 30 of
+its 36 bad rows, always as `），` closing a parenthetical before a fullwidth comma. Asked with its
+neighbours on `digit_mid` (`1{}1`), both families:
+
+```
+cost 1   ），  ））  ““  ””  ――  ××  ››            and ― alone, already shipped: the positive control
+cost 2   （（  ，，  、、  ､､  ）、  ）。  ）］  ），。  ），、  ），）
+cost 4   ‹‹  ｡｡
+```
+
+`（（` and `，，` are the same shape as `））` and `，` and read 2, so it is these seven pairs and not a
+rule about repeated ideographic punctuation. `‹‹` reading 4 against `››` reading 1 is the sharpest
+of them.
+
+**U+2460 and U+2461 want an ⟨eow⟩; U+2463 wants a character.** `_is_no_run`'s docstring has
+recorded since 2026-08-09 that four *other numbers* dissent from the border-marker sweep — U+00B2,
+U+2460, U+2461, U+2463 — and filed them as "a missing piece rather than a missing marker", open. §21
+bought U+00B2. This pool is where the other three fire, in Chinese, Japanese, Korean and Min Nan:
+
+```
+x ① x  +1   x① x  +1   x ①x   0   x  ①  x   0     ①⟨eow⟩ is the missing token
+x ④ x  +2   x④ x  +2   x ④x  +2   x  ④  x  +2     ④ is missing as a CHARACTER
+x ③ x   0   x ½ x   0   x ⑩ x   0   文 ① 文  +1     the controls, and one own-script row
+```
+
+and the probes place all three exactly:
+
+```
+cost 1   ①⟨eow⟩  ②⟨eow⟩          on digit_eow          cost 1   ④           on char
+cost 2   ③⟨eow⟩  ④⟨eow⟩  ⟨bow⟩①  ⟨bow⟩②  ⟨bow⟩③  ⟨bow⟩④
+cost 3   ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑬ ⒈ ⑴ ㈠      cost 4   ⑤⟨eow⟩  ⟨bow⟩⑤
+```
+
+Twelve neighbouring enclosed numerals refuse, so it is those two codepoints and that codepoint,
+exactly as `_is_no_run` said. **v3 already shipped `④` and v4.7 did not** — the §19/§20.3 mirror
+again, and the reason the two families read differently on the same Korean rows.
+
+### 22.3 The five smaller ones
+
+* **Greek is one digraph, `ββ`** — and it is *both* Greek languages. Σάββατο, σάββασιν, κρεββάτι,
+  Ῥαββί, Βαραββᾶν: 8 of Ancient Greek's 11 rows and 7 of Modern Greek's 9 localize onto the second
+  `β`. On `mid`, `ββ` reads 1 in both families where `σσ λλ μμ ρρ κκ γγ` read 2 and `ππ ττ νν` read
+  1 and were already shipped (the positive control). The five widenings `ββα άββ ββά αββ ββι` all
+  read 2, so the digraph is the span and not a syllable around it.
+* **Min Nan is `⟨bow⟩－`**, a fullwidth hyphen opening a year range (`1961 nî －1971 nî`), on
+  `digit_bow` — 11 of its 14 rows.
+* **Japanese wants `､`, `［` and `］`** as characters — halfwidth ideographic comma and fullwidth
+  brackets, all three cost 1 on `char` and all three already in v3 — while `｡ ｢ ｣` on the same
+  frame read 2 and are refused. Three of its rows were §20.5's `――` lead, which this pool is the
+  language of: 37 cached rows, 36 repaired.
+* **Korean's last row is `⟨bow⟩□`** on `digit_bow`, against `□⟨eow⟩` and `⟨bow⟩□⟨eow⟩` at 2.
+* **Sorani is one Kurdish word**, `ململانێ` "conflict": `ململ` on `mid` at cost 1, where `⟨bow⟩مل`,
+  `⟨bow⟩ململ`, `لململ` and `ملم` all read 2. `مل` was already a piece, which is why the localizer
+  pointed at the second `م` rather than the first.
+
+### 22.4 Refused, and one frame that lied
+
+* **`““` and `””` are v4.7 pieces and NOT v3 pieces, and their v3 probes say otherwise.** `1““1`
+  reads cost 1 on v3 — because v3 folds curly quotes to ASCII before anything else, so the probe
+  measures `""`, which has been a piece all along. The tell was the corpus: over the entire v3
+  cache the candidate touched **zero** rows, since no v3 stream can contain the surface. A template
+  that normalizes its own argument away is §6's third lesson in a new costume — the wrong frames
+  fail silently and return numbers.
+* **`⟨bow⟩－⟨eow⟩`** passes its own `digit_word` probe at cost 1 in both families and is refused:
+  once `⟨bow⟩－` is in, it repairs 0 corpus rows and gains 0 tokens, and the only row it ever fixed
+  was the probe string this campaign itself bought. §1's hazard 9, caught by the control.
+* **`⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑬ ⒈ ⑴ ㈠`, `｡ ｢ ｣`, the 23 non-fatha Arabic marks, `‹‹ （（ ，， 、、 ､､ ）、 ）。
+  ）］ ），。 ），、 ），）`, `σσ λλ μμ ρρ κκ γγ`, `ββα άββ ββά αββ ββι`, `⟨bow⟩مل ⟨bow⟩ململ لململ ملم`,
+  `□⟨eow⟩ ⟨bow⟩□⟨eow⟩`, `③⟨eow⟩ ④⟨eow⟩ ⑤⟨eow⟩ ⟨bow⟩① ⟨bow⟩② ⟨bow⟩③ ⟨bow⟩④ ⟨bow⟩⑤`** — 60
+  candidates, every one refused by its own probe.
+* **Three languages were not vocabulary and are reported as such.** South Azerbaijani's worst row
+  (+13 of its 19 tokens) is PDF-extraction mojibake — literal `u202b`/`u202c` text, harakat scattered
+  off their letters; it repairs because the fatha piece happens to cover the debris, not because
+  anyone modelled it. Nine Chinese rows carry runs of U+0005–U+0008 and U+0016 control characters
+  from the same kind of scrape. Ancient Greek is a critical-apparatus edition whose editorial
+  brackets `⸂⸃⸋⸌⸉⸊⸆` are byte-floored and *already priced correctly* — they are the most conspicuous
+  thing in every failing row and none of the failures is theirs.
+
+### 22.5 What it cost, over every text that could move
+
+A piece changes only a text whose normalized stream holds its surface, so the exact reading is the
+differential one:
+
+| | cached texts | touched | exact | over | under | broke | worse |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| v4.7 | 1,046,725 | 4,394 | 3,241 → **4,393** | 1,415 → **1** | 0 → **0** | **0** | **0** |
+| v3 | 684,009 | 1,771 | 1,535 → **1,760** | 311 → **12** | 0 → **0** | **0** | **0** |
+
+Per language on the fixed 349,000-row sweep, v4.7, over-charge before → after:
+
+```
+knc_arab 58 → 0    zho_hans 39 → 0    jpn_jpan 36 → 0    aze_arab 19 → 0
+nan_latn 15 → 0    grc_grek 13 → 0    ell_grek  9 → 0    snd_arab  9 → 0
+kor_hang  8 → 0    ckb_arab  5 → 0    uig_arab  4 → 0
+```
+
+215 of the 323 tokens the sweep lost are the pool's and 108 are elsewhere, because these pieces are
+not this pool's property: Tatar went 37 → 2 on `××`, Estonian 13 → 0, Hebrew 7 → 0, Georgian 5 → 0
+and Sinhala 4 → 0, mostly on `››` and `““`, and Danish, Neapolitan, Finnish and Avar each lost a
+token or three. **Not one language of the 350 got worse**, and the whole-cache under scan afterwards
+reads **0 tokens in 0 texts** on both families, over 695,812 v3 and 1,046,725 v4.7 cached texts.
+
+The held-out gates, read once at the end: UDHR **378/501 on v3** (mass 0.018%, speakers-weighted
+0.005%) and **488/501 on v4.7 and v5** (0.001%), both unmoved; Rosetta 1741/1741, the 250-document
+holdout 250/250 and MultiPL-E 22/22 unmoved; witness coverage 100% in both files; 222 tests pass.
+UDHR carries Chinese, Japanese, Greek and Arabic documents and every one of them was already exact,
+so this campaign is invisible there — which is the honest outcome when a pool's defects live in
+scraped web punctuation and OCR'd harakat rather than in the language.
+
+### 22.6 Residue
+
+None in this pool: all eleven languages reproduce every cached row on v4.7. The v3 reading rests on
+the 1,390 sweep rows this campaign bought counts for — v3's Goldfish coverage is otherwise too thin
+in these scripts to score — and every candidate was judged on real corpus rows in *both* families
+rather than on its own probe strings, which is what §20.5 asked for and what caught the two quote
+pieces.
+
+The one Arabic-script language of the sweep still over-charging is South Azerbaijani's OTHER config,
+`azb_arab`, at two tokens in one row — `اینگیلیسجه: János Bolyai no یانو (اینگیلیسجه: Patrick
+Modianod ۰`, a scrape that has run two truncated parentheticals together across three scripts. It
+localizes onto `: ` and it is §13.7's mixed-script span, which the templates refuse on purpose. Not
+vocabulary, and not worth a piece.
+
+## 23. The European tail was three seams and a proper-noun list, and one row of `×`
+
+**Measured 2026-08-11.** Ten large, well-resourced Goldfish languages — Bulgarian, Hungarian, Tatar,
+Danish, Swedish, Neapolitan, Polish, Ukrainian, Catalan, Estonian — carried **331** tokens of
+over-charge on v4.7 and **805** on v3 over 10,000 rows. That is eight hundredths of a token per row
+on v4.7's worst of them, and the brief that sent this campaign said outright that vocabulary this
+well-resourced is the most likely to be already complete, so "this residue is not vocabulary" was a
+live answer rather than a failure. It was the right answer for three of the ten and the wrong one
+for seven, and §0's localize step separated them before anything was spent.
+
+All ten now reproduce every row on v3, and nine of ten on v4.7.
+
+### 23.1 Localize first, and the split is 7–3
+
+Every distinct word of every over-charging row, priced alone through the `raw` template, no word cap
+(§13.2 / §18.2). 5,897 distinct words on v4.7 and 12,119 on v3:
+
+| | v4.7 over | hot rows | inside words | v3 over | inside words |
+|---|---:|---:|---|---:|---|
+| `bul_cyrl` | 86 | 53 | **100%** | 91 | 100% |
+| `hun_latn` | 64 | 25 | **100%** | 58 | 100% |
+| `tat_cyrl` | 37 | **3** | **0%** | 45 | 22% |
+| `dan_latn` | 27 | 26 | 96% | 44 | 100% |
+| `swe_latn` | 26 | 22 | **100%** | 38 | 100% |
+| `nap_latn` | 23 | 23 | **0%** | 26 | 15% |
+| `pol_latn` | 18 | 18 | **100%** | 7 | 100% |
+| `ukr_cyrl` | 17 | 16 | **100%** | 20 | 95% |
+| `cat_latn` | 20 | 9 | **100%** | 475 | 100% |
+| `ekk_latn` | 13 | 13 | **0%** | 1 | 100% |
+
+Seven are Catalan-shaped and a word miner is the instrument; **Tatar, Neapolitan and Estonian read
+0%** and no word miner can reach them. Unlike §21, the two families agree about which is which — the
+disagreement here is about SIZE, and it runs the other way for Catalan (20 on v4.7, 475 on v3) and
+for Polish (18 on v4.7, 7 on v3).
+
+### 23.2 Read the failing rows before mining, because three languages are one row or one glyph
+
+The 0% languages resolve by looking at the rows, and each is a single site:
+
+* **Tatar's 37 tokens live in THREE rows, and 35 of them in one.** That row is a Tatar nightclub
+  flyer whose section dividers are `××××××××××××××` — five runs of fourteen U+00D7, which we spend
+  fourteen tokens on and the oracle spends seven. `××` on `digit_mid` reads cost 1 in both families
+  and `×××` and `××××` read 2, so it is the PAIR and not a rule about runs — the same shape §20.2's
+  Devanagari zero and §18.5's Tamil virama have. `×` alone was already a piece.
+* **Neapolitan's 23 tokens are 23 rows of a birth-and-death list**, each ending `(† 1721)`.
+  `⟨bow⟩(†⟨eow⟩` on `digit_word` reads cost 1 in both families; `(†` alone reads 2. `†⟨eow⟩` was
+  already a piece in both, so what was missing is the bordered run that also owns its ⟨bow⟩ —
+  exactly §21.3's Kabyle `⟨bow⟩»,⟨eow⟩`.
+* **Estonian's 13 tokens are 13 rows of a Gospel translation** that closes a quotation inside a
+  quotation, `…suust.““`. `““` reads cost 1 on v4.7.
+
+### 23.3 The quote pair is v4.7's alone, and the family difference is not vocabulary
+
+`““` also reads cost 1 on v3 — and it is not a v3 piece, because **v3 folds quotes and v4.7 does
+not**. On v3 the probe `1““1` streams to `1""1`, so it measures `""`, which v3 already ships;
+`witness.verify`'s placement check says so in as many words ("the encoder no longer writes this
+piece into that probe") and is what refused it. Every quote-pair reading on v3 is that same
+artefact. This is §19's non-transitivity with a mechanism attached: the cross-family probe agreed
+and the cross-family piece still did not exist.
+
+On v4.7, where the probe means what it says, the grid discriminates sharply:
+
+```
+cost 1   ““   ””   ««                    MEMBERS
+cost 2   “”   ”“   ”””   ’’   »»         the mixed and the tripled
+cost 4   ‘‘
+```
+
+`””` was found by re-reading the residue after the first batch: two rows, one Danish (`Du skriver:
+””`) and one Neapolitan, in two unrelated languages. Across the whole v4.7 cache it touches 36 texts
+and makes all 36 exact. **`««` is refused** — cost 1 on its own probe, no corpus evidence anywhere in
+this pool, and §20.5's rule is that a piece with no corpus behind it is a recorded lead, not a piece.
+
+### 23.4 The seven word languages are proper nouns and one suffix each
+
+Nothing exotic, which is the point. v4.7 took 15 word pieces for 15,000 rows of the seven:
+`⟨shift⟩⟨bow⟩софия⟨eow⟩` `⟨shift⟩⟨bow⟩през⟨eow⟩` (Bulgarian — `София` alone is 54 of Bulgarian's
+86), `⟨shift⟩⟨bow⟩józsef⟨eow⟩` `⟨shift⟩⟨bow⟩jános⟨eow⟩` `⟨shift⟩⟨bow⟩györgy⟨eow⟩`
+`⟨shift⟩⟨bow⟩lászló⟨eow⟩` (Hungarian given names, the whole of its residue), `⟨bow⟩kø` (Danish —
+*køn*, *køre*, *køkken*, *Køge*, one prefix for eleven words), `ården⟨eow⟩` `⟨bow⟩käll` (Swedish),
+`⟨bow⟩król` `⟨bow⟩język⟨eow⟩` (Polish), `ває⟨eow⟩` `⟨bow⟩події⟨eow⟩` (Ukrainian),
+`⟨shift⟩⟨bow⟩valència⟨eow⟩` (Catalan — 20 of 20). v3 took 87 of the same shape, 60 of them Catalan.
+
+**An instrument correction the campaign needed.** `mine_stream.probe_of` refuses CASED candidates on
+purpose, because the `cased_*` templates ask a different question (`MController` prices `M` as a
+word-interior prefix). But the plain `.X.` grid handles a cased key perfectly well —
+`witness.surface` re-applies the capital and `witness.position` reads the boundary markers past the
+case marker — and that is how §21.3's `⟨shift⟩⟨bow⟩bucureşti⟨eow⟩` already ships. Without that the
+miner stalled with seven wrong words and no candidate it could ask about; with it, `.György.` on the
+`word` template settles them. `verify` still has to agree the encoder writes the piece into the
+probe, so the placement question is answered rather than assumed.
+
+### 23.5 The court, and what it dropped
+
+Every candidate was scored **alone** first — a piece changes only a text whose stream holds its
+surface (§13.8), and the stream does not depend on the vocabulary, so each candidate's rows are
+known before any of them is accepted. Then all together, then leave-one-out: a piece whose removal
+does not move the pool repairs no row the others do not already repair, which is §21.4's test.
+
+```
+                  v4.7                          v3
+candidates        18                            91
+refused           0 (none pushed a row below)   0
+dropped as idle   0                             2   ⟨bow⟩імпер, ⟨bow⟩valència⟨eow⟩
+kept              18 (+ ”” after)               89
+pool 10,000 rows  9,785 -> 9,998 exact          9,449 -> 9,987 exact
+                    331 ->     2 over             805 ->     7 over
+under                 0 ->     0                    0 ->     0
+```
+
+`⟨bow⟩valència⟨eow⟩` is instructive: it is a real token by its own probe, and every Catalan row that
+holds it holds the capitalized form, which the cased piece already covers. It gains nothing and it
+is dropped.
+
+### 23.6 What it cost, measured on everything cached
+
+The differential is the texts whose stream holds a piece's surface, tiled twice — one model with the
+pieces and one without, both with their derived structures rebuilt (§21.6):
+
+| | texts touched | exact before | exact after | over before | over after | pushed below |
+|---|---:|---:|---:|---:|---:|---:|
+| v4.7, 18 pieces | 782 of 1,046,224 | 263 | **780** | 680 | **2** | 0 |
+| v4.7, `””` | 36 of 1,046,725 | 8 | **36** | 31 | **0** | 0 |
+| v3, 89 pieces | 4,362 of 705,121 | 2,520 | **4,337** | 2,467 | **46** | 0 |
+
+Not one cached text in either family was broken or made worse. The whole-cache under scan afterwards
+reads **0 tokens in 0 texts** on both families, over 1,046,725 v4.7 and 724,427 v3 cached texts.
+
+The Goldfish sweep, all 349,000 rows on disk, scored against the cache:
+
+```
+v4.7   348,368 -> 348,660 exact     over 844 -> 409     under 0     262 of 350 languages perfect
+```
+
+**No language in the sweep got worse and 51 improved** — 41 of them outside this pool, because the
+seams are not this pool's property: Norwegian took `⟨bow⟩kø`, Hebrew and Georgian took the quote
+pairs, and Silesian, Avar, Mari, Bosnian (Cyrillic) and Sinhala each lost a token or more to pieces
+they never nominated. v3's sweep reading is not comparable yet — the background buyer has bought 54%
+of the corpus for that family — but on the 188,542 rows it can score, all ten pool languages read
+exactly as the table above.
+
+Held out and read once at the end: UDHR v3 **378 → 393** exact (error mass 0.018% → 0.015%,
+speakers-weighted 0.005%), v4.7 and v5 **488 → 490** (0.001% → 0.000%). Rosetta 1,741/1,741, the
+250-document holdout 250/250, MultiPL-E 22/22, witness coverage 100% in both files, 222 tests pass.
+No UDHR document under-counts and none is over 1%. UDHR chose none of this.
+
+### 23.7 Refused, and the residue
+
+* **`:)` `;)` `⟨bow⟩;)` `:):)` `;);)` `):)` `);)` `:):):)`** — Tatar's other two rows are emoticon
+  runs, `китте:):):)тавышымны` and `бар ;););)`, and **every span of them refuses its own probe** in
+  both families. `1:):):)1` prices at exactly what we already charge, so the missing token is at the
+  seam between the run and the words around it, not in the run. Two tokens in two rows, and not
+  vocabulary. `:(` reads cost 1 on v3 and has no corpus behind it here: a lead.
+* **`««`** — cost 1 on v4.7, no corpus evidence. A lead (§20.5's `⟨bow⟩િ` again).
+* **`×××` `××××` `“”` `”“` `”””` `‘‘` `’’` `»»`** — refused by their own probes, and they are what
+  makes `××`, `““`, `””` claims about specific pairs rather than about runs of symbols.
+* v3's residue is **7 tokens**: six in five Catalan rows around `esdeveniments`, and one Ukrainian
+  row. Catalan's control set was capped at 4,000 of its 5,729 hot words, so those are ordinary word
+  vocabulary the miner did not get to rather than anything structural.
