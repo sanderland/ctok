@@ -201,7 +201,8 @@ included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.
 sides**, over 505,886 and 1,009,746 texts. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
 never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
 Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
-caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`); §12.2's dotted İ, which was
+caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`) — and, one Unicode category later,
+onto caseless-MARK ones too (`းUNDPA`, `ႇSNDP`; LIMITS.md §24); §12.2's dotted İ, which was
 title-case ⟨shift⟩ with the İ literal all along; a Syriac absorb clause that outlived its
 evidence; the oracle lowering ΣΚΙΕΣ to σκιεσ where Python writes σκιες; and three border-marker
 predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `🎓 ‎⏰`). LIMITS.md §14.6

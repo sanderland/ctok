@@ -124,9 +124,30 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
     was tried and caught by the full-cache re-scan before it shipped: a title-case head with a
     caseless tail keeps its marker — `.Collectionヲ.` `.Ghostヲ.` and eighteen more `bow`-template
     witnesses read ±1 both ways as literal, and the Assamese corpus spans `Gৰ` and `Gলৈকে`
-    (one Latin capital opening a Bengali word) read −2. The block is per LETTER (category L
-    without a case), so combining marks — caseless but not letters — still ride their capitals
-    unharmed.
+    (one Latin capital opening a Bengali word) read −2.
+
+    **A caseless MARK blocks it too**, and reading the block as per-LETTER was the last
+    under-counting text in the corpus. A wordy span holds letters and marks and nothing else, so
+    "all its cased letters are upper" is as vacuously true of `းUNDPA` as it is of `ヲBUTTヲ`: the
+    span is a Myanmar sign glued to Latin capitals, and ⟨caps⟩ + a lowered body prices it one
+    token below the literal spelling the oracle uses. Measured 2026-08-11 over every text in the
+    measurement store that holds an uppercase letter and a mark (v3, 35,796 texts). Five spans in
+    the whole store put a caseless mark inside an all-caps run, three of them discriminate, and
+    the widened block is exact on all three — in BOTH directions, which is what makes it a
+    spelling rather than a fitted constant:
+
+        ၵၢၼ်ဢုပ်ႇဢူဝ်းUNDPA   ⟨caps⟩ reads 1 UNDER    literal exact
+        ပႃႊတီႊသိူဝ်ၽိူၵ်ႇSNDP  ⟨caps⟩ reads 1 OVER     literal exact
+        တႆးလွတ်ႈလႅဝ်းKIA       ⟨caps⟩ reads 1 OVER     literal exact
+        ၸုမ်းRCSS · ၸုမ်းNGO   both spellings agree — coincidence cells, no evidence either way
+
+    Nothing else in either family moves: 5 texts move, all 5 to exact, 35,791 are untouched.
+    The block stays position-free because that is the rule the caseless LETTER already follows —
+    measured at the head (`அறிவியலNATIONAL`) and at the tail (`x BUTTア x`, `BODYの`) — and the
+    store holds no all-caps span with a mark anywhere but the head, so a position clause here
+    would be invented rather than measured. ⟨shift⟩ is untouched: the block suppresses ⟨caps⟩ and
+    falls through, and returning the span literal instead ALSO drops ⟨shift⟩ and reads two Indic
+    rows carrying one Latin capital (`Vಗಳನ್ನು`, `4G`) one under.
 
     **İ is transparent to the title-case test and literal in its lowered body** (§12.2, closed
     2026-08-10). `Hnovunİ` IS a title-case span to the oracle: it takes ⟨shift⟩, and the İ — which
@@ -161,7 +182,7 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
             return SHIFT_G + span[0].lower() + "".join(c if c == "İ" else c.lower()
                                                        for c in tail)
         return span
-    caseless = any(unicodedata.category(c)[0] == "L" and not (c.islower() or c.isupper())
+    caseless = any(unicodedata.category(c)[0] in ("L", "M") and not (c.islower() or c.isupper())
                    for c in span)
     if allcaps_min is not None and span.isupper() and len(span) >= allcaps_min \
             and not caseless:

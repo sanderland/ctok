@@ -2567,3 +2567,156 @@ No UDHR document under-counts and none is over 1%. UDHR chose none of this.
 * v3's residue is **7 tokens**: six in five Catalan rows around `esdeveniments`, and one Ukrainian
   row. Catalan's control set was capped at 4,000 of its 5,729 hot words, so those are ordinary word
   vocabulary the miner did not get to rather than anything structural.
+
+## 24. The last under-count was a ⟨caps⟩ on a caseless MARK, and §15's block was one category too narrow
+
+**Measured 2026-08-11.** Scoring the eight Goldfish batches — 35,774 lines over 190 languages,
+fully counted in both families — against the model this branch starts from left **exactly one**
+under-counting line, on v3 only:
+
+```
+lang=shn_Mymr  id=28879f0cd696   ours=75  oracle=76   d=-1
+'သိုပ်ႇၼၼ်ႉ ၽူႈလူင်ႉလႅၼ်ႇ ၵၢၼ်ဢုပ်ႇဢူဝ်းUNDPA Mr.'
+```
+
+It is now exact, in the same change that repairs three over-counting rows, and the Goldfish corpus
+under-counts **zero tokens in both families**. The defect is §15.1's — a ⟨caps⟩ marker the oracle
+does not write — with its blocking predicate one Unicode category short.
+
+### 24.1 Localize first, and the whole error is inside one word
+
+Every word of the line priced alone was already in the measurement store, which is the localizer
+the standing rules ask for and it cost nothing:
+
+```
+သိုပ်ႇၼၼ်ႉ            19 / 19    exact
+ၽူႈလူင်ႉလႅၼ်ႇ         24 / 24    exact
+ၵၢၼ်ဢုပ်ႇဢူဝ်းUNDPA   30 / 31    ONE UNDER          <- 100% of the line's error
+Mr.                    2 / 2     exact
+```
+
+and the store already held the whole substring grid inside that word — 70 substrings of it, from
+single codepoints up to `ဢုပ်ႇဢူဝ်း` at 18, **every one of them exact in both families**. The
+divergence appears only when the Latin `UNDPA` is glued to the Myanmar, which is §13.7's
+mixed-script shape and §17.6's open note.
+
+The stream is what the shipped model writes for that word, and it names the suspect straight away:
+
+```
+v3    ⟨bow⟩ၵၢၼ⟨eow⟩်⟨bow⟩ဢုပ⟨eow⟩်⟨bow⟩ႇဢူဝ⟨eow⟩်⟨caps⟩⟨bow⟩းundpa⟨eow⟩
+v4.7  ⟨bow⟩ၵၢၼ⟨eow⟩်⟨bow⟩ဢုပ⟨eow⟩်⟨bow⟩ႇဢူဝ⟨eow⟩်⟨bow⟩းUNDPA⟨eow⟩          exact
+```
+
+The last span is a Myanmar visarga glued to five Latin capitals. `'းUNDPA'.isupper()` is True —
+U+1038 is a spacing mark, so "all the cased letters are upper" holds vacuously, exactly as it does
+for `ヲBUTTヲ` — so v3 writes ⟨caps⟩ and lowers the body, and prices the span at four tokens
+(⟨caps⟩ · `⟨bow⟩း` · `und` · `pa⟨eow⟩`) where the oracle pays five. **v4.7 has no ⟨caps⟩ at all,
+which is why only one family carries the row** — the one-family tell that §18.1 warns is usually
+no evidence was, here, the whole diagnosis.
+
+### 24.2 The false-piece half, refuted by the pieces' own populations
+
+§8 leaves two causes and no third. The false-piece candidates are the two ordinary Latin pieces in
+that cover, and both are witnessed at cost 1 (`.ヲundヲ.` = 16, `.ヲpa.` = 13), so the only honest
+test is subtraction judged on everything cached that could hold them. Each was courted alone —
+a batch hides its own failures — over every text in the v3 store whose lowered form contains its
+surface:
+
+| dropped | population | repaired | broken |
+|---|---:|---:|---:|
+| `und` | 32,868 | 2 | **267** |
+| `pa⟨eow⟩` | 37,147 | 2 | **525** |
+
+Both drops fix the Shan row and both wreck their own language: `.Gesundheit.` `.Hyundai.`
+`.profundidad.` `.freundlich.` for the first, hundreds of rows for the second. Neither piece is
+false. `⟨bow⟩း` is not a candidate either — `းP` = 2, `x ၸုမ်းEC x` = 11 and `ၸုမ်းRCSS` = 11 are
+three exact rows that spend it — so the vocabulary is not what is wrong here, and by §8 that
+leaves the marked stream.
+
+### 24.3 The grid: five spans in the whole store, three that discriminate, and both directions
+
+§15.1 already fixed a ⟨caps⟩ written onto caseless spans, and wrote the block per LETTER:
+"combining marks — caseless but not letters — still ride their capitals unharmed". A wordy run
+holds letters and marks and nothing else, so that sentence is the entire difference between the
+two spellings, and it is decidable on measurements already bought.
+
+Every text in the v3 store holding an uppercase letter and a mark — **35,796 of 1,247,759** —
+tiled twice, once with the block per LETTER and once per letter-or-mark:
+
+```
+moved 5      HEAD  exact 35,726  over 68  under 2
+             TRIAL exact 35,731  over 65  under 0        repaired 5, broken 0
+```
+
+The five spans are the whole population of the question, and the store holds no others:
+
+| span | HEAD (⟨caps⟩ + lowered) | widened (literal) |
+|---|---|---|
+| `းUNDPA` (2 texts) | 1 **under** | exact |
+| `ႇSNDP` (2 texts) | 1 **over** | exact |
+| `းKIA` (1 text) | 1 **over** | exact |
+| `းRCSS` (2 texts) | exact | exact — the two spellings agree |
+| `းNGO` (2 texts) | exact | exact — the two spellings agree |
+
+Two of the five decide nothing: `းRCSS` costs 4 either way, ⟨caps⟩ · `⟨bow⟩း` · `rc` · `ss⟨eow⟩`
+against `⟨bow⟩း` · `R` · `CS` · `S⟨eow⟩`. **A coincidence cell is not a confirmation**, and a grid
+built only from those two would have read "no difference" and closed the question the wrong way.
+The three that do discriminate carry two distinct marks (U+1038, U+1087) and three distinct Latin
+bodies, and they move in **both directions** — one under-count and two over-counts, all to exact.
+That is §17.5's signature of a boundary in the wrong place rather than a fitted constant: a
+vocabulary error can only ever push one way.
+
+**The position clause is the thing not to invent.** All five spans put the mark at the head, so
+head-only and anywhere are the same model on this evidence — they move the identical five texts.
+The rule stays position-free because that is what the caseless LETTER already does, measured at
+the head (`அறிவியலNATIONAL`) and at the tail (`x BUTTア x`, `BODYの`); a mark-only position clause
+would be a special case with no reading behind it.
+
+### 24.4 Suppress ⟨caps⟩ and fall through — returning the span literal is a second change
+
+The first version of the block returned the span unmarked, which also drops ⟨shift⟩, and the
+full-store re-scan caught it before it shipped: two Indic rows carrying one Latin capital —
+`... ಷೆಡ್ಯೂಲ್ IV ಮತ್ತು Vಗಳನ್ನು Submi...` and an Assamese row on `4G` — went from exact to one
+**under**. They are the same shape §15.1 measured for ⟨shift⟩ and the same shape the docstring's
+`Gৰ`/`Gলৈকে` rows pin: a title-case head with a caseless tail keeps its marker. The block belongs
+to ⟨caps⟩ alone, as it always did; the change here is which characters count as caseless.
+
+### 24.5 What it cost, measured before and after on everything
+
+Goldfish, all eight batches, both families:
+
+| | exact | over: lines (tokens) | under | clean languages |
+|---|---|---:|---:|---|
+| v3 before | 35,540 / 35,774 | 233 (310) | **1** | 149 / 190 |
+| v3 after | **35,542** / 35,774 | 232 (**309**) | **0** | **150** / 190 |
+| v4.7 before and after | 35,749 / 35,774 | 25 (26) | 0 | 180 / 190 |
+
+v4.7 cannot move: `allcaps_min` is None there, so ⟨caps⟩ does not exist and the predicate is never
+reached. The whole measurement store, every text ever measured against either family:
+
+```
+v3     1,247,759 texts   exact 1,246,583 -> 1,246,588   over 1,035 -> 1,032   under 141 -> 139
+v4.7   1,709,302 texts   unmoved
+```
+
+Held out and read once at the end, unmoved in both families: UDHR **393**/501 exact on v3 and
+**490**/501 on v4.7 and v5, no document over 1% and none under-counting; Rosetta 1,741/1,741, the
+250-document holdout 250/250, MultiPL-E 22/22, witness coverage 100% in both files, 223 tests pass.
+No piece was added or removed, so no witness changed.
+
+### 24.6 The residue, and what it is not
+
+The store's remaining 139 v3 under-counting texts and 4 v4.7 ones are **not this population and
+not this campaign's**: they are Bamum and Vai letters (`ꛦ`–`ꛯ`, `꛲`, `꙾`) on the bare-char and
+`a{X}a` templates, C0/C1 control-character runs, CJK block ladders, two private-use codepoints and
+three NBSP-led Rosetta prefixes. Every one of them under-counts identically against the tree at
+HEAD, none holds an uppercase letter beside a mark, and not one moved here — the §14.5 check that
+separates "a probe someone else bought into the shared cache" from "a row we broke". They are a
+recorded lead for a campaign on the bare-character templates, not a residue of this one.
+
+One instrument note, and it is §5's. **There was no live oracle for this campaign** — the container
+had no API key — so nothing was bought and nothing new could be. That is survivable only because
+the question was already paid for: the localizer, the 70-substring grid inside the failing word, the
+267 and 525 rows that refute the two pieces, and the five spans that decide the spelling are all
+measurements the store already held. A campaign that had needed one probe it did not have would
+have had to stop and say so.
