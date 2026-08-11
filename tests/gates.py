@@ -281,6 +281,22 @@ def _breaches(cov: dict[str, dict[str, dict[str, int]]], kind: str) -> list[tupl
             for g, c in by_group.items() if c.get(kind)]
 
 
+def cells_of(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
+    """``(pieces, witnessed-or-special, percentage, the gaps by kind)`` for one set of counts.
+
+    Module level rather than a closure because :func:`report` needs the same arithmetic for the
+    single coverage cell it prints, and two copies of it would be free to drift apart.
+    """
+    known = known_kinds()
+    total, w = sum(counts.values()), witnessed(counts)
+    bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
+              "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
+              "special": sum(counts.get(k, 0) for k in SPECIAL),
+              "other": sum(n for k, n in counts.items() if k not in known)}
+    pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
+    return total, w, pct, bucket
+
+
 def report_vocabulary(markdown: bool = False) -> None:
     """Piece counts by group, and what share of each group carries a witness.
 
@@ -300,18 +316,32 @@ def report_vocabulary(markdown: bool = False) -> None:
     # unknown kinds used to fall through to the witnessed side, which is the direction that
     # flatters.
     cols = ("missing", "unresolved", "special", "other")
-    known = known_kinds()
-
-    def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
-        total, w = sum(counts.values()), witnessed(counts)
-        bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
-                  "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
-                  "special": sum(counts.get(k, 0) for k in SPECIAL),
-                  "other": sum(n for k, n in counts.items() if k not in known)}
-        pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
-        return total, w, pct, bucket
-
+    cells = cells_of
     refuted = _breaches(cov, "refuted")
+
+    # At 100% on every file this table is one number per group and four columns of dots, and
+    # `report` already prints that number. Print the breakdown when it has something to say — a gap
+    # anywhere, or a piece its own probe refutes — and the summary line otherwise.
+    gap = refuted or any(cells(totals(by_group))[0] != cells(totals(by_group))[1]
+                         for by_group in cov.values())
+    if not gap:
+        if markdown:
+            print("\n## Vocabulary\n")
+            for fam, by_group in cov.items():
+                total, w, pct, _ = cells(totals(by_group))
+                print(f"* **{fam}** — {total:,} pieces, every one on a fixed template or "
+                      f"structural-special.")
+            for line in _borrowers():
+                print(f"* {line}.")
+            print()
+        else:
+            for fam, by_group in cov.items():
+                total, _, _, _ = cells(totals(by_group))
+                print(f"  [{fam}] {total:,} pieces, all witnessed or special")
+            for line in _borrowers():
+                print(f"  {line}")
+            print()
+        return
 
     if markdown:
         print("\n## Vocabulary and witness coverage\n")
@@ -430,24 +460,77 @@ def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go.
 
+    **A corpus every family reproduces document for document gets one cell, not a table.** Three of
+    the four are finished, and a finished corpus has exactly one thing to say — a per-document error
+    breakdown of a corpus with no error is nine columns of zeroes, and the one line that still
+    carries information (UDHR's) was buried under them. So the finished corpora collapse into a
+    single grid, one row per family, and only a corpus with a residual gets its documents listed.
+
+    A corpus leaving the grid is itself the signal: it means some document stopped reproducing.
+
     The corpora are scored in a process pool: there are eight independent (corpus, family) replays
     and the biggest of them is most of the wall clock, so running them sequentially is the slowest
-    thing in CI for no reason. Results are collected into a dict and printed in GATES order, so the
-    report is byte-identical to the sequential one.
+    thing in CI for no reason.
     """
     jobs = [(name, family) for name, cfg in GATES.items() for family in cfg["families"]]
     with ProcessPoolExecutor() as pool:
         scored = {(n, f): a for n, f, a in pool.map(_score_one, jobs)}
+    for name, family in jobs:
+        assert_gate(name, family, scored[(name, family)])
+
+    finished = [n for n, cfg in GATES.items()
+                if all(scored[(n, f)]["exact"] == scored[(n, f)]["n"] for f in cfg["families"])]
+    families = list(dict.fromkeys(f for _, f in jobs))
+    cov = {fam: cells_of(totals(by_group)) for fam, by_group in witness_coverage().items()}
+
+    def cell(name: str, family: str) -> str:
+        if family not in GATES[name]["families"]:
+            return "—"                        # no recorded counts for that family on that corpus
+        return f"✅ {scored[(name, family)]['n']:,}"
+
+    def wcell(family: str) -> str:
+        if family not in cov:
+            return "—"
+        total, w, pct, _ = cov[family]
+        return f"✅ {total:,}" if w == total else f"⚠️ {pct} of {total:,}"
+
+    head = [GATES[n]["title"] for n in finished] + ["witness coverage"]
+    rows = [[fam] + [cell(n, fam) for n in finished] + [wcell(fam)] for fam in families]
     if markdown:
         print("## Reproduction gates\n")
-        print("Documents by absolute error against recorded `count_tokens` values.\n")
-        print("| corpus | family | docs | error mass | mean \\|err\\| "
-              "| exact | ≤1% | 1–5% | >5% | worst |")
-        print("|---|---|---:|---:|---:|---:|---:|---:|---:|---|")
-    for name, cfg in GATES.items():
+        print("Every document reproduced, against recorded `count_tokens` values.\n")
+        print("| family | " + " | ".join(head) + " |")
+        print("|---" * (len(head) + 1) + "|")
+        for r in rows:
+            print("| " + " | ".join(r) + " |")
+        print()
+    else:
+        # ✅ and ⚠️ are one character to `len` and two columns to a terminal, so pad on the
+        # rendered width or the grid comes out ragged exactly where the marks are.
+        def shown(s: str) -> int:
+            return len(s) + sum(c in "✅⚠️" for c in s)
+
+        def pad(s: str, w: int) -> str:
+            return s + " " * max(w - shown(s), 0)
+
+        width = max(max(shown(h) for h in head), max(shown(c) for r in rows for c in r[1:])) + 2
+        print("Reproduction gates — every document exact\n")
+        print("  " + " " * 7 + "".join(pad(h, width) for h in head).rstrip())
+        for r in rows:
+            print("  " + pad(r[0], 7) + "".join(pad(c, width) for c in r[1:]).rstrip())
+        print()
+
+    for name in GATES:
+        if name in finished:
+            continue
+        cfg = GATES[name]
+        if markdown:
+            print(f"### {cfg['title']} — not finished\n")
+            print("| family | docs | error mass | mean \\|err\\| | exact | ≤1% | 1–5% | >5% | worst |")
+            print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
         for family in cfg["families"]:
             a = scored[(name, family)]
-            assert_gate(name, family, a)
+
             def label(row: dict) -> str:
                 """A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
                 documents, so fall back to the key the counts are stored under."""
@@ -456,7 +539,7 @@ def report(markdown: bool = False) -> None:
             w = a["worst"]
             worst = f"{label(w)} {100 * w['rel']:+.1f}%"
             if markdown:
-                print(f"| {cfg['title']} | {family} | {a['n']} | {100 * a['mass']:.3f}% "
+                print(f"| {family} | {a['n']} | {100 * a['mass']:.3f}% "
                       f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
                       f"| {a['over5']} | {worst} |")
                 continue

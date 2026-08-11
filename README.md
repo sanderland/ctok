@@ -49,23 +49,22 @@ against opus-5, and nothing measured says one differs.
 The v4.7 family is the one that changed: same text, more tokens. Measured here as the ratio of
 recorded `count_tokens` values over the corpora below, content only, with the message frame removed:
 
-| content | v4.7 ÷ v3 | v5 ÷ v3 | v5 ÷ v4.7 |
-|---|---:|---:|---:|
-| English web text | **1.44** | **1.44** | 1.00 |
-| German web text | 1.39 | 1.39 | 1.00 |
-| Code (Rosetta Code, 1,741 docs) | 1.22 | 1.20 | 0.99 |
-| Code (MultiPL-E: Python 1.22, JS 1.27, Rust 1.29) | 1.24 | 1.23 | 1.00 |
-| UDHR, 501 languages | 1.16 | 1.16 | 1.00 |
-| Russian / Arabic / Hindi web text | 1.02 / 1.01 / 1.01 | same | 1.00 |
-| Chinese / Japanese web text | 1.00 / 1.01 | 0.99 / 1.00 | 0.99 |
+| content | v4.7 ÷ v3 |
+|---|---:|
+| English web text | **1.44** |
+| German web text | 1.39 |
+| Code (Rosetta Code, 1,741 docs) | 1.22 |
+| Code (MultiPL-E: Python 1.22, JS 1.27, Rust 1.29) | 1.24 |
+| UDHR, 501 languages | 1.16 |
+| Russian / Arabic / Hindi web text | 1.02 / 1.01 / 1.01 |
+| Chinese / Japanese web text | 1.00 / 1.01 |
 
 **The inflation is Latin-script-specific.** v4.7's vocabulary holds 14k word pieces against v3's 47k,
 so Latin words fragment where they used to be whole; scripts that were already at the byte floor in
 v3 — Cyrillic, Arabic, Devanagari, CJK — are unchanged. That is why a single "×1.4" figure travels
 badly: it is an English number, and the same model reads ×1.00 on Chinese.
 
-**v5 does not inflate again.** Its ratio against v4.7 is 1.00 on everything except CJK-opening lines,
-where it is *cheaper* by a token per message — the frame rule above, not the vocabulary.
+**v5 does not inflate again**: 1.00 against v4.7 on everything here.
 
 ## Accuracy
 
@@ -77,89 +76,36 @@ is 25 HumanEval problems in 22 programming languages. The third is the opposite:
 [Rosetta Code](https://huggingface.co/datasets/christopher/rosetta-code) source in hundreds of
 languages, which varies everything at once.
 
-**Every code corpus is finished and has left the table.** Rosetta Code — all 1,741 mining
-documents and, since 2026-08-10, all 250 held-out ones — and MultiPL-E's 22 languages reproduce
-*every* document exactly. They are still gated, asserted at every document rather than at a rate so
-the first regression names the file it broke, but a row of zeroes is not a measurement and keeping
-one invites reading a finished corpus as evidence about an unfinished model. Code is done; what
-follows is about natural language.
+**Every code corpus is finished.** Rosetta Code — all 1,741 mining documents and all 250 held-out
+ones — and MultiPL-E's 22 languages reproduce *every* document exactly, and are gated at every
+document rather than at a rate so the first regression names the file it broke. What follows is
+about natural language.
 
-**v5 is not scored separately anywhere below.** It borrows v4.7's vocabulary outright and differs
-only in its message frame, so it lands on the same documents with the same errors and gating it
-re-derived numbers that were equal by construction. What replaces it is the equality itself, checked
-directly: `test_v5_tracks_v4_7_document_for_document` asserts that v5's deviation from its own
-recorded counts equals v4.7's from theirs, document by document across all four corpora. It does not
-assert a constant offset, because there is not one — 5 tokens on most documents and 6 where one
-opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening run has nothing to absorb.
+**v5 is not scored separately.** It borrows v4.7's vocabulary outright and differs only in its
+message frame, so it lands on the same documents with the same errors;
+`test_v5_tracks_v4_7_document_for_document` asserts that equality document by document instead.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
 | UDHR (501 languages) | v3 | 0.018% | 0.022% | 378/501 | 100% |
 | UDHR | v4.7 (v5 borrows it) | 0.001% | 0.001% | 488/501 | 100% |
 
-**No document in either family is over 1% off any more**, and none under-counts. Tem, the worst
-document in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala,
-Yoruba and Maldivian, with Shipibo-Conibo at +0.01% and Lamnso' at +0.02%.
+**No document in either family is over 1% off any more, and none under-counts** — not in these
+501 documents and not in the 1.6M texts ever measured against either model. Tem, the worst document
+in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala, Yoruba and
+Maldivian. Weighted by speakers rather than by document the error is 0.005% (v3) and 0.001% (v4.7).
 
-The last five over 1% were the same five in both families and they now reproduce exactly: Thai
-(+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88% in both) and
-Chakma (+1.54% in both). That they were *identical* across two vocabularies of 48k and 15k pieces
-is what said most of it could not be vocabulary, and it was not: **an astral run takes no border
-marker**, the exclusion an emoji already had and that the digit and terminal-separator branches
-never got (LIMITS.md §17). All 30 astral viramas Unicode has and 72 astral digits from its 56
-astral number blocks read exactly two spurious markers, in both families, with BMP controls
-unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to mine, went +512 → 0
-on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
-predicted the `digit_eow` template would find, and eleven Thai pieces each family's own probe buys
-and the other family already ships. Weighted by speakers rather than by document the error is
-0.005% (v3) and 0.001% (v4.7).
+Almost none of that was won by mining words. Each campaign below first priced every distinct word
+of every failing row *alone*: the share of the error that sits inside a word decides whether a word
+miner can reach it at all, and it usually could not.
 
-The worst document in both families after that was Tamil, +79 tokens in each, and it was
-*two pieces*: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop where the
-word closes. Both Tamil documents now reproduce exactly. The same identical-in-both-families
-reasoning that cracked the five above says nothing here, and the check that shows it takes one
-query: v4.7's 97 Tamil pieces are a subset of v3's 113 and the sixteen extras change no row, so
-the two families were bound to agree whatever the cause. What decided it was pricing every word of
-every wrong row — all 12,225 of them exact, so *none* of the over-charge is inside a Tamil word —
-and then deleting windows from the rows themselves until the seam named itself (LIMITS.md §18).
-
-Sinhala and Central Khmer were next, +33 and +8 on v4.7 and **exact on v3** — and one family being
-right where the other is wrong, on shared code, is a vocabulary question before any probe is bought.
-Four pieces close them, and v3 was already shipping all four: `ාය`, `ික⟨eow⟩`, `ករ` and `⟨bow⟩රប`.
-The lesson is what the port refused. v3 holds 23 script-bearing pieces v4.7 lacks; carried across as
-a set they repair 555 corpus words and push 108 others *below* the oracle, which is §1's 2026-08-07
-failure in a new script. Asked one at a time, v4.7's own template refuses nineteen of the 23 at cost
-2 or 3, and an independent corpus court — every distinct word of every over-charging row, priced
-alone — refuses the same nineteen. **Membership is per-family; a piece that is real in a
-48,234-piece vocabulary is not thereby real in a 15,159-piece one** (LIMITS.md §19).
-
-**Six Devanagari languages turned out to be one digit** (LIMITS.md §20). Marathi, Newari,
-Maithili, Sanskrit, Nepali and Konkani each carried a small tail, Hindi almost none — and six
-languages sharing a script and each holding a residue is the shape of a script-wide gap rather than
-six vocabulary tails, which is a cheaper thing to test than to mine. Pricing all 17,388 distinct
-words of every wrong row found seven wrong, identically in all six languages and in the Hindi
-control, so the over-charge was at the joins; deleting windows from the rows put 41 of the 44 worst
-on Devanagari digit zero. `⟨bow⟩१०⟨eow⟩` costs the oracle 2 where `⟨bow⟩०१⟨eow⟩` costs 4, and a grid
-of ten digits by eighteen digit scripts in both families reads cost 1 in exactly one cell. v3
-carried a second shape as well — 100% inside words, every wrong word opening on `ि` or carrying
-`़ि` — closed by `⟨bow⟩ि`, which v4.7 already shipped. All seven Devanagari UDHR documents now
-reproduce exactly in both families.
-
-**The Latin/Cyrillic tail was a superscript two, and the two families disagreed about what it even
-was** (LIMITS.md §21). Seven Goldfish languages — Lombard, Serbian, Hill Mari, Sranan Tongo,
-Romanian, Kabyle, Walloon — held 1,307 tokens of over-charge on v4.7 and 1,785 on v3, Lombard the
-largest single pool left in the sweep. Pricing every word alone first is what stopped a word
-campaign being aimed at it: Lombard, Serbian, Sranan and Kabyle are **0% inside words on v4.7**, so
-1,084 of that family's 1,307 tokens sit at the joins, while 597 of v3's 1,785 are ordinary Romanian
-and Walloon vocabulary. The seam is `²` U+00B2 at a word-closing border — `km²x` is exact and
-`km² x` is not — and it is that character rather than a rule: `²⟨eow⟩`, `².⟨eow⟩`, `²,⟨eow⟩` and
-`².` read cost 1 in both families where sixteen other borders after `²` and seven other superscripts
-(`³.` `½.` `¹.` `°.` …) read 2–3, with the shipped `°⟨eow⟩` as the positive control. Three more
-seams follow the same shape one language each — Kabyle's space-flanked `⟨bow⟩»,⟨eow⟩`, Hill Mari's
-U+2015 `―⟨eow⟩`, Walloon's `åd` — and v3 took 65 more word pieces on top, five of which the row
-court dropped for explaining nothing once the others were in. **v4.7 now reproduces all 7,000 rows
-of the seven languages** and v3 6,947, from 6,167 and 5,845; no cached text in either family was
-broken or pushed below, and under-count stays 0 over 1,040,784 v4.7 and 562,763 v3 cached texts.
+| what closed | pieces | the finding | |
+|---|---:|---|---|
+| Thai ×2, Burmese, Mon, Chakma | 12 | an astral run takes no border marker — the exclusion emoji had and the digit and terminal-separator branches never got. Chakma has no corpus anywhere to mine and went +512 → 0 on that alone | [§17](LIMITS.md) |
+| Tamil ×2 | 2 | 0% of the over-charge inside a word, so no word miner could reach it; the site is a virama fused to a comma or full stop | [§18](LIMITS.md) |
+| Sinhala, Central Khmer | 4 | v3 was already exact on both. But a cross-port is **not** transitive: 23 of v3's pieces carried across as a batch push 108 words below the oracle, and two independent instruments refuse the same nineteen | [§19](LIMITS.md) |
+| six Devanagari languages | 5 | one cause, not six — 17,388 words priced, seven wrong, identically across all six and the Hindi control. It was Devanagari digit zero; ten digits × eighteen scripts reads cost 1 in one cell | [§20](LIMITS.md) |
+| seven Latin/Cyrillic languages | 83 | the same rows are two different problems in the two families: 0% inside words on v4.7 where the site is `²` at a word-closing border, 100% inside words on v3 where it is ordinary vocabulary | [§21](LIMITS.md) |
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
