@@ -87,8 +87,8 @@ message frame, so it lands on the same documents with the same errors;
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.018% | 0.022% | 378/501 | 100% |
-| UDHR | v4.7 (v5 borrows it) | 0.001% | 0.001% | 488/501 | 100% |
+| UDHR (501 languages) | v3 | 0.015% | 0.019% | 393/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 490/501 | 100% |
 
 **No document in either family is over 1% off any more, and none under-counts** — not in these
 501 documents and not in the 1.6M texts ever measured against either model. Tem, the worst document
@@ -106,6 +106,8 @@ miner can reach it at all, and it usually could not.
 | Sinhala, Central Khmer | 4 | v3 was already exact on both. But a cross-port is **not** transitive: 23 of v3's pieces carried across as a batch push 108 words below the oracle, and two independent instruments refuse the same nineteen | [§19](LIMITS.md) |
 | six Devanagari languages | 5 | one cause, not six — 17,388 words priced, seven wrong, identically across all six and the Hindi control. It was Devanagari digit zero; ten digits × eighteen scripts reads cost 1 in one cell | [§20](LIMITS.md) |
 | seven Latin/Cyrillic languages | 83 | the same rows are two different problems in the two families: 0% inside words on v4.7 where the site is `²` at a word-closing border, 100% inside words on v3 where it is ordinary vocabulary | [§21](LIMITS.md) |
+| eleven CJK, Greek and Arabic-script languages | 19 | not one of them a word — Han is the isolated HARD class, so no word localizer reaches a Chinese row. A baseless Arabic fatha, the CJK punctuation *pair*, and three enclosed numerals | [§22](LIMITS.md) |
+| ten European languages | 19 | three were one document each (a flyer of `××`, a birth/death list, a Gospel's nested quote); the other seven are proper nouns — `София` alone is 54 of Bulgarian's 86 | [§23](LIMITS.md) |
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
