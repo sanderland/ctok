@@ -9,6 +9,7 @@ text or a measured fact about the oracle. No costs live in this module.
 
 from __future__ import annotations
 
+from functools import cache
 import unicodedata
 
 from .constants import (
@@ -438,6 +439,12 @@ _KILLER = "killer"
 _STRAY_MARK = "stray_mark"
 
 
+@cache
+def _run_class(ch: str) -> str:
+    """Classify a codepoint once; the result depends only on Unicode data and measured tables."""
+    return _KILLER if is_killer(ch) else classify(ch)
+
+
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
@@ -511,14 +518,11 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     """
     if not norm:
         return []
-    def run_class(ch: str) -> str:
-        return _KILLER if is_killer(ch) else classify(ch)
-
-    out, cur, cur_cls = [], norm[0], run_class(norm[0])
+    out, cur, cur_cls = [], norm[0], _run_class(norm[0])
     if cur_cls == WORDY and _stray_mark(norm[0]):
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
-        c = run_class(ch)
+        c = _run_class(ch)
         # A Syriac-dot absorb clause stood here: a non-vowel combining mark after U+0740–U+074A
         # rode the killer run instead of opening a stray word. It predated §14 — its one motivating
         # row, `x ݂́ܒ x`, has the ACUTE as the rider, and the acute has been a killer in its own

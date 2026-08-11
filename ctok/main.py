@@ -169,10 +169,11 @@ class TokenizerModel:
         # Cost-1 whole single-codepoint characters live in ``pieces`` (a whole character is a
         # length-1 token, not a byte prefix). The byte floor folds them back into its membership set
         # so an uncovered character still prices at 1. The structural markers are not text.
-        self.unit_pieces = {c for c in (parse_marked(p) for p in pieces)
+        parsed_pieces = [parse_marked(p) for p in pieces]
+        self.unit_pieces = {c for c in parsed_pieces
                             if len(c) == 1 and c not in MARKER_GLYPHS}
         self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
-        self.vocab = build_vocab(pieces, tokens)
+        self.vocab = build_vocab(parsed_pieces, tokens)
         self.trie = ReverseTrie(self.vocab)
 
         self._char_cost_cache: dict[str, int] = {}
