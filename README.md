@@ -94,8 +94,8 @@ opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening ru
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.028% | 0.032% | 353/501 | 100% |
-| UDHR | v4.7 (v5 borrows it) | 0.007% | 0.005% | 481/501 | 100% |
+| UDHR (501 languages) | v3 | 0.023% | 0.028% | 355/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.002% | 0.002% | 484/501 | 100% |
 
 **No document in either family is over 1% off any more**, and none under-counts. Tem, the worst
 document in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala,
@@ -112,7 +112,16 @@ unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to
 on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
 predicted the `digit_eow` template would find, and eleven Thai pieces each family's own probe buys
 and the other family already ships. Weighted by speakers rather than by document the error is
-0.010% (v3) and 0.005% (v4.7).
+0.007% (v3) and 0.002% (v4.7).
+
+The worst document in both families after that was Tamil, +79 tokens in each, and it was
+*two pieces*: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop where the
+word closes. Both Tamil documents now reproduce exactly. The same identical-in-both-families
+reasoning that cracked the five above says nothing here, and the check that shows it takes one
+query: v4.7's 97 Tamil pieces are a subset of v3's 113 and the sixteen extras change no row, so
+the two families were bound to agree whatever the cause. What decided it was pricing every word of
+every wrong row — all 12,225 of them exact, so *none* of the over-charge is inside a Tamil word —
+and then deleting windows from the rows themselves until the seam named itself (LIMITS.md §18).
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it

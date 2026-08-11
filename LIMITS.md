@@ -1681,7 +1681,9 @@ The held-out gates, read once at the end: UDHR **346 → 353** exact on v3 (mass
 ### 17.6 What is left, and one instrument note
 
 The worst document in each family is now Tamil at +0.75%, in both — a script this campaign did not
-touch and the largest remaining pool in the corpus. On v3 nine Latin-script documents sit between
+touch and the largest remaining pool in the corpus. **Closed by §18**, on two pieces — and the
+identical-in-both-families reasoning that opened *this* campaign does not carry over to that one:
+18.1 says why it was no evidence at all there. On v3 nine Latin-script documents sit between
 +0.4% and +0.92% (Oromo, Sango, Yanomamö, Catalan, Turkmen, North Saami, Sidamo, Azerbaijani),
 which is ordinary v3 word vocabulary. Three Myanmar rows and seven Thai ones still over-charge by
 a token; each holds Myanmar digits or Latin material glued to the script, the mixed-span shape
@@ -1692,3 +1694,151 @@ disguise. Asked for one-piece explanations of 138 over-charging Thai rows it ret
 candidates and ranked `ัน` first at 83 rows — correct — and `ฉ`, a single Thai letter, second at
 62. `ฉ` costs two tokens on the `char` template in both families. **A candidate's rank in a
 fitness enumeration carries no evidence at all**; it decides only which probe gets bought next.
+
+## 18. Tamil was two pieces, and the identical-in-both-families tell did not apply
+
+**Measured 2026-08-11.** §17.6 left Tamil the worst document in both families — +0.751% and
++0.750%, **+79 tokens in each** — and the largest remaining pool. Both documents now reproduce
+exactly, on two pieces: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop
+at a word-closing border.
+
+### 18.1 The tell that opened §17 does not transfer, and checking that was the first thing worth doing
+
+§17's brief reasoned that a residual identical across vocabularies of 48,232 and 15,153 pieces
+cannot be vocabulary, and it was right there. Repeated for Tamil it is **not an argument at all**,
+and one query says why:
+
+```
+Tamil-bearing pieces      v3 113     v4.7 97     shared 97     v4.7-only 0
+v3's extra 16 (அ இ உ எ ங சச டட நந னன பப மம யய ரர றற லல வவ) change no row of the 1,000
+```
+
+v4.7's Tamil vocabulary is a SUBSET of v3's and the difference is inert, so the two families were
+always going to read the same on Tamil under either hypothesis. All 1,000 Goldfish `tam_taml` rows
+carry an identical delta in the two families — which measures the vocabularies' overlap, not the
+tokenizer. **A cross-family tell is only evidence where the two vocabularies actually differ on the
+script in question**, and that is one cheap query to check before spending anything on it.
+
+### 18.2 What did decide it: localize first, and Tamil is the extreme case
+
+§0's method, run on the 484 over-charging Goldfish rows with every word of every hot row priced —
+§13.2's correction, no word cap:
+
+```
+over-charge 1,461 tokens     12,225 distinct words priced alone     wrong words 0     explained 0%
+```
+
+Not one word of Tamil is mispriced. Catalan was 98% inside words and Lombard 21%; Tamil is **0%**.
+So the answer to "vocabulary or structure" was neither of the two readings the brief offered: the
+over-charge is entirely at the joins, and it is still vocabulary — a piece that spans a word
+boundary and therefore cannot be found by any word miner.
+
+### 18.3 The site, found in situ
+
+`insitu_over.py` — delete a window from the real row, keep the half whose removal reduces the row's
+over-count, never build a new string (§7's two instrument notes) — put nine of the ten worst rows on
+a single character:
+
+```
+over 49  site '்'   …லை:நகரில[்], வடிகால…
+over 32  site '்'   …து. ஆனால[்], அந்த வ…
+over 28  site '்'   …ுதியாகும[்]. இந்த த…
+```
+
+The frame is one token over, and the seam is exactly the shape §1's 2026-08-08 correction named:
+
+```
+x ஆனால், அந்த x  +1      x ஆனால் அந்த x   0        x ஆனால் , அந்த x  0
+x ஆனால். அந்த x  +1      x நகரில்,வடிகால் x 0      x ஆனால், 5 x     +1
+x ஆனால்! அந்த x   0      x ஆனால்; அந்த x   0       x ஆனால்? அந்த x   0
+x ஆனால்: அந்த x   0      x ஆனால்) அந்த x   0       x ஆனால்- அந்த x   0
+```
+
+The stream is `⟨bow⟩ஆனால⟨eow⟩்,⟨eow⟩⟨bow⟩அந⟨eow⟩…`: the killer run takes punctuation's borders
+(§7), so the comma and the virama share one run. `்` and `,⟨eow⟩` are both pieces, so we spend two
+tokens where the oracle spends one, and `witness._fitness_candidates` names `்,⟨eow⟩` as the one
+candidate common to every comma probe.
+
+### 18.4 The instrument: `digit_eow` reaches it, and the ヲ grid does not
+
+§3 recorded that "no synthetic template can reach `்,⟨eow⟩`". That was true of the templates it
+tried. The piece's position is `eow`, and its own `eow` template `.ヲ{}.` puts a Tamil virama on a
+katakana base — §1's hazard — and in fact fails `witness.places` outright, because the message end
+writes no ⟨eow⟩ for the piece to end on. **`digit_eow`, `1{} a`, places it exactly**, and the
+reason it is not the ヲ hazard is checkable rather than argued: the stream span it prices,
+`்,⟨eow⟩`, is character-for-character the span the corpus writes, because the killer run never
+includes the letter before it. It is the template §7 predicted would find the fused killer pieces
+and the one §17.3 bought the Myanmar asat on.
+
+```
+digit_eow, `1{} a`, cost = raw - base + 1 - 3           v3   v4.7
+  ்,  ்.                                                 1     1     <- the two pieces
+  ்;  ்!  ்?  ்:  ்)  ்-  ்”  ்/  ்%  ்…  ்|  ்'          2-3   2-3   twelve controls
+```
+
+The corpus court is `x W, V x` cut out of running FineWeb-2 Tamil — the word before the seam and
+the word after it are the ones the text put there — one probe per DISTINCT left word:
+
+```
+்,⟨eow⟩   120 distinct words repaired / 0 already exact / 0 pushed below     both families
+்.⟨eow⟩   120 / 0 / 0                                                        both families
+்!  ்?  ்:  ்;  ்)      0 repaired / 40 already exact each                    v4.7
+```
+
+The control fires the right way round on both sides: the two pieces have something to explain on
+every row, and the five refused candidates have nothing to explain on any.
+
+### 18.5 It is Tamil's, not Brahmic
+
+Twenty killers — Devanagari, Bengali nukta and virama, Gurmukhi, Gujarati, Oriya, Tamil, Telugu,
+Kannada, Malayalam, Sinhala, Thai, Lao, Tibetan, Myanmar virama and asat, Khmer, Javanese,
+Balinese, Tagalog — crossed with comma and full stop, on `digit_eow`, in both families:
+**only Tamil's two read cost 1.** That independently reproduces §1's seam court, which swept the
+same grid on own-script probes and kept nothing outside Tamil, and it is what makes this ordinary
+missing vocabulary rather than a rule about killers.
+
+### 18.6 What it cost, over every text that could move
+
+A piece changes only a text whose STREAM holds its surface (§13.8), so the differential is that
+set, tiled twice:
+
+| | texts with the piece in their stream | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 4,513 | 0 | 15,708 | 0 |
+| v3, after | 4,513 | **4,511** | **3** | **0** |
+| v4.7, before | 5,252 | 0 | 17,104 | 0 |
+| v4.7, after | 5,252 | **5,251** | **2** | **0** |
+
+**Not one row was broken and not one row under-counts**, and "before exact 0" is the control at
+cache scale: of the 9,765 cached texts these pieces touch, not one already reproduced.
+
+Row level on the two corpora, against recorded counts:
+
+| | exact | over | under |
+|---|---|---:|---:|
+| `tam_taml` 1,000 Goldfish rows, v3 and v4.7 alike | 516 → **1,000** | 1,461 → **0** | 0 → 0 |
+| FineWeb-2 Tamil, 8,391 rows (v3) | 4,984 → **8,389** | 9,010 → **3** | 0 → 0 |
+| FineWeb-2 Tamil, 9,863 rows (v4.7) | 5,814 → **9,862** | 10,723 → **2** | 0 → 0 |
+
+The whole-cache under scan afterwards reads **0 tokens in 0 texts** on both families, over 514,216
+v3 and 1,010,303 v4.7 cached texts.
+
+### 18.7 The residue is two rows, and neither is Tamil
+
+Three tokens on v3 and two on v4.7 survive in the whole cache, in two documents:
+
+* a Tamil/Arabic row whose Arabic is unnormalized Quranic harakat (`َضِيَ اللَّهُ عَنْ`), +2 in both
+  families;
+* a Tamil row with Latin glued to the script — `volleyயும்`, `அ.தூக்கத்தில்லேயே` — the
+  mixed-script span §13.7 records as needing a frame of its own, +1 on v3.
+
+Neither is the seam and neither is a Tamil word: every Tamil word in both rows prices exactly.
+
+The held-out gates, read once at the end: UDHR **353 → 355** exact on v3 (mass 0.0284% →
+0.0228%, speakers-weighted 0.0065%) and **481 → 484** on v4.7 and v5 (0.0067% → **0.0019%**,
+speakers-weighted 0.0015%); **both Tamil documents go +79 → 0 in both families**; Rosetta
+1741/1741, the 250-document holdout 250/250 and MultiPL-E 22/22 unmoved; no document in either
+family under-counts and none is over 1%; 219 tests pass. The gate thresholds are unchanged and
+their comment now carries the re-measured reading — v4.7's mean sits a factor of ten under its
+bound, which is margin rather than a stale gate, and tightening it would fire on the next
+campaign's ordinary churn rather than on a regression.

@@ -84,6 +84,16 @@ GATES: dict[str, dict] = {
         # one is the compromise an unfinished corpus makes. The exact and mean bounds move with the
         # model for the reason the paragraph above gives: a threshold far from the reading has
         # stopped being able to catch anything.
+        #
+        # Re-measured 2026-08-11 after the two Tamil seam pieces (LIMITS.md §18): 355/501 exact and
+        # 0.0284% mean on v3, 484/501 and 0.0017% on v4.7, with both Tamil documents going +79 → 0
+        # in each family. The bounds below are LEFT WHERE THEY ARE this time, which is a judgement
+        # and not an oversight: v3 reads 70.9% against a 68% floor and 0.0284% against a 0.06%
+        # ceiling, which is ordinary margin, and v4.7's mean now sits a factor of ten under its
+        # bound only because two documents' worth of error left in one campaign. A bound tightened
+        # onto a reading that moved this fast fires on the next campaign's churn rather than on a
+        # regression, and the every-document gates on Rosetta, the holdout and MultiPL-E are what
+        # actually catch one.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0006, "within1": 0.99, "exact": 0.68},
             # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
