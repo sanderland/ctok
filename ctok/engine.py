@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from .constants import EOW_G, MARKER_GLYPHS
 from .normalize import nfc, stream_norm, stripped_head
-from .notation import parse_marked
 
 
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
@@ -44,8 +43,8 @@ class ReverseTrie:
     """Vocabulary index for the stream DP.
 
     The DP ends a tile at each stream position, so storing pieces backwards lets it stop as soon as
-    the preceding characters cease to match any piece. ``starts`` returns shortest matches first;
-    the DP reverses that small list to retain ``min_tile``'s existing longest-final-piece tie order.
+    the preceding characters cease to match any piece. The DP traverses this mapping directly and
+    visits candidate starts from right to left.
     """
 
     _END = None
@@ -58,20 +57,8 @@ class ReverseTrie:
                 node = node.setdefault(ch, {})
             node[self._END] = None
 
-    def starts(self, text: str, end: int) -> list[int]:
-        """Starts of vocabulary pieces ending at ``end``, shortest piece first."""
-        node = self.root
-        found = []
-        for start in range(end - 1, -1, -1):
-            node = node.get(text[start])
-            if node is None:
-                break
-            if self._END in node:
-                found.append(start)
-        return found
 
-
-def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[float, list[tuple[int, int]]]:
+def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[tuple[int, int]]]:
     """Min-cost tiling over a cost-1 vocabulary plus a guaranteed one-character floor.
 
     This is the marked stream's specialized form of :func:`min_tile`. The generic DP asks about
@@ -79,27 +66,32 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[float, list
     v3 character pay for 128 dictionary probes. The trie visits only prefixes that can still become
     a piece and creates no candidate substrings.
     """
-    INF = float("inf")
-    best = [0.0] + [INF] * len(text)
+    best = [0] * (len(text) + 1)
     par = [0] * (len(text) + 1)
+    root = trie.root
+    terminal = trie._END
     for end in range(1, len(text) + 1):
-        # min_tile visits starts from left to right. Reverse the trie's shortest-first results so a
-        # tied count keeps the same spans and public token list as before this index existed.
-        starts = trie.starts(text, end)
-        for start in reversed(starts):
-            candidate = best[start] + 1
-            if candidate < best[end]:
-                best[end] = candidate
-                par[end] = start
+        # Start with the guaranteed one-character edge. Prefer the vocabulary spelling when that
+        # character is a piece; otherwise use its byte floor.
+        start = end - 1
+        node = root.get(text[start])
+        best[end] = best[start] + (1 if node is not None and terminal in node
+                                   else unit_cost(start))
+        par[end] = start
 
-        # Every character has a floor. A one-character vocabulary edge already supplied the same
-        # cost, so avoid pricing that floor twice.
-        if not starts or starts[0] != end - 1:
-            start = end - 1
-            candidate = best[start] + unit_cost(start)
-            if candidate < best[end]:
-                best[end] = candidate
-                par[end] = start
+        if node is None:
+            continue
+        for start in range(end - 2, -1, -1):
+            node = node.get(text[start])
+            if node is None:
+                break
+            if terminal in node:
+                candidate = best[start] + 1
+                # Starts decrease through the traversal, so replacing on a tie retains min_tile's
+                # longest-final-piece tie order without collecting and reversing a match list.
+                if candidate <= best[end]:
+                    best[end] = candidate
+                    par[end] = start
 
     spans, end = [], len(text)
     while end > 0:
@@ -155,14 +147,14 @@ def glued_contraction(cn: str) -> str:
 
 
 def build_vocab(pieces, tokens: dict) -> frozenset[str]:
-    """The tiling vocabulary: every piece and the glued contraction spelling.
+    """The tiling vocabulary: every parsed piece and the glued contraction spelling.
 
     The structural markers used to be added here as well, which made three places that decided a
     marker costs one token: this line, `tile`'s unit floor below, and the two of the four that the
     vocabulary file happened to list. They live in the file now, in a `markers` group of their own —
     a reader of `pieces.json` sees the whole tiling vocabulary rather than most of it.
     """
-    vocab = {parse_marked(p) for p in pieces}
+    vocab = set(pieces)
     # The contraction suffix, in the spelling the stream uses. The file stores `'t` and the encoder
     # writes `'t⟨eow⟩` — `⟨bow⟩don⟨eow⟩'t⟨eow⟩`, with no ⟨bow⟩ after the apostrophe, because the
     # apostrophe IS that word's opening boundary (`normalize._contraction_seam`).
