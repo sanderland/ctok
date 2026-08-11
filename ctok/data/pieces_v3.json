@@ -11,7 +11,7 @@
   "built": "2026-08-11T05:28:22.115487+00:00",
   "provenance": "every token measured with count_tokens against this family's source model",
   "witness": {
-   "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
+   "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See README.md for the public contract.",
    "measured_on": "claude-opus-4-5",
    "base": 8,
    "templates": {

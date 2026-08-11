@@ -39,7 +39,7 @@ import statistics
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from ctok.main import FAMILIES, token_count
+from ctok.main import FAMILIES, _vocabulary, token_count
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -243,8 +243,6 @@ def vocabulary_owners() -> dict[str, str]:
 
     Two families sharing a file is what borrowing IS, so this is derived rather than declared. The
     first family listed for a file owns it; v5 reads v4.7's."""
-    from ctok.main import FAMILIES
-
     owner: dict[str, str] = {}
     for key, fam in FAMILIES.items():
         if fam.pieces is None:
@@ -253,32 +251,26 @@ def vocabulary_owners() -> dict[str, str]:
     return owner
 
 
+def _owned_vocabularies():
+    """Yield each physical vocabulary once, under the family that owns it."""
+    for key, owner in vocabulary_owners().items():
+        if owner == key:
+            yield key, _vocabulary(key)
+
+
 def vocabulary_sizes() -> dict[str, dict[str, int]]:
     """Piece counts per group, per vocabulary FILE — keyed by the family that owns it.
 
     A borrowing family is deliberately absent rather than listed with a copy of the lender's row:
     repeating the numbers reads as two vocabularies that happen to agree, when there is one file
     and no second measurement behind the second row."""
-    import json
-
-    from ctok.main import FAMILIES
-    from importlib.resources import files
-
-    out: dict[str, dict[str, int]] = {}
-    for key, owner in vocabulary_owners().items():
-        if owner != key:
-            continue
-        doc = json.loads(
-            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
-        out[key] = {g: len(v) for g, v in doc["tokens"].items()}
-    return out
+    return {key: {group: len(entries) for group, entries in doc["tokens"].items()}
+            for key, doc in _owned_vocabularies()}
 
 
 def _borrowers() -> list[str]:
     """One line per family that counts with someone else's file — so the report says so out loud
     rather than leaving a family it never mentioned to look like an omission."""
-    from ctok.main import FAMILIES
-
     return [f"{key} counts with {owner}'s vocabulary ({FAMILIES[key].pieces})"
             for key, owner in vocabulary_owners().items() if owner != key]
 
@@ -297,26 +289,23 @@ def report_vocabulary(markdown: bool = False) -> None:
     table because the second is only actionable per group — an unwitnessed piece counts exactly like
     a witnessed one, so every accuracy number is identical either way and only this says so.
 
-    The gap columns are two, not five. A reader needs to know whether evidence is ABSENT (missing:
-    unbought, or unreachable by any template) or CONTRADICTORY (unresolved: the probe and the corpus
-    disagree). Which kind, and where, is what the warnings underneath are for — a table cell cannot
-    say "run this script" and a warning can.
+    The two evidence gaps are ABSENT (missing: unbought, or unreachable by any template) and
+    CONTRADICTORY (unresolved: the probe and the corpus disagree). ``special`` and ``other`` keep
+    structural atoms and unknown kinds visible without presenting either as token evidence.
     """
     cov = witness_coverage()
     groups = sorted({g for fam in cov.values() for g in fam})
     # Every kind the numerator withholds needs a column, or the table shows a rate below 100% with
-    # nothing to explain it. `argued` was missing and `fitness` is the only thing in it, so
-    # `word_pieces` read 99.96% with all three gap cells empty. `other` is the same guarantee for a
-    # kind nobody has classified yet: unknown kinds used to fall through to the witnessed side,
-    # which is the direction that flatters.
-    cols = ("missing", "unresolved", "argued", "special", "other")
+    # nothing to explain it. `other` is the same guarantee for a kind nobody has classified yet:
+    # unknown kinds used to fall through to the witnessed side, which is the direction that
+    # flatters.
+    cols = ("missing", "unresolved", "special", "other")
     known = known_kinds()
 
     def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
         total, w = sum(counts.values()), witnessed(counts)
         bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
                   "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
-                  "argued": sum(counts.get(k, 0) for k in ARGUED),
                   "special": sum(counts.get(k, 0) for k in SPECIAL),
                   "other": sum(n for k, n in counts.items() if k not in known)}
         pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
@@ -327,7 +316,7 @@ def report_vocabulary(markdown: bool = False) -> None:
     if markdown:
         print("\n## Vocabulary and witness coverage\n")
         print("Every piece must be witnessed or structural-special. Token witnesses carry the "
-              "measurements that pin them; specials are reported separately. See PROBES.md.\n")
+              "measurements that pin them; specials are reported separately. See README.md.\n")
         for fam, by_group in cov.items():
             total, w, pct, bucket = cells(totals(by_group))
             print(f"### {fam} — {w:,} of {total:,} witnessed or special ({pct})\n")
@@ -348,9 +337,7 @@ def report_vocabulary(markdown: bool = False) -> None:
     for fam, by_group in cov.items():
         tot = totals(by_group)
         total, w, pct, _ = cells(tot)
-        argued = sum(tot.get(k, 0) for k in ARGUED)
-        print(f"  [{fam}] {w:,} of {total:,} pieces on a fixed template or special ({pct})"
-              + (f", plus {argued:,} argued from natural text (see LIMITS.md §6)" if argued else ""))
+        print(f"  [{fam}] {w:,} of {total:,} pieces on a fixed template or special ({pct})")
         for g in groups:
             if g not in by_group:
                 continue
@@ -360,7 +347,7 @@ def report_vocabulary(markdown: bool = False) -> None:
     if refuted:
         print(f"\n  !! {sum(n for *_, n in refuted)} pieces REFUTED by their own probe:")
         for fam, g, n in refuted:
-            print(f"       {fam} {g} ({n})   -> scripts/retire_refuted.py --leave-one-out")
+            print(f"       {fam} {g} ({n})   -> remove or replace with a fixed-template witness")
     for line in _borrowers():
         print(f"  {line}")
     print()
@@ -374,22 +361,13 @@ def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
     is where a gap is actionable — "845 unwitnessed" is a number, "845 of them in word_pieces" is a
     campaign.
     """
-    import json
-    from importlib.resources import files
-
-    from ctok.main import FAMILIES
-
     out: dict[str, dict[str, dict[str, int]]] = {}
-    for key, owner in vocabulary_owners().items():
-        if owner != key:
-            continue
-        doc = json.loads(
-            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+    for key, doc in _owned_vocabularies():
         out[key] = {}
         for group, entries in doc["tokens"].items():
             counts: dict[str, int] = {}
             for w in entries.values():
-                kind = "structural" if w is None else w.get("kind", "?")
+                kind = w.get("kind", "?")
                 counts[kind] = counts.get(kind, 0) + 1
             out[key][group] = counts
     return out
@@ -409,20 +387,6 @@ MISSING = ("unmeasured", "no-instrument")
 UNRESOLVED = ("refuted",)
 GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
-# ARGUED is weaker than a witness and is reported apart from one.
-#
-# A template witness is a FIXED probe: `meta.witness.templates` holds the string, `verify` requires
-# the probe to be that template applied to this exact piece, and the arithmetic lands on one token.
-# There is nothing per-piece to choose, so a template witness cannot be shaped to fit its piece.
-#
-# `fitness` is not that. It is a bespoke per-piece argument over natural text — an intersection of
-# tiling candidates that restore two or more exact probes — and it is true relative to the rest of
-# the vocabulary rather than to the oracle alone. `ownscript` was the same kind of thing and is now
-# retired: every piece it certified was re-asked on a fixed template, and 481 of 1,157 were refuted
-# by it (LIMITS.md §6). The last fitness records were promoted on fixed `mark_mid` and `eow`
-# templates; keeping the kind here makes any future one visible and fails the literal CI target.
-ARGUED = ("fitness",)
-
 
 def known_kinds() -> frozenset[str]:
     """Every kind a witness record may carry, DERIVED from the files rather than listed here.
@@ -436,28 +400,20 @@ def known_kinds() -> frozenset[str]:
     before that lookup: 467 byte-fallback pieces per file rest on it and no template declares it.
     Anything outside the union is reported in the `other` column instead of passing as evidence.
     """
-    import json
-    from importlib.resources import files
-
-    from ctok.main import FAMILIES
-
     # `verify` dispatches `prefix` before the template lookup — a byte-prefix piece is pinned by
     # three characters agreeing, not by a probe string, so it is a real witness with no template.
     # It is named here because `witness.verify` names it, which is the only authority on what a
     # witness kind is.
-    names: set[str] = set(GAP_KINDS) | set(ARGUED) | {"prefix"}
-    for key, owner in vocabulary_owners().items():
-        if owner != key:
-            continue
-        doc = json.loads(
-            files("ctok").joinpath("data", FAMILIES[key].pieces).read_text(encoding="utf-8"))
+    names: set[str] = set(GAP_KINDS) | {"prefix"}
+    for _key, doc in _owned_vocabularies():
         names |= set(doc["meta"]["witness"]["templates"])
     return frozenset(names)
 
 
 def witnessed(counts: dict[str, int]) -> int:
     """Pieces resting on a fixed approved template, plus the structural-special marker atoms."""
-    return sum(counts.values()) - sum(counts.get(k, 0) for k in MISSING + UNRESOLVED + ARGUED)
+    accepted = known_kinds() - set(MISSING + UNRESOLVED)
+    return sum(n for kind, n in counts.items() if kind in accepted)
 
 
 def totals(by_group: dict[str, dict[str, int]]) -> dict[str, int]:
