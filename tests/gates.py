@@ -76,8 +76,9 @@ GATES: dict[str, dict] = {
         # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
         #
         # Re-measured again 2026-08-10, after the astral border-marker law and the Thai/Myanmar
-        # vocabulary (LIMITS.md §17): 353/501 exact and 0.032% mean on v3, 481/501 and 0.005% on
-        # v4.7, and for the first time EVERY document in both families is within 1% and none
+        # vocabulary (LIMITS.md §17), then again with §16's boundary fix merged under it: 353/501
+        # exact and 0.031% mean on v3, 482/501 and 0.005% on v4.7 — §16 is worth the 482nd
+        # document — and for the first time EVERY document in both families is within 1% and none
         # under-counts. `within1` stays a fraction rather than becoming `ALL` because this corpus
         # is not finished — a third of v3's documents still over-charge — and a rate below the real
         # one is the compromise an unfinished corpus makes. The exact and mean bounds move with the
