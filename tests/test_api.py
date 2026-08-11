@@ -211,6 +211,13 @@ def test_normalization_is_family_specific():
     assert normalize("don’t", version=4.7) == "don’t"
 
 
+def test_dotted_capital_i_uses_the_ordinary_unit_piece():
+    """İ is literal inside a cased span. It does not become a two-byte fallback after an uppercase
+    vocabulary tile; that retired reading over-counted every short form where it still applied."""
+    assert token_count("RPİ", version=3.0) == 10
+    assert token_count("APİ", version=4.7) == 14
+
+
 def test_version_routing():
     assert _family(3.0) == _family("3.5") == _family(4.6) == "v3"
     assert _family(4.7) == _family("4.8") == "v4.7"

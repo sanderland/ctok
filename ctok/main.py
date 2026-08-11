@@ -13,7 +13,7 @@ from functools import cache
 from importlib.resources import files
 
 from .constants import MARKER_GLYPHS, PAD
-from .engine import ByteFloor, build_vocab, tile
+from .engine import ByteFloor, ReverseTrie, build_vocab, tile
 from .normalize import nfc, stream
 from .notation import parse_marked, render_bytes, render_marked
 
@@ -131,7 +131,7 @@ def witness(piece: str, version: float | str = 3.0) -> dict:
 class TokenizerModel:
     """The loaded vocabulary plus the family scalars the encoder and tiler read from it.
 
-    Everything the tiler needs is derived here, once: the tiling vocabulary with its longest piece,
+    Everything the tiler needs is derived here, once: the tiling vocabulary with its reverse trie,
     and the byte floor — what a codepoint costs when no piece covers it. ``doc`` is consumed rather
     than kept, so there is no second, lazier copy of the vocabulary question.
     """
@@ -172,12 +172,8 @@ class TokenizerModel:
         self.unit_pieces = {c for c in (parse_marked(p) for p in pieces)
                             if len(c) == 1 and c not in MARKER_GLYPHS}
         self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
-        # The byte prefixes alone, without whole-character vocabulary pieces folded into the floor.
-        # The contextual dotted İ uses this: the character IS a unit piece, so the ordinary floor
-        # would hand it back the very token that position was measured NOT to reach
-        # (`engine._dotted_host_blocked`).
-        self.raw_bytes = ByteFloor(tokens["bytes_fallback"])
-        self.vocab, self.max_piece_len = build_vocab(pieces, tokens)
+        self.vocab = build_vocab(pieces, tokens)
+        self.trie = ReverseTrie(self.vocab)
 
         self._char_cost_cache: dict[str, int] = {}
 
