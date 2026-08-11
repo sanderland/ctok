@@ -131,7 +131,7 @@ def witness(piece: str, version: float | str = 3.0) -> dict:
 class TokenizerModel:
     """The loaded vocabulary plus the family scalars the encoder and tiler read from it.
 
-    Everything the tiler needs is derived here, once: the tiling vocabulary with its longest piece,
+    Everything the tiler needs is derived here, once: the tiling vocabulary with its reverse trie,
     and the byte floor — what a codepoint costs when no piece covers it. ``doc`` is consumed rather
     than kept, so there is no second, lazier copy of the vocabulary question.
     """

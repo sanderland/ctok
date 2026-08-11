@@ -258,8 +258,7 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         if seg in pieces or unit_floor(j) == 1:
             out.append(seg)
         else:
-            chunks = model.bytes.chunks(seg.encode())
-            out.extend(chunks if len(chunks) > 1 else [seg])
+            out.extend(model.bytes.chunks(seg.encode()))
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out
