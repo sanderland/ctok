@@ -8,7 +8,7 @@
   "fold_quotes": true,
   "allcaps_min": 4,
   "digit_group": 3,
-  "built": "2026-08-10T18:37:36.834732+00:00",
+  "built": "2026-08-11T05:28:22.115487+00:00",
   "provenance": "every token measured with count_tokens against this family's source model",
   "witness": {
    "standard": "one probe per piece: cost = raw - base + 1 - overhead, and cost == 1 is what membership means. raw is the count_tokens value the probe returned; kind names its template below. See PROBES.md for the inventory.",
@@ -41,14 +41,14 @@
     "char": 2383,
     "contraction": 7,
     "digit_bow": 28,
-    "digit_eow": 235,
+    "digit_eow": 238,
     "digit_mid": 811,
     "digit_word": 114,
-    "eow": 7737,
+    "eow": 7742,
     "glued": 1110,
     "mark_mid": 18,
     "mark_sep": 19,
-    "mid": 4611,
+    "mid": 4612,
     "prefix": 467,
     "raw": 6410,
     "special": 4,
@@ -45285,7 +45285,14 @@
    "⟨bow⟩េ": {"probe": ".េヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩െ": {"probe": ".െヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩േ": {"probe": ".േヲ.", "raw": 13, "kind": "bow"},
-   "െെ": {"probe": ".ヲെെヲ.", "raw": 16, "kind": "mid"}
+   "െെ": {"probe": ".ヲെെヲ.", "raw": 16, "kind": "mid"},
+   "်⟨eow⟩": {"probe": "1် a", "raw": 11, "kind": "digit_eow"},
+   "ี⟨eow⟩": {"probe": ".ヲี.", "raw": 13, "kind": "eow"},
+   "ที⟨eow⟩": {"probe": ".ヲที.", "raw": 13, "kind": "eow"},
+   "ั⟨eow⟩": {"probe": ".ヲั.", "raw": 13, "kind": "eow"},
+   "ื⟨eow⟩": {"probe": ".ヲื.", "raw": 13, "kind": "eow"},
+   "ีย": {"probe": ".ヲียヲ.", "raw": 16, "kind": "mid"},
+   "ู⟨eow⟩": {"probe": ".ヲู.", "raw": 13, "kind": "eow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
@@ -47740,7 +47747,9 @@
    "⟨bow⟩△": {"probe": "a △1", "raw": 10, "kind": "digit_bow"},
    "⟨bow⟩（": {"probe": "（", "raw": 8, "kind": "raw"},
    "（": {"probe": "1（1", "raw": 11, "kind": "digit_mid"},
-   "：\"": {"probe": "1：\"1", "raw": 11, "kind": "digit_mid"}
+   "：\"": {"probe": "1：\"1", "raw": 11, "kind": "digit_mid"},
+   "்,⟨eow⟩": {"probe": "1், a", "raw": 11, "kind": "digit_eow"},
+   "்.⟨eow⟩": {"probe": "1். a", "raw": 11, "kind": "digit_eow"}
   },
   "whitespace": {
    "\t": {"probe": "1\t1", "raw": 11, "kind": "digit_mid"},

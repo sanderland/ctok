@@ -70,7 +70,7 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam then
     # deletes the space — count-identical to the older `् ⟨bow⟩` spelling here, which is why the
     # word side could never decide between them. The digit side can: `ກ່ 5` costs one more than the
-    # unmarked spelling charges. See `normalize._runs` / the `_KILLER` branch of `stream_plan`.
+    # unmarked spelling charges. See `normalize._runs` / the `_KILLER` branch of `stream_norm`.
     assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩"
     assert marked_stream("्", version) == "⟨bow⟩्"
 
@@ -149,14 +149,18 @@ def test_the_accent_spelling_does_not_depend_on_the_host():
 @pytest.mark.parametrize("version", [3.0, 4.7])
 def test_a_stray_mark_run_is_a_word(version: float):
     """An unattached mark run is a WORD — ⟨bow⟩ on the left, ⟨eow⟩ on the right against everything
-    except a letter, which it fuses with instead, the way a baseless Syriac vowel does. Its head
-    still uses the raw byte floor: the same codepoint is a piece inside a letter run, and here the
-    pretokenizer's letter alternative cannot claim it.
+    except a LETTER, which is not a next word but the rest of THIS one: the run writes no ⟨eow⟩,
+    the letter writes no ⟨bow⟩, and the two are one word, the way a baseless Syriac vowel or U+0CF3
+    already fuse.
 
     The ⟨eow⟩ was previously written only against a space, which read one under everywhere else —
-    `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run. The
-    The letter after it still writes its own ⟨bow⟩: 38 `<mark>ꝛ` rows read one under without it,
-    and they are the only rows in the probe grid where the two spellings differ.
+    `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run.
+
+    The fusion is measured on the frame that cancels the mark's own price, where the two spellings
+    differ ONLY by the word's ⟨bow⟩ (LIMITS §16): over 22 marks and six right-hand words the
+    severed spelling's error moves with the word — `x ͣabc x` = 14 one under on v3, `x ͣก x` = 13
+    one over — and the fused spelling's does not move at all. The mark's head is ordinary
+    vocabulary here, not a forced byte floor; that floor was standing in for the missing ⟨bow⟩.
     """
     overhead = _model(_family(version)).message_overhead
     rows = [
@@ -165,11 +169,15 @@ def test_a_stray_mark_run_is_a_word(version: float):
         ("x \u0363 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
         ("x \u03635 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩5 ⟨bow⟩x⟨eow⟩", 8),
         ("x \u0363", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩", 5),
-        # No ⟨eow⟩ before a letter, but the letter opens its own word.
-        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨bow⟩x⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣ⟨bow⟩a⟨eow⟩", 5),
-        ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
+        # A letter after it is the same word: no ⟨eow⟩, and no ⟨bow⟩ of its own.
+        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣx⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+        ("x \u0363abc x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣabc⟨eow⟩⟨bow⟩x⟨eow⟩", 7),
+        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣa⟨eow⟩", 5),
+        ("\u0363\ua75b", "⟨bow⟩ͣꝛ⟨eow⟩", 7),
+        # The span head is the mark, so neither case marker can assert what it asserts: literal.
+        ("x \u0363\u0e01 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣก⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
         # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
+        ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
         ("\u0302", "⟨bow⟩̂", 3),
         ("\u0302\u0302", "⟨bow⟩̂̂", 5),
         ("\u0363\u0302", "⟨bow⟩ͣ⟨eow⟩̂", 6),
@@ -178,12 +186,18 @@ def test_a_stray_mark_run_is_a_word(version: float):
     for text, stream, content in rows:
         assert marked_stream(text, version) == stream
         assert token_count(text, version) - overhead == content
+    # ⟨shift⟩ and ⟨caps⟩ both go: `x ͣThe x` reads one over with ⟨shift⟩ written, and v3's
+    # `x ͣHELLO x` = 17 reads two under with ⟨caps⟩.
+    assert marked_stream("x \u0363The x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣThe⟨eow⟩⟨bow⟩x⟨eow⟩"
+    assert marked_stream("x \u0363HELLO x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣHELLO⟨eow⟩⟨bow⟩x⟨eow⟩"
+    assert token_count("x \u0363The x", version) - overhead == (6 if version == 3.0 else 7)
+    assert token_count("x \u0363HELLO x", version) - overhead == (10 if version == 3.0 else 9)
 
 
 @pytest.mark.parametrize("version", [3.0, 4.7])
 def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: float):
     """A non-killer stray mark opens its own run after punctuation. A killer shares the
-    punctuation run's opening boundary. Both heads still use the byte floor."""
+    punctuation run's opening boundary."""
     overhead = _model(_family(version)).message_overhead
     assert marked_stream("!\u0302", version) == "⟨bow⟩!̂"
     assert marked_stream("!\u0363", version) == "⟨bow⟩!⟨bow⟩ͣ⟨eow⟩"
@@ -381,7 +395,7 @@ def test_v5_tracks_v4_7_document_for_document(corpus_name):
     Note what this deliberately does NOT assert: that the two counts differ by a constant. They do
     not — the offset is 5 on most documents and 6 where one opens with punctuation, because v5's
     frame ends in no ⟨bow⟩ and the opening run has nothing to absorb. Predicting which is which
-    would mean restating `normalize.stream_plan`'s head rule inside a test, and a test that
+    would mean restating `normalize.stream_norm`'s head rule inside a test, and a test that
     reimplements the thing it checks cannot fail for the right reason. The frame rules themselves
     are pinned on constructed strings above.
     """

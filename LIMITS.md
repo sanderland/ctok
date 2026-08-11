@@ -143,6 +143,14 @@ with the seven      over-charge 10,200   under-count 12,253   total |err| 22,453
 They remove 7,528 tokens of over-charge and introduce 8,469 tokens of under-count. Every one is
 individually well-witnessed and the batch is a net loss. They were discarded.
 
+**Five of the seven came back on 2026-08-10 (§17.4), and the reading above is what has to be
+corrected.** `ัง` `ัน` `ับ` `ัก` `ือ` are real pieces and always were; what was false was the model
+they were applied to, which was writing thousands of tokens of boundary marker in the wrong places
+(§§7, 14, 15). Courted one at a time against real Thai words, each repairs dozens of distinct words
+and pushes NONE below its recorded count. **The instrument lesson survives the retraction intact,
+and is in fact sharpened by it: a batch hides its own failures, and the only thing wrong with this
+measurement was that it judged seven candidates as one.**
+
 The obvious reading is that the scaffold is at fault: `.ヲXヲ.` supplies a katakana anchor that
 becomes the cluster's base, and Thai does not put it there. So the campaign was re-run with the
 scaffold removed entirely.
@@ -1144,24 +1152,18 @@ one place this campaign did break something (14.4).
   pass folded in the forty marks whose grids the cache already held, and U+0C03 was never a killer
   at all.
 
-* **Three marks are over-priced at a stray run head, by a constant.** U+05B0 and the Lao U+0EB9 by
-  one, U+064B by two, in all five frames `x M x` / `x M5 x` / `M` / `x M` / `x Mx x`. A constant
-  across frames is a head PRICE, not a marker — our raw byte floor charges two bytes where the
-  oracle reaches them in fewer tokens. Twelve other marks in the same grid are exact in all five.
-  §12.3 predicted this: "a marker rule cannot split two stray marks that way; a piece can."
+* ~~**Three marks are over-priced at a stray run head, by a constant.**~~ **Closed by §16**: the
+  constant was the forced raw-byte floor, and the floor was standing in for the missing word
+  boundary beside it. §12.3's prediction — "a marker rule cannot split two stray marks that way; a
+  piece can" — was right that it is a piece question, and the piece was one the mark already had.
 * ~~**§12.2's dotted İ is unchanged.**~~ **Closed by §15.3**: the words are title-case, and İ is
   transparent to the no-other-capitals test.
 * ~~**A Syriac dot with a rider is one under.**~~ **Closed by §15.4**: the absorb clause predated
   §14 and is gone.
-* **A word after a stray-mark run is one over on some hosts and one under on others**, and no
-  spelling of that boundary gets both. This is now the ONLY under-counting shape in the whole
-  cache, one row per family: `x ͣabc x` = 14 reads one under on v3 (exact on v4.7) and
-  `x ͣthe x` = 18 one under on v4.7 (exact on v3), while `x ͣก x` and `x ͣب x` = 13 / 17 read one
-  OVER with the word's ⟨bow⟩ written and `x ͣx x` `!ͣa` are exact under both spellings. The fused
-  spelling swaps which rows are wrong rather than fixing them — on v4.7 it prices `x ͣthe x` right
-  at 18 and breaks `x ͣabc x`, and on v3 exactly the reverse — at the cost of the 38 `<mark>ꝛ`
-  rows of §14.4. Two texts, two probes, and no single boundary spelling reaches both: listed, not
-  fitted.
+* ~~**A word after a stray-mark run is one over on some hosts and one under on others**, and no
+  spelling of that boundary gets both.~~ **Closed by §16**: there was a third spelling, and the
+  reason the first two both failed is that the mark's own price was wrong at the same time. The
+  word after a baseless mark is not a next word at all — it is the rest of THAT word.
 * **`x िी x` = 11 on v3 and 15 on v4.7.** §12.1 listed it as an exact control; it is exact on v4.7
   and one OVER on v3, and always was. Two adjacent Devanagari vowel signs with no consonant, which
   is not a shape the corpora contain.
@@ -1227,7 +1229,8 @@ re-scanned since §14.7 landed, so its stale 489 was never the number — were *
 112 texts on v3** and **359 in 306 on v4.7**. Every group in both lists is now either fixed with a
 measured rule or listed with the probe that fails to decide it, and after the campaign the whole
 of both caches under-counts by **one token in one text per family**, the same recorded shape on
-each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on v4.7).
+each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on v4.7). **§16 closed
+that last row too, so the number below is now zero on both sides.**
 
 ### 15.1 The inventory, both families
 
@@ -1242,7 +1245,7 @@ each side (§14.6's stray-mark word boundary: `x ͣabc x` on v3, `x ͣthe x` on 
 | Greek all-caps final sigma | 2 | — | fixed — oracle lowers Σ→σ without Final_Sigma |
 | `⁉️` (VS16 in a punct body) | — | 1 | fixed — selector rides its base in `_is_punct_text` |
 | emoji ⟨bow⟩ loss after format chars | — | 1 | fixed — astral is not punct KIND; mixed runs borderable |
-| stray-mark word boundary (§14.6) | 1 | 1 | **listed** — no spelling reaches both rows |
+| stray-mark word boundary (§14.6) | 1 | 1 | listed then **fixed — §16**, the mark and the letter are one word |
 
 The counts sum to each family's list (the Shona/Japanese document and the Devanagari `परिएाजनाÓ`
 row are inside the caseless-⟨caps⟩ 36; the Sorani document carried both of the last two v4.7
@@ -1358,3 +1361,484 @@ instrument.
 The held-out gates, read once at the end, moved the way they should: UDHR **338 → 340** exact on
 v3 (mass 0.187%) and **472 → 474** on v4.7 and v5 (0.058%); Rosetta 1741/1741 in all three
 families, the 250-document holdout 250/250, MultiPL-E 22/22; 219 tests pass.
+
+## 16. The last under-count: a baseless mark and the letter after it are ONE word
+
+**Measured 2026-08-10.** The whole cache under-counted by exactly one token in one text per family
+when this campaign opened — `x ͣabc x` = 14 on v3 and `x ͣthe x` = 18 on v4.7, both the U+0363
+shape §14.6 filed as undecidable. It is decidable. Both families now under-count **zero tokens in
+zero texts** over 505,886 v3 and 1,009,746 v4.7 cached texts, and the same change removes 462 v3
+and 4,581 v4.7 tokens of over-count.
+
+### 16.1 Why the two candidate spellings both failed, and what the third one is
+
+§14.6 tried the word's ⟨bow⟩ written (severed) and dropped (fused) and found each right where the
+other was wrong. That is the signature of TWO errors, not one, and they were on opposite sides of
+the same seam: the boundary was wrong, and the mark's own head price was wrong with it.
+
+The word after an unattached mark run is not a next word. It is the rest of THAT word:
+
+```
+severed   ⟨bow⟩M            ⟨bow⟩abc⟨eow⟩
+fused     ⟨bow⟩M abc⟨eow⟩                      one word, and the mark is its head
+```
+
+which is what a baseless Syriac vowel (§7's `_syriac_vowel`), the Telugu visarga and the Kannada
+U+0CF3 (§15.2) were each measured to do already, one script at a time.
+
+### 16.2 The frame that cancels the mark's own price
+
+The two spellings differ by the word's ⟨bow⟩ and by nothing else, so the mark's price — whatever
+it is, wrong or right — appears identically on both sides. Vary the right-hand word instead: the
+severed prediction moves with `cost(⟨bow⟩W⟨eow⟩) − cost(W⟨eow⟩)`, which is a vocabulary accident
+of W, and the fused prediction cannot move at all. **A spread across W refutes; a constant is
+consistent, and the constant is the mark's own price.**
+
+```
+ours − oracle, `x ͣW x` and `!ͣW x`, v3 / v4.7
+
+W            x       abc      the       ก       ꝛ       ся
+severed     0/0     -1/0     0/-1     +1/+1   +1/+1   +1/+1
+fused       0/0      0/0      0/0      0/0     0/0     0/0
+```
+
+22 marks — the combining Latin and Cyrillic letters (U+0363, U+036F, U+1ABF, U+1ACC, U+1DD3,
+U+2DE0, U+2DED, U+A674, U+A69E), U+0345, the Hebrew points, the Arabic harakat, superscript alef
+and small-high annotations, Samaritan, Thaana, Tibetan, Thai and Buginese — each on those six
+words in two frames, both families, 528 oracle rows. **Every mark reads a spread under the severed
+spelling and a constant under the fused one. Not one reads it the other way round.** `x ͣabc x`
+and `x ͣthe x` are two cells of that table, and §14.6's `x ͣก x` `x ͣب x` over-counts are two more.
+
+The 38 `<mark>ꝛ` rows §14.4 cited against dropping the letter's ⟨bow⟩ do not bear on this. Of the
+2,435 cached `<mark>ꝛ` rows exactly 243 are stray-mark runs; the five marks §14.4 names — U+1BE6,
+U+2CEF, U+302A, U+3099, U+A8E0 — became `SEPARATOR_ANNOTATIONS` in §15's fifth pass and are killer
+runs now, and every astral mark is HARD and takes no word model at all. The evidence that once
+refused this spelling had left the population before this campaign began.
+
+### 16.3 The head price was the other half, and it was the floor
+
+`stream_plan` forced the first mark of a stray run through the RAW byte floor — the byte-prefix
+vocabulary with whole-character pieces deliberately left out — on the reading that "the same
+codepoint is a piece inside a letter run, but here the pretokenizer's letter alternative cannot
+claim it". With the word's ⟨bow⟩ wrongly written, every mark that owns a unit piece read one under,
+and that floor cancelled it. Separate the two and the floor is a pure over-charge on exactly those
+marks:
+
+```
+ours − oracle with the floor / without it, nine frames each
+(`x Mabc x` `!Mabc x` `x Mthe x` `x M x` `x M` `!M` `x M5 x` `x Mꝛ x` `Mabc x`)
+
+U+064F  U+0E38  U+05B0     +1 / 0  in all nine, both families
+U+0F72  U+064B             +1 or +2 / 0  (the +2 frames are the ones with no letter after)
+U+0363  U+05B1  U+2DE0  U+0670  U+0EB8      0 / 0  — unmoved either way
+```
+
+That closes §14.6's "three marks are over-priced at a stray run head, by a constant" without a
+piece being mined: the piece was one the mark already had and the encoder was refusing it. The
+forced-floor mechanism had no other caller, so `_FLOOR_G`, `stream_plan`'s second return value and
+the floor branches of `engine.tile` and `witness` are gone with it; `raw_bytes` survives for the
+contextual dotted İ, which is the same idea in the one place it is still measured.
+
+### 16.4 A fused span takes no case marker
+
+A case marker fires on a WHOLE span, and this span's head is the mark, which is neither an
+uppercase letter (⟨shift⟩ asserts a lowered first letter) nor a case at all. Literal, then —
+measured on 57 rows per family over three marks:
+
+* **⟨shift⟩ kept reads +1**: `x ͣThe x` = 13/18, `x ͣJohn x` = 14/19, `x ͣHello x` = 14/18,
+  `x ͣXyz x`, and `ͣThe x` `!ͣThe x` `x ͣThe` `x ͣͣThe x` at every other position.
+* **⟨caps⟩ kept reads −2 to −5** where v3 has ⟨caps⟩ at all: `x ͣHELLO x` = 17, `x ͣЖЖЖЖ x` = 21,
+  `x ͣЖЖЖЖЖ x` = 23, `x ͣHELLOX x` = 18.
+* **Literal is exact on all 57 in both families**, including `x ͣABCD x` `x ͣPARIS x` `x ͣabcd x`
+  `x ͣАбв x` where the spellings coincide and settle nothing, and the unfused controls
+  `x The x` `x Abc x` are untouched.
+
+It is the İ head rule of §15.3 generalized, and it arrives from the other direction: ⟨shift⟩ blocks
+at the span head because the head cannot supply a lowered first letter, whoever the head is.
+
+### 16.5 What it cost, over every text that could move
+
+Only a text holding a BMP non-killer combining mark can change, which is 47,140 of the cached rows.
+Priced both ways, before and after:
+
+| | rows | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 9,725 | 8,118 | 14,347 in 1,534 rows | 103 in 73 rows |
+| v3, after | 9,725 | **8,504** | **13,885 in 1,221** | **0** |
+| v4.7, before | 37,415 | 27,162 | 40,925 in 10,191 rows | 71 in 62 rows |
+| v4.7, after | 37,415 | **30,065** | **36,344 in 7,350** | **0** |
+
+**No row in either family got worse, and none that was exact stopped being exact.** Over-count
+fell with under-count again — 462 tokens on v3 and 4,581 on v4.7 — which is the §14 signature of a
+misplaced boundary rather than a missing piece, twice over: once for the ⟨bow⟩ and once for the
+floor it was hiding behind. The under rows are larger than §15's residue of one because ~900 probes
+bought during this campaign are in the denominator; every one of them was under-counting by the old
+model too, which is the check that separates "a probe we had not bought" from "a row we broke".
+
+The whole-cache scans, the numbers this campaign is judged on:
+
+| | texts | under before | under after |
+|---|---:|---:|---:|
+| v3 | 505,886 | 1 token in 1 text | **0 in 0** |
+| v4.7 | 1,009,746 | 1 token in 1 text | **0 in 0** |
+
+The held-out gates, read once at the end: UDHR **346 exact on v3, unmoved** (mass 0.096%) and
+**474 → 475 on v4.7 and v5** (0.058%); Rosetta 1741/1741 in both families, the 250-document
+holdout 250/250, MultiPL-E 22/22; witness coverage 100% in both vocabularies with no piece added or
+removed; 219 tests pass.
+
+### 16.6 What this does not close
+
+* **`x िी x` = 11 on v3** (§14.6) is untouched: two Devanagari vowel signs with no consonant, one
+  OVER on v3 and always was.
+* The over-count that remains in the affected population — 13,885 tokens on v3 and 36,344 on v4.7
+  — is overwhelmingly ordinary vocabulary coverage in texts that merely contain a mark somewhere,
+  not a boundary question. Nothing in it under-counts, which is the property that matters: the
+  model no longer believes anything is cheaper than it is.
+
+## 17. An astral run takes no border marker — and the last five UDHR documents were two things
+
+**Measured 2026-08-10.** Five documents read over 1% in *both* families and nowhere else did:
+Thai (+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88% in
+both) and Chakma (+1.54% in both). They are now **exact in both families**, and no document in
+either is over 1% any more.
+
+The identical-in-both-families half of that list was the tell, and the brief that opened this
+campaign said so before any probe was bought: v3 carries 48,225 pieces and v4.7 15,147, so a
+residual the two share to the token is not vocabulary. It was two structural facts and eleven
+ordinary word pieces, and the two halves were found by different instruments.
+
+### 17.1 The astral law, and the two branches that were missing it
+
+`_marks_like_punct` and `_is_symbol_text` have excluded ASTRAL characters since the emoji work of
+§15.4 — an emoji takes no border marker. The digit branch and the terminal-separator branch never
+got the same clause, and each was writing markers the oracle does not write.
+
+Two exhaustive sweeps, not samples, in both families:
+
+```
+30 astral terminal separators, EVERY one Unicode has
+   x aK 5   5 Ka x   x aK x   5 K 5   x aKb x
+     +1       +1        0       +2       0        Kharoshthi, Brahmi ×3, Kaithi, Chakma ×2,
+                                                  Sharada, Khojki, Khudawadi, Grantha, Newa,
+                                                  Tirhuta, Siddham, Modi, Takri, Ahom, Dogra,
+                                                  Dives Akuru ×2, Nandinagari, Zanabazar ×2,
+                                                  Soyombo, Bhaiksuki, Masaram ×2, Gunjala, Kawi ×2
+
+72 astral border digits, one or two from each of the 56 astral number blocks
+   x D 5    文 D 文    x D x    5 D 5
+     +1       +2         0       +2
+```
+
+Not one character and not one family dissents, and the deviation is exactly the number of markers
+the frame makes visible: `x aK x` and `x D x` read 0 because the seam deletes both against the
+padding's words, which is why every earlier Latin-framed probe of these characters was silent.
+
+**The BMP controls are what make it an astral rule rather than a change to killers or digits.**
+`่` `်` `្` `्` `்` `́` `ٰ` `݀` read 0 in all thirteen killer frames in both families, and every
+row of `_digit_eow`'s BMP grid is unmoved.
+
+It is per BORDER CHARACTER, the same way every other rule in `normalize.py` is — a MIXED run keeps
+the marker on the side whose own character is BMP:
+
+```
+x a𑄴่ 5   exact WITH the ⟨eow⟩ (NFC orders the astral first, the Thai mai ek last)
+x 𑄶５ 5    exact WITH the ⟨eow⟩
+5 𑄴่a x   one over — the ⟨bow⟩ sits on the astral side
+x ５𑄶 5    one over — the ⟨eow⟩ sits on the astral side
+```
+
+One clause had to move with it, and the row that names it is `𑄴a`: the `has_own_bow` head test
+counted a `_KILLER` first run as supplying the frame's ⟨bow⟩. A run that no longer writes one
+cannot, and `𑄴a` `𑄴 a` `𑄴 5` and `𑄴` alone each read one UNDER until that was fixed —
+the astral digit rows were already right, because `_digit_bow` had gone False for them in the same
+change. `_takes_right_border` takes the same qualification, so the contraction seam still sees the
+population it was measured on.
+
+The re-scan is 1,007 probes per family — 30 astral killers and 8 BMP controls × 13 frames, plus 57
+astral number blocks × 9 — and reads **0 wrong in both families**.
+
+### 17.2 Chakma was ONLY that, and the sweep that established it
+
+Chakma has no Goldfish config, no FineWeb-2 config, no Glot500 config and no open FLORES; the
+`ccp-Latn` in GlotCC is the Latin orthography. So there was no corpus to mine and the question had
+to be settled on the script's own material:
+
+* **every letter × mark pair, 722 probes** (38 letters × 19 vowel signs and marks) — 0 wrong, so
+  the oracle holds no Chakma bigram either;
+* **181 single codepoints** of Thai, Myanmar and Chakma that neither vocabulary has, on the `char`
+  template `a{}a` — **none reads cost 1** in either family, which is also what refuses `ฉ`, the
+  single Thai letter the fitness enumerator scored on 62 rows;
+* random 3-to-4-syllable words, conjuncts, digits, dandas and multi-word phrases — every failure
+  reduced to a word-final `𑄴`/`𑄳` before a space and a run that opens no word, which is 17.1.
+
+Chakma UDHR went +512 → 0 in both families on the astral law alone. **A script with no corpus is
+not a script with no answer**, and the reverse of §9's lesson: there the missing corpus did not
+matter because the defect was structural, and here it did not either.
+
+### 17.3 Myanmar: one piece, on the template §7 predicted would find it
+
+§7 left an open half: "the five killers with a fused `K⟨eow⟩` piece in the real vocabulary — Tamil,
+Sinhala, Malayalam, Devanagari, Bengali nukta — now pay for a marker we cannot spell", and
+predicted Thai, Khmer and Myanmar had none. Myanmar has one, and it is the asat:
+
+```
+digit_eow, `1{} a`, cost = raw - base + 1 - 3        v3      v4.7
+  U+103A MYANMAR SIGN ASAT                            1        1     <- the piece
+  U+1039 virama · U+1037 dot below                    2        2
+  U+0E48 U+0E49 U+0E4C Thai · U+17D2 U+17CB Khmer     2        2
+  U+1036 anusvara · U+0E4A U+0E4B · U+17C6 U+17C7     3        3
+```
+
+Thirteen same-template controls at cost 2 or 3, and `း⟨eow⟩` (U+1038 visarga), which both files
+already ship, reads 1 beside it. The corpus court is `x {} x` around real words — the `raw`
+template cannot reach the piece at all, because the message end is not a space and the encoder
+writes no ⟨eow⟩ there:
+
+```
+600 distinct Burmese words (Goldfish mya_mymr)   600 repaired, 0 pushed below, 0 already exact
+300 distinct Shan words    (Goldfish shn_mymr)   300 repaired, 0 pushed below, 0 already exact
+```
+
+in both families. With it, `mine_own2.py` proposes nothing at all on 2,500 Myanmar wordy runs in
+either family: Myanmar words were one piece away from complete.
+
+### 17.4 Thai was a cross-port, and both directions were already on disk
+
+v3 and v4.7 each held Thai pieces the other lacked, and each family's missing set is exactly what
+its own probe buys:
+
+```
+into v4.7   ัก  ัง  ัน  ับ  ือ                 mid,  .ヲXヲ. = 20, cost 1
+into v3     ที⟨eow⟩ ั⟨eow⟩ ี⟨eow⟩ ื⟨eow⟩ ู⟨eow⟩  eow,  .ヲX.  = 13, cost 1
+            ีย                                  mid,  .ヲXヲ. = 16, cost 1
+```
+
+Five of those `mid` pieces are five of §1's seven — the batch that removed 7,528 tokens of
+over-charge and introduced 8,469 of under-count on 2026-08-07, and was discarded. **They are not
+false pieces and never were.** What was false was the model they were applied to: the akshara,
+border-marker, accent and boundary work of §§7, 14 and 15 has since moved thousands of tokens
+under them. Judged one at a time against real Thai in a frame, each repairs dozens of distinct
+words and pushes **none** below its recorded count:
+
+```
+ัน  189 words repaired / 0 below      ั⟨eow⟩  42 / 0      ี⟨eow⟩  68 / 0
+ือ   47 / 0     ับ  31 / 0     ัง  23 / 0     ัก  12 / 0
+ื⟨eow⟩  36 / 0   ู⟨eow⟩  46 / 0   ที⟨eow⟩  15 / 0   ีย  23 / 0
+```
+
+**That refusal is the whole difference between this campaign and §1's**, and it is why §1's
+correction insisted on it: a batch hides its own failures, and the seven were judged as a batch.
+
+The independent check is that a miner with no knowledge of the cross-port re-derives it.
+`mine_own2.py` — propose every bounded span of an over-charging run's marked stream, decide it on
+its own fixed template, then court it alone — was run over 2,500 wordy runs of Goldfish Thai plus
+FineWeb-2 Thai and returned **exactly those five on v4.7 and exactly those six on v3**, closing
+every host in one round and probing 400 candidates to do it. What it refused is the useful half:
+`อ⟨eow⟩` `ือ⟨eow⟩` `คือ` `หรือ` `⟨bow⟩คือ⟨eow⟩` `่⟨eow⟩` `้⟨eow⟩` `ที` `นี` `ปี` `ฉ` `ฉัน` `คุณ`
+all price at 2 to 4 tokens on their own templates. `อ⟨eow⟩` is the candidate §1 named and killed on
+`กอ`; its own probe kills it too.
+
+### 17.5 What it cost, measured before and after on everything
+
+Row level, against recorded counts, on the corpora the campaign drew from and on two it did not
+(Shan, and a FineWeb-2 Mon slice that is mostly legacy-encoded Burmese):
+
+| | v3 exact | v3 over | v4.7 exact | v4.7 over |
+|---|---|---:|---|---:|
+| `tha_thai` 1,000 Goldfish rows | 523 → **1,000** | 919 → 0 | 472 → **1,000** | 781 → 0 |
+| FineWeb-2 Thai, 1,000 rows | 347 → **994** | 4,453 → 7 | 426 → **999** | 2,382 → 2 |
+| `mya_mymr` 1,000 rows | 512 → **998** | 1,733 → 2 | 512 → **998** | 1,733 → 2 |
+| `shn_mymr` 1,000 rows | 471 → **998** | 973 → 2 | 473 → **999** | 971 → 1 |
+| FineWeb-2 `mnw_Mymr`, 600 rows | 71 → **597** | 4,591 → 3 | 71 → **597** | 4,591 → 3 |
+
+Under-count is 0 before and after on every one of those rows. The differential over the whole
+measurement cache — every text holding a Thai or Myanmar character, an astral killer or an astral
+number, tiled twice, once against the tree at HEAD and once against this one:
+
+```
+v4.7   79,919 texts   exact 61,674 -> 79,787   over 51,585 -> 210   under 0 -> 0
+v3     35,369 texts   exact 29,927 -> 35,267   over 22,536 -> 144   under 0 -> 0
+       rows broken 0        rows repaired 18,113 (v4.7) and 5,340 (v3)
+```
+
+**Over-count falls with under-count held at zero and not one row broken**, which is the §14
+signature of a boundary in the wrong place plus the §13 signature of missing vocabulary, in the
+same campaign.
+
+The whole-cache under scan afterwards reads 71 tokens in 62 texts on v4.7 and 103 in 73 on v3 —
+**every one of them under-counts identically on the tree at HEAD, and not one holds a character
+this campaign touched.** They are `x ͣÉcole x`-shaped stray-mark probes bought into the shared
+measurement cache by a concurrent campaign on §14.6's open boundary, not a regression here. That
+check — re-price every under row against the OLD model — is §14.5's, and it is the only thing that
+separates "a probe we had not bought" from "a row we broke" when two campaigns share one cache.
+
+The held-out gates, read once at the end: UDHR **346 → 353** exact on v3 (mass 0.0959% →
+0.0284%) and **474 → 481** on v4.7 and v5 (0.0577% → **0.0067%**), with the 1–5% band going
+**5 → 0** in both families and no document under-counting in either; Rosetta 1741/1741, the
+250-document holdout 250/250 and MultiPL-E 22/22 unmoved; 219 tests pass.
+
+### 17.6 What is left, and one instrument note
+
+The worst document in each family is now Tamil at +0.75%, in both — a script this campaign did not
+touch and the largest remaining pool in the corpus. **Closed by §18**, on two pieces — and the
+identical-in-both-families reasoning that opened *this* campaign does not carry over to that one:
+18.1 says why it was no evidence at all there. On v3 nine Latin-script documents sit between
++0.4% and +0.92% (Oromo, Sango, Yanomamö, Catalan, Turkmen, North Saami, Sidamo, Azerbaijani),
+which is ordinary v3 word vocabulary. Three Myanmar rows and seven Thai ones still over-charge by
+a token; each holds Myanmar digits or Latin material glued to the script, the mixed-span shape
+§13.7 records as needing a frame of its own.
+
+The instrument note is about the fitness enumerator, and it is §1's warning arriving in a new
+disguise. Asked for one-piece explanations of 138 over-charging Thai rows it returned 2,178
+candidates and ranked `ัน` first at 83 rows — correct — and `ฉ`, a single Thai letter, second at
+62. `ฉ` costs two tokens on the `char` template in both families. **A candidate's rank in a
+fitness enumeration carries no evidence at all**; it decides only which probe gets bought next.
+
+## 18. Tamil was two pieces, and the identical-in-both-families tell did not apply
+
+**Measured 2026-08-11.** §17.6 left Tamil the worst document in both families — +0.751% and
++0.750%, **+79 tokens in each** — and the largest remaining pool. Both documents now reproduce
+exactly, on two pieces: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop
+at a word-closing border.
+
+### 18.1 The tell that opened §17 does not transfer, and checking that was the first thing worth doing
+
+§17's brief reasoned that a residual identical across vocabularies of 48,232 and 15,153 pieces
+cannot be vocabulary, and it was right there. Repeated for Tamil it is **not an argument at all**,
+and one query says why:
+
+```
+Tamil-bearing pieces      v3 113     v4.7 97     shared 97     v4.7-only 0
+v3's extra 16 (அ இ உ எ ங சச டட நந னன பப மம யய ரர றற லல வவ) change no row of the 1,000
+```
+
+v4.7's Tamil vocabulary is a SUBSET of v3's and the difference is inert, so the two families were
+always going to read the same on Tamil under either hypothesis. All 1,000 Goldfish `tam_taml` rows
+carry an identical delta in the two families — which measures the vocabularies' overlap, not the
+tokenizer. **A cross-family tell is only evidence where the two vocabularies actually differ on the
+script in question**, and that is one cheap query to check before spending anything on it.
+
+### 18.2 What did decide it: localize first, and Tamil is the extreme case
+
+§0's method, run on the 484 over-charging Goldfish rows with every word of every hot row priced —
+§13.2's correction, no word cap:
+
+```
+over-charge 1,461 tokens     12,225 distinct words priced alone     wrong words 0     explained 0%
+```
+
+Not one word of Tamil is mispriced. Catalan was 98% inside words and Lombard 21%; Tamil is **0%**.
+So the answer to "vocabulary or structure" was neither of the two readings the brief offered: the
+over-charge is entirely at the joins, and it is still vocabulary — a piece that spans a word
+boundary and therefore cannot be found by any word miner.
+
+### 18.3 The site, found in situ
+
+`insitu_over.py` — delete a window from the real row, keep the half whose removal reduces the row's
+over-count, never build a new string (§7's two instrument notes) — put nine of the ten worst rows on
+a single character:
+
+```
+over 49  site '்'   …லை:நகரில[்], வடிகால…
+over 32  site '்'   …து. ஆனால[்], அந்த வ…
+over 28  site '்'   …ுதியாகும[்]. இந்த த…
+```
+
+The frame is one token over, and the seam is exactly the shape §1's 2026-08-08 correction named:
+
+```
+x ஆனால், அந்த x  +1      x ஆனால் அந்த x   0        x ஆனால் , அந்த x  0
+x ஆனால். அந்த x  +1      x நகரில்,வடிகால் x 0      x ஆனால், 5 x     +1
+x ஆனால்! அந்த x   0      x ஆனால்; அந்த x   0       x ஆனால்? அந்த x   0
+x ஆனால்: அந்த x   0      x ஆனால்) அந்த x   0       x ஆனால்- அந்த x   0
+```
+
+The stream is `⟨bow⟩ஆனால⟨eow⟩்,⟨eow⟩⟨bow⟩அந⟨eow⟩…`: the killer run takes punctuation's borders
+(§7), so the comma and the virama share one run. `்` and `,⟨eow⟩` are both pieces, so we spend two
+tokens where the oracle spends one, and `witness._fitness_candidates` names `்,⟨eow⟩` as the one
+candidate common to every comma probe.
+
+### 18.4 The instrument: `digit_eow` reaches it, and the ヲ grid does not
+
+§3 recorded that "no synthetic template can reach `்,⟨eow⟩`". That was true of the templates it
+tried. The piece's position is `eow`, and its own `eow` template `.ヲ{}.` puts a Tamil virama on a
+katakana base — §1's hazard — and in fact fails `witness.places` outright, because the message end
+writes no ⟨eow⟩ for the piece to end on. **`digit_eow`, `1{} a`, places it exactly**, and the
+reason it is not the ヲ hazard is checkable rather than argued: the stream span it prices,
+`்,⟨eow⟩`, is character-for-character the span the corpus writes, because the killer run never
+includes the letter before it. It is the template §7 predicted would find the fused killer pieces
+and the one §17.3 bought the Myanmar asat on.
+
+```
+digit_eow, `1{} a`, cost = raw - base + 1 - 3           v3   v4.7
+  ்,  ்.                                                 1     1     <- the two pieces
+  ்;  ்!  ்?  ்:  ்)  ்-  ்”  ்/  ்%  ்…  ்|  ்'          2-3   2-3   twelve controls
+```
+
+The corpus court is `x W, V x` cut out of running FineWeb-2 Tamil — the word before the seam and
+the word after it are the ones the text put there — one probe per DISTINCT left word:
+
+```
+்,⟨eow⟩   120 distinct words repaired / 0 already exact / 0 pushed below     both families
+்.⟨eow⟩   120 / 0 / 0                                                        both families
+்!  ்?  ்:  ்;  ்)      0 repaired / 40 already exact each                    v4.7
+```
+
+The control fires the right way round on both sides: the two pieces have something to explain on
+every row, and the five refused candidates have nothing to explain on any.
+
+### 18.5 It is Tamil's, not Brahmic
+
+Twenty killers — Devanagari, Bengali nukta and virama, Gurmukhi, Gujarati, Oriya, Tamil, Telugu,
+Kannada, Malayalam, Sinhala, Thai, Lao, Tibetan, Myanmar virama and asat, Khmer, Javanese,
+Balinese, Tagalog — crossed with comma and full stop, on `digit_eow`, in both families:
+**only Tamil's two read cost 1.** That independently reproduces §1's seam court, which swept the
+same grid on own-script probes and kept nothing outside Tamil, and it is what makes this ordinary
+missing vocabulary rather than a rule about killers.
+
+### 18.6 What it cost, over every text that could move
+
+A piece changes only a text whose STREAM holds its surface (§13.8), so the differential is that
+set, tiled twice:
+
+| | texts with the piece in their stream | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 4,513 | 0 | 15,708 | 0 |
+| v3, after | 4,513 | **4,511** | **3** | **0** |
+| v4.7, before | 5,252 | 0 | 17,104 | 0 |
+| v4.7, after | 5,252 | **5,251** | **2** | **0** |
+
+**Not one row was broken and not one row under-counts**, and "before exact 0" is the control at
+cache scale: of the 9,765 cached texts these pieces touch, not one already reproduced.
+
+Row level on the two corpora, against recorded counts:
+
+| | exact | over | under |
+|---|---|---:|---:|
+| `tam_taml` 1,000 Goldfish rows, v3 and v4.7 alike | 516 → **1,000** | 1,461 → **0** | 0 → 0 |
+| FineWeb-2 Tamil, 8,391 rows (v3) | 4,984 → **8,389** | 9,010 → **3** | 0 → 0 |
+| FineWeb-2 Tamil, 9,863 rows (v4.7) | 5,814 → **9,862** | 10,723 → **2** | 0 → 0 |
+
+The whole-cache under scan afterwards reads **0 tokens in 0 texts** on both families, over 514,216
+v3 and 1,010,303 v4.7 cached texts.
+
+### 18.7 The residue is two rows, and neither is Tamil
+
+Three tokens on v3 and two on v4.7 survive in the whole cache, in two documents:
+
+* a Tamil/Arabic row whose Arabic is unnormalized Quranic harakat (`َضِيَ اللَّهُ عَنْ`), +2 in both
+  families;
+* a Tamil row with Latin glued to the script — `volleyயும்`, `அ.தூக்கத்தில்லேயே` — the
+  mixed-script span §13.7 records as needing a frame of its own, +1 on v3.
+
+Neither is the seam and neither is a Tamil word: every Tamil word in both rows prices exactly.
+
+The held-out gates, read once at the end: UDHR **353 → 355** exact on v3 (mass 0.0284% →
+0.0228%, speakers-weighted 0.0065%) and **481 → 484** on v4.7 and v5 (0.0067% → **0.0019%**,
+speakers-weighted 0.0015%); **both Tamil documents go +79 → 0 in both families**; Rosetta
+1741/1741, the 250-document holdout 250/250 and MultiPL-E 22/22 unmoved; no document in either
+family under-counts and none is over 1%; 219 tests pass. The gate thresholds are unchanged and
+their comment now carries the re-measured reading — v4.7's mean sits a factor of ten under its
+bound, which is margin rather than a stale gate, and tightening it would fire on the next
+campaign's ordinary churn rather than on a regression.
