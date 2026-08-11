@@ -2666,13 +2666,55 @@ bodies, and they move in **both directions** — one under-count and two over-co
 That is §17.5's signature of a boundary in the wrong place rather than a fitted constant: a
 vocabulary error can only ever push one way.
 
-**The position clause is the thing not to invent.** All five spans put the mark at the head, so
-head-only and anywhere are the same model on this evidence — they move the identical five texts.
-The rule stays position-free because that is what the caseless LETTER already does, measured at
-the head (`அறிவியலNATIONAL`) and at the tail (`x BUTTア x`, `BODYの`); a mark-only position clause
-would be a special case with no reading behind it.
+**The position clause is the thing not to invent — and then to go and buy.** All five spans put the
+mark at the head, so head-only and anywhere-in-the-span are the same model on the corpus evidence:
+they move the identical five texts. That is exactly the shape §24.4 answers with probes.
 
-### 24.4 Suppress ⟨caps⟩ and fall through — returning the span literal is a second change
+### 24.4 The position grid, and why a corpus delta was never going to accept this
+
+A corpus delta chooses which candidate gets asked; it does not accept one. `scripts/caps_mark_grid.py`
+asks the membership question instead, on PROBES.md meta-rule 4 — **a span takes ⟨caps⟩ if and only
+if it costs exactly one more than its own lowered body**, since ⟨caps⟩ *is* the marker plus that
+body — with the span in fixed `x … x` padding so no reading sits against the message edge (§7).
+
+Five marks of combining class 0, from four scripts, each at the head, in the interior and at the
+tail of `BUTT` — the body the caseless-LETTER block was measured on, kept so the two grids read
+against each other. 41 probes per family, `mined/caps_mark_grid.jsonl.gz`:
+
+```
+v3                        caps  lower  step
+  x BUTT x                   5      4     1    <- control: ⟨caps⟩ fires
+  x းBUTT x     head         7      5     2       literal
+  x BUးTT x     interior     7      5     2       literal
+  x BUTTး x     tail         7      4     3       literal
+```
+
+U+1038, U+1036 (Myanmar), U+0E31 (Thai), U+0901 (Devanagari) and U+0981 (Bengali) give the same
+three steps, **15 cells and not one dissenter**: the mark's position does not matter and the
+⟨caps⟩ spelling is refused everywhere. That is the same answer the caseless LETTER gives at the
+head (`அறிவியலNATIONAL`) and at the tail (`x BUTTア x`, `BODYの`), and it is now a reading rather
+than a parity argument.
+
+The three corpus rows come back as membership too, which is what §24.3 could not give:
+
+```
+  x းUNDPA x = 7   x းundpa x = 5    step 2   ⟨caps⟩ predicts 6
+  x ႇSNDP x  = 8   x ႇsndp x  = 8    step 0   ⟨caps⟩ predicts 9
+  x းKIA x   = 5   x းkia x   = 5    step 0   ⟨caps⟩ predicts 6
+  x းRCSS x  = 6   x းrcss x  = 5    step 1   UNDECIDABLE — the coincidence cell, again
+```
+
+A ⟨caps⟩ spelling can never cost the *same* as its lowered body, so the two over-counting rows
+refute it outright. `းRCSS` reads step 1 and still settles nothing: its literal tiling
+`⟨bow⟩း` · `R` · `CS` · `S⟨eow⟩` happens to cost one more than `⟨bow⟩း` · `rc` · `ss⟨eow⟩`, which
+is the same coincidence at one level down. **The cell that looks like the cleanest confirmation in
+the grid is the one carrying no evidence.**
+
+Scored against the shipped tree and against the one it replaced: **the pre-block rule is wrong on
+18 of the 41 v3 rows, every one of them UNDER, and the shipped rule on 0.** v4.7 has no ⟨caps⟩ and
+reads 0 wrong under both, which is the null control — the change cannot touch it, and does not.
+
+### 24.5 Suppress ⟨caps⟩ and fall through — returning the span literal is a second change
 
 The first version of the block returned the span unmarked, which also drops ⟨shift⟩, and the
 full-store re-scan caught it before it shipped: two Indic rows carrying one Latin capital —
@@ -2681,7 +2723,7 @@ full-store re-scan caught it before it shipped: two Indic rows carrying one Lati
 `Gৰ`/`Gলৈকে` rows pin: a title-case head with a caseless tail keeps its marker. The block belongs
 to ⟨caps⟩ alone, as it always did; the change here is which characters count as caseless.
 
-### 24.5 What it cost, measured before and after on everything
+### 24.6 What it cost, measured before and after on everything
 
 Goldfish, all eight batches, both families:
 
@@ -2699,12 +2741,17 @@ v3     1,247,759 texts   exact 1,246,583 -> 1,246,588   over 1,035 -> 1,032   un
 v4.7   1,709,302 texts   unmoved
 ```
 
+Row for row rather than in totals: the two texts that vanish from the under list are the two this
+campaign was sent for, and **no text in either family becomes an under-count that was not one
+before**. The 82 probes bought afterwards for §24.4 are exact in both families, so the store's
+reading is unchanged by having asked.
+
 Held out and read once at the end, unmoved in both families: UDHR **393**/501 exact on v3 and
 **490**/501 on v4.7 and v5, no document over 1% and none under-counting; Rosetta 1,741/1,741, the
 250-document holdout 250/250, MultiPL-E 22/22, witness coverage 100% in both files, 223 tests pass.
 No piece was added or removed, so no witness changed.
 
-### 24.6 The residue, and what it is not
+### 24.7 The residue, and what it is not
 
 The store's remaining 139 v3 under-counting texts and 4 v4.7 ones are **not this population and
 not this campaign's**: they are Bamum and Vai letters (`ꛦ`–`ꛯ`, `꛲`, `꙾`) on the bare-char and
@@ -2714,9 +2761,14 @@ HEAD, none holds an uppercase letter beside a mark, and not one moved here — t
 separates "a probe someone else bought into the shared cache" from "a row we broke". They are a
 recorded lead for a campaign on the bare-character templates, not a residue of this one.
 
-One instrument note, and it is §5's. **There was no live oracle for this campaign** — the container
-had no API key — so nothing was bought and nothing new could be. That is survivable only because
-the question was already paid for: the localizer, the 70-substring grid inside the failing word, the
-267 and 525 rows that refute the two pieces, and the five spans that decide the spelling are all
-measurements the store already held. A campaign that had needed one probe it did not have would
-have had to stop and say so.
+One instrument note, and it is the reason §24.4 exists. **The first two thirds of this campaign ran
+with no live oracle** — the container had no API key — so the localizer, the 70-substring grid
+inside the failing word, the 267 and 525 rows that refute the two pieces, and the five spans that
+choose the spelling are all measurements the store already held. That is enough to *select* a
+candidate and it is not enough to *accept* one: acceptance is a membership probe, never a corpus
+delta, and an offline session cannot tell a candidate that explains nothing from one it merely
+could not ask about. The position clause is the case in point — it read as undecidable while
+offline, went out as the conservative generalization of the letter rule, and came back **measured**
+the moment a key existed, on 15 cells that agree with it and none that do not. Where a campaign
+cannot buy, the honest form is to name the probe it would have bought; the honest form is not to
+call the corpus delta an acceptance.

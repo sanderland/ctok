@@ -142,12 +142,31 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
         ၸုမ်းRCSS · ၸုမ်းNGO   both spellings agree — coincidence cells, no evidence either way
 
     Nothing else in either family moves: 5 texts move, all 5 to exact, 35,791 are untouched.
-    The block stays position-free because that is the rule the caseless LETTER already follows —
-    measured at the head (`அறிவியலNATIONAL`) and at the tail (`x BUTTア x`, `BODYの`) — and the
-    store holds no all-caps span with a mark anywhere but the head, so a position clause here
-    would be invented rather than measured. ⟨shift⟩ is untouched: the block suppresses ⟨caps⟩ and
-    falls through, and returning the span literal instead ALSO drops ⟨shift⟩ and reads two Indic
-    rows carrying one Latin capital (`Vಗಳನ್ನು`, `4G`) one under.
+
+    **The block is position-free, and that half was bought rather than assumed.** All five corpus
+    spans put the mark at the head, so they cannot tell "a mark anywhere" from "a mark at the
+    head". A grid of 41 probes per family settles it on the membership reading — a span takes
+    ⟨caps⟩ iff it costs exactly one more than its own lowered body — over five marks of combining
+    class 0 from four scripts, each at the head, in the interior and at the tail of `BUTT`, the
+    body the caseless-LETTER block was measured on:
+
+        x BUTT x  / x butt x        5 / 4   step 1   <- control: ⟨caps⟩ fires
+        x းBUTT x / x းbutt x       7 / 5   step 2   literal
+        x BUးTT x / x buးtt x       7 / 5   step 2   literal
+        x BUTTး x / x buttး x       7 / 4   step 3   literal
+
+    U+1038, U+1036, U+0E31, U+0901 and U+0981 read the same three steps, 15 cells with not one
+    dissenting: **the position of the mark does not matter and the ⟨caps⟩ spelling is refused
+    everywhere**, exactly as the caseless letter is at the head (`அறிவியலNATIONAL`) and at the tail
+    (`x BUTTア x`, `BODYの`). The corpus spans read as membership too: `x းUNDPA x` = 7 against
+    `x းundpa x` = 5, and `x ႇSNDP x` = `x ႇsndp x` = 8 — a ⟨caps⟩ spelling can never cost the
+    same as its lowered body, let alone two more. The pre-block rule is wrong on 18 of the 41 v3
+    rows and the shipped one on none; v4.7 has no ⟨caps⟩ and reads 0 wrong either way, which is
+    the null control.
+
+    ⟨shift⟩ is untouched: the block suppresses ⟨caps⟩ and falls through, and returning the span
+    literal instead ALSO drops ⟨shift⟩ and reads two Indic rows carrying one Latin capital
+    (`Vಗಳನ್ನು`, `4G`) one under.
 
     **İ is transparent to the title-case test and literal in its lowered body** (§12.2, closed
     2026-08-10). `Hnovunİ` IS a title-case span to the oracle: it takes ⟨shift⟩, and the İ — which
