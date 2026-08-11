@@ -672,11 +672,13 @@ unfalsifiable one row at a time — which is why the non-ASCII two-byte hosts ke
 cost of the tile rule is real and deliberate: tca/oaa/snn/ame moved from small unders (hidden
 errors) to larger overs (honest missing vocabulary), v4.7 443 → 442 exact and mean 0.094% → 0.105%.
 
-The dotted capital İ is the same shape (`engine._dotted_host_blocked`): its unit piece pays its
-two bytes where İ is word-final or followed by an ASCII lowercase letter AND the tile before it
-carries a marker and ends in an uppercase ASCII letter (`Bİ Dİ Kİ Lİ Rİ Sİ Tİ` = 15, `Dİs` = 15,
-`x Dİl x` = 17; controls `AİD` `BİR` `RPİ` `aİ` `x İİ x` `x DİREKTOR x` `xalqlarınİ` exact).
-One row stays UNEXPLAINED:
+The dotted capital İ first appeared to have the same shape: its unit piece seemed to pay its two
+bytes where İ was word-final or followed by an ASCII lowercase letter and the tile before it
+carried a marker and ended in an uppercase ASCII letter. Section 15.3 supersedes that reading. The
+named words are title-case spans with a literal İ, and the few all-caps shapes that still reached
+the tile rule refuted it. The rule was removed rather than retained as an exception.
+
+One row originally stayed unexplained:
 
 ```
 x novunİ x       17   İ prices 1 after the tile (un)
@@ -782,8 +784,8 @@ So the İ byte-prices when the word's FIRST tile is `⟨bow⟩` plus a single up
 every letter between it and the İ is lowercase; a second capital anywhere (`HHnovunİ`, `RPnovunİ`,
 `HNovunİ`), a lowercase head (`hnovunİ` `ünovunİ` `novunİ`), or a first tile that swallows more
 letters (`Novunİ` tiles `⟨bow⟩Nov`) all keep the piece at 1. That is a rule over a tile FIVE tiles
-away from the İ, which `engine._dotted_host_blocked` cannot express and which nothing else in the
-model needs, so it is not written on this evidence.
+away from the İ, which the then-current tile rule could not express and which nothing else in the
+model needed, so it was not written on this evidence.
 
 The obvious mechanism — the word is title-case, the oracle writes ⟨shift⟩ and İ lowercases to the
 two codepoints `i` + U+0307 — is **refuted**: `x Hnovuni̇ x` = 22 where `x Hnovunİ x` = 20, and
@@ -1437,8 +1439,8 @@ U+0363  U+05B1  U+2DE0  U+0670  U+0EB8      0 / 0  — unmoved either way
 That closes §14.6's "three marks are over-priced at a stray run head, by a constant" without a
 piece being mined: the piece was one the mark already had and the encoder was refusing it. The
 forced-floor mechanism had no other caller, so `_FLOOR_G`, `stream_plan`'s second return value and
-the floor branches of `engine.tile` and `witness` are gone with it; `raw_bytes` survives for the
-contextual dotted İ, which is the same idea in the one place it is still measured.
+the floor branches of `engine.tile` and `witness` are gone with it. The later removal of the
+superseded dotted-İ rule also removed the second byte floor it had kept alive.
 
 ### 16.4 A fused span takes no case marker
 

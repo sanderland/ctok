@@ -1,8 +1,9 @@
-"""The min-cost tiling: one DP, applied at two scales.
+"""The min-cost tiling, with the marked-stream vocabulary indexed by a reverse trie.
 
-    min_tile        the segmentation DP itself — knows nothing about text, markers or Claude
-    ByteFloor       that DP over a codepoint's UTF-8 bytes, for characters no piece covers
-    tile            that DP over the marked stream, for the count
+    min_tile        generic segmentation DP for tiny byte strings
+    min_vocab_tile  the same recurrence, visiting only vocabulary edges through the trie
+    ByteFloor       byte tiling for characters no piece covers
+    tile            marked-stream tiling for the count
 
 The marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs needs no rule:
 it tiles as itself. That is what a boundary "junction charge" always was. The count is the number of
@@ -11,7 +12,7 @@ tiles.
 
 from __future__ import annotations
 
-from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
+from .constants import EOW_G, MARKER_GLYPHS
 from .normalize import nfc, stream_norm, stripped_head
 from .notation import parse_marked
 
@@ -20,7 +21,8 @@ def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]
     """Min-cost tiling of ``[0, n)``. ``cost_fn(j, i)`` gives the cost of segment ``[j, i)``, or
     ``None`` if it is not a piece. Returns ``(total_cost, spans)`` with the chosen ``(j, i)`` in
     order. Callers guarantee a tiling exists by supplying a length-1 floor. Ties break on strict
-    ``<``, i.e. towards the leftmost/shortest final segment, which makes the result deterministic."""
+    ``<``, towards the leftmost start and therefore the longest final segment, which makes the
+    result deterministic."""
     INF = float("inf")
     best = [0.0] + [INF] * n
     par = [0] * (n + 1)
@@ -36,6 +38,75 @@ def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]
         spans.append((j, i))
         i = j
     return best[n], spans[::-1]
+
+
+class ReverseTrie:
+    """Vocabulary index for the stream DP.
+
+    The DP ends a tile at each stream position, so storing pieces backwards lets it stop as soon as
+    the preceding characters cease to match any piece. ``starts`` returns shortest matches first;
+    the DP reverses that small list to retain ``min_tile``'s existing longest-final-piece tie order.
+    """
+
+    _END = None
+
+    def __init__(self, pieces) -> None:
+        self.root = {}
+        for piece in pieces:
+            node = self.root
+            for ch in reversed(piece):
+                node = node.setdefault(ch, {})
+            node[self._END] = None
+
+    def starts(self, text: str, end: int) -> list[int]:
+        """Starts of vocabulary pieces ending at ``end``, shortest piece first."""
+        node = self.root
+        found = []
+        for start in range(end - 1, -1, -1):
+            node = node.get(text[start])
+            if node is None:
+                break
+            if self._END in node:
+                found.append(start)
+        return found
+
+
+def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[float, list[tuple[int, int]]]:
+    """Min-cost tiling over a cost-1 vocabulary plus a guaranteed one-character floor.
+
+    This is the marked stream's specialized form of :func:`min_tile`. The generic DP asks about
+    every substring up to the longest vocabulary piece. One 128-newline piece therefore made every
+    v3 character pay for 128 dictionary probes. The trie visits only prefixes that can still become
+    a piece and creates no candidate substrings.
+    """
+    INF = float("inf")
+    best = [0.0] + [INF] * len(text)
+    par = [0] * (len(text) + 1)
+    for end in range(1, len(text) + 1):
+        # min_tile visits starts from left to right. Reverse the trie's shortest-first results so a
+        # tied count keeps the same spans and public token list as before this index existed.
+        starts = trie.starts(text, end)
+        for start in reversed(starts):
+            candidate = best[start] + 1
+            if candidate < best[end]:
+                best[end] = candidate
+                par[end] = start
+
+        # Every character has a floor. A one-character vocabulary edge already supplied the same
+        # cost, so avoid pricing that floor twice.
+        if not starts or starts[0] != end - 1:
+            start = end - 1
+            candidate = best[start] + unit_cost(start)
+            if candidate < best[end]:
+                best[end] = candidate
+                par[end] = start
+
+    spans, end = [], len(text)
+    while end > 0:
+        start = par[end]
+        spans.append((start, end))
+        end = start
+    return best[-1], spans[::-1]
 
 
 class ByteFloor:
@@ -83,9 +154,8 @@ def glued_contraction(cn: str) -> str:
     return cn + EOW_G
 
 
-def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
-    """The tiling vocabulary: every piece and the glued contraction spelling. Returns it with the
-    longest piece length, the DP's window.
+def build_vocab(pieces, tokens: dict) -> frozenset[str]:
+    """The tiling vocabulary: every piece and the glued contraction spelling.
 
     The structural markers used to be added here as well, which made three places that decided a
     marker costs one token: this line, `tile`'s unit floor below, and the two of the four that the
@@ -104,7 +174,7 @@ def build_vocab(pieces, tokens: dict) -> tuple[frozenset[str], int]:
     # supply one. Marking every wordy span uniformly instead would have to reproduce that step out
     # of the vocabulary, which moves the special case rather than removing it.
     vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
-    return frozenset(vocab), max((len(p) for p in vocab), default=1)
+    return frozenset(vocab)
 
 
 def char_cost(model, ch: str) -> int:
@@ -140,30 +210,8 @@ def frame_tail(n: int, model) -> list[str]:
         return []
     run = "\n" * (n + 2)
 
-    def cost_fn(j: int, i: int) -> int | None:
-        return 1 if (i - j == 1 or run[j:i] in model.vocab) else None
-
-    _total, spans = min_tile(len(run), cost_fn, model.max_piece_len)
+    _total, spans = min_vocab_tile(run, model.trie, lambda _at: 1)
     return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
-
-
-def _dotted_host_blocked(seg: str) -> bool:
-    """Is ``seg`` a tile after which the dotted capital İ byte-prices, in İ's contextual spot —
-    a marker-carrying tile ending in an uppercase ASCII letter?
-
-    Measured 2026-08-09, cached grid. Word-final İ after such a tile pays its two bytes: `Bİ Dİ
-    Kİ Lİ Rİ Sİ Tİ` = 15 each and `x Aİ x` `x Eİ x` `x Sİ x` = 17, where the unit piece would
-    read one less. So does İ before a LOWERCASE ASCII letter: `Dİs` = 15, `x Dİl x` = 17. Every
-    other neighbourhood keeps the piece at 1: mid-word before an uppercase letter (`AİD` `BİR`
-    `DİN` `x DİREKTOR x` `TƏSDİQLƏMİSİNİZ` exact), word-final after a lowercase host (`aİ` `xİ`
-    `x nİ x` `x dİ x` exact), after a bare uppercase mid-word tile (`RPİ` = 15 exact), after
-    `⟨bow⟩İ` itself (`x İİ x` = 16 exact — İ is uppercase but not ASCII), and after a markerless
-    multi-letter tile (`xalqlarınİ` `x novunİ x` exact). §12.2's `x Hüseynovunİ x` family, which
-    this rule could never reach, was never a tile question: those words are title-case, take
-    ⟨shift⟩ with the İ literal (see ``normalize.mark_case``), and stopped streaming through this
-    code path at all.
-    """
-    return seg[0] in (BOW_G, SHIFT_G, CAPS_G) and seg[-1].isascii() and seg[-1].isupper()
 
 
 def tile(text: str, model) -> tuple[int, list[str | bytes]]:
@@ -188,19 +236,6 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
-    # The dotted capital İ, in its one measured byte-pricing spot: word-final or followed by an
-    # ASCII lowercase letter, and not word-initial (`⟨bow⟩İ` covers that position as a piece).
-    # There its unit piece prices 1 only after a tile `_dotted_host_tile` admits; after a
-    # marker-carrying tile ending in an uppercase ASCII letter it pays its two UTF-8 bytes.
-    ctx_dotted = frozenset(
-        j for j, ch in enumerate(s)
-        if ch == "İ" and 0 < j < len(s) - 1 and s[j - 1] not in MARKER_GLYPHS
-        and (s[j + 1] == EOW_G or "a" <= s[j + 1] <= "z"))
-    ctx_prefix = [0] * (len(s) + 1)
-    for at in ctx_dotted:
-        ctx_prefix[at + 1] = 1
-    for i in range(len(s)):
-        ctx_prefix[i + 1] += ctx_prefix[i]
 
     def unit_floor(j: int) -> int:
         """What one character costs where no piece covers it — a marker is a token, anything else
@@ -213,47 +248,14 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
             return 1
         return char_cost(model, ch)
 
-    def cost_fn(j: int, i: int) -> int | None:
-        if ctx_prefix[i] != ctx_prefix[j]:
-            # A span touching the tile-contextual İ. Alone, the character pays its raw bytes; the
-            # only way to its one-token piece is a combined edge [host tile][piece], which costs
-            # the pair of tokens it is. No ordinary piece may span the position.
-            if i - j == 1:
-                return model.raw_bytes.cost_char(s[j])
-            last = i - 1
-            if ctx_prefix[last] != ctx_prefix[j]:
-                return None
-            host = s[j:last]
-            # Any tile may precede it at price 1 except the measured marker-carrying-uppercase
-            # shape (`_dotted_host_blocked`).
-            if _dotted_host_blocked(host):
-                return None
-            host_cost = 1 if host in pieces else (unit_floor(j) if last - j == 1 else None)
-            return None if host_cost is None else host_cost + 1
-        if s[j:i] in pieces:
-            return 1
-        return unit_floor(j) if i - j == 1 else None
-
-    total, spans = min_tile(len(s), cost_fn, model.max_piece_len)
+    total, spans = min_vocab_tile(s, model.trie, unit_floor)
     # A span the vocabulary covers is one token, but a span that fell to the byte floor may cost
     # more than one — a 4-byte letter with no piece costs 4 — so it must expand into that many
     # tokens, or len(tokenize(x)) stops being the count.
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]
-        if j in ctx_dotted:
-            # A contextual position that no eligible host tile precedes: its raw-byte chunks.
-            out.extend(model.raw_bytes.chunks(seg.encode()))
-        elif i - 1 in ctx_dotted and i - j > 1:
-            # A combined [host tile][piece] edge, split where the DP priced it. The host is a
-            # piece or a single character, which may itself expand to byte chunks.
-            host = seg[:-1]
-            if host in pieces or unit_floor(j) == 1:
-                out.append(host)
-            else:
-                out.extend(model.bytes.chunks(host.encode()))
-            out.append(seg[-1])
-        elif seg in pieces or unit_floor(j) == 1:
+        if seg in pieces or unit_floor(j) == 1:
             out.append(seg)
         else:
             chunks = model.bytes.chunks(seg.encode())
