@@ -94,8 +94,8 @@ opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening ru
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.023% | 0.028% | 355/501 | 100% |
-| UDHR | v4.7 (v5 borrows it) | 0.002% | 0.002% | 484/501 | 100% |
+| UDHR (501 languages) | v3 | 0.018% | 0.022% | 378/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.001% | 0.001% | 488/501 | 100% |
 
 **No document in either family is over 1% off any more**, and none under-counts. Tem, the worst
 document in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala,
@@ -112,7 +112,7 @@ unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to
 on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
 predicted the `digit_eow` template would find, and eleven Thai pieces each family's own probe buys
 and the other family already ships. Weighted by speakers rather than by document the error is
-0.007% (v3) and 0.002% (v4.7).
+0.005% (v3) and 0.001% (v4.7).
 
 The worst document in both families after that was Tamil, +79 tokens in each, and it was
 *two pieces*: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop where the
@@ -122,6 +122,44 @@ query: v4.7's 97 Tamil pieces are a subset of v3's 113 and the sixteen extras ch
 the two families were bound to agree whatever the cause. What decided it was pricing every word of
 every wrong row — all 12,225 of them exact, so *none* of the over-charge is inside a Tamil word —
 and then deleting windows from the rows themselves until the seam named itself (LIMITS.md §18).
+
+Sinhala and Central Khmer were next, +33 and +8 on v4.7 and **exact on v3** — and one family being
+right where the other is wrong, on shared code, is a vocabulary question before any probe is bought.
+Four pieces close them, and v3 was already shipping all four: `ාය`, `ික⟨eow⟩`, `ករ` and `⟨bow⟩රប`.
+The lesson is what the port refused. v3 holds 23 script-bearing pieces v4.7 lacks; carried across as
+a set they repair 555 corpus words and push 108 others *below* the oracle, which is §1's 2026-08-07
+failure in a new script. Asked one at a time, v4.7's own template refuses nineteen of the 23 at cost
+2 or 3, and an independent corpus court — every distinct word of every over-charging row, priced
+alone — refuses the same nineteen. **Membership is per-family; a piece that is real in a
+48,234-piece vocabulary is not thereby real in a 15,159-piece one** (LIMITS.md §19).
+
+**Six Devanagari languages turned out to be one digit** (LIMITS.md §20). Marathi, Newari,
+Maithili, Sanskrit, Nepali and Konkani each carried a small tail, Hindi almost none — and six
+languages sharing a script and each holding a residue is the shape of a script-wide gap rather than
+six vocabulary tails, which is a cheaper thing to test than to mine. Pricing all 17,388 distinct
+words of every wrong row found seven wrong, identically in all six languages and in the Hindi
+control, so the over-charge was at the joins; deleting windows from the rows put 41 of the 44 worst
+on Devanagari digit zero. `⟨bow⟩१०⟨eow⟩` costs the oracle 2 where `⟨bow⟩०१⟨eow⟩` costs 4, and a grid
+of ten digits by eighteen digit scripts in both families reads cost 1 in exactly one cell. v3
+carried a second shape as well — 100% inside words, every wrong word opening on `ि` or carrying
+`़ि` — closed by `⟨bow⟩ि`, which v4.7 already shipped. All seven Devanagari UDHR documents now
+reproduce exactly in both families.
+
+**The Latin/Cyrillic tail was a superscript two, and the two families disagreed about what it even
+was** (LIMITS.md §21). Seven Goldfish languages — Lombard, Serbian, Hill Mari, Sranan Tongo,
+Romanian, Kabyle, Walloon — held 1,307 tokens of over-charge on v4.7 and 1,785 on v3, Lombard the
+largest single pool left in the sweep. Pricing every word alone first is what stopped a word
+campaign being aimed at it: Lombard, Serbian, Sranan and Kabyle are **0% inside words on v4.7**, so
+1,084 of that family's 1,307 tokens sit at the joins, while 597 of v3's 1,785 are ordinary Romanian
+and Walloon vocabulary. The seam is `²` U+00B2 at a word-closing border — `km²x` is exact and
+`km² x` is not — and it is that character rather than a rule: `²⟨eow⟩`, `².⟨eow⟩`, `²,⟨eow⟩` and
+`².` read cost 1 in both families where sixteen other borders after `²` and seven other superscripts
+(`³.` `½.` `¹.` `°.` …) read 2–3, with the shipped `°⟨eow⟩` as the positive control. Three more
+seams follow the same shape one language each — Kabyle's space-flanked `⟨bow⟩»,⟨eow⟩`, Hill Mari's
+U+2015 `―⟨eow⟩`, Walloon's `åd` — and v3 took 65 more word pieces on top, five of which the row
+court dropped for explaining nothing once the others were in. **v4.7 now reproduces all 7,000 rows
+of the seven languages** and v3 6,947, from 6,167 and 5,845; no cached text in either family was
+broken or pushed below, and under-count stays 0 over 1,040,784 v4.7 and 562,763 v3 cached texts.
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it

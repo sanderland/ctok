@@ -1845,3 +1845,392 @@ family under-counts and none is over 1%; 219 tests pass. The gate thresholds are
 their comment now carries the re-measured reading — v4.7's mean sits a factor of ten under its
 bound, which is margin rather than a stale gate, and tightening it would fire on the next
 campaign's ordinary churn rather than on a regression.
+
+## 19. Sinhala and Khmer were a cross-port, and it is not transitive
+
+**Measured 2026-08-11.** §18 left `sin_sinh` and `khm_khmr` the two largest non-Latin pools in the
+v4.7 Goldfish sweep, and Sinhala the worst UDHR document in the family at +0.334%. **Four pieces
+close both, and all four were already sitting in the other family's file.** The whole campaign is
+one cross-port, and the interesting result is not the four kept but the nineteen refused.
+
+The brief that opened this campaign priced the pools at 810 tokens over 1,400 rows, because that is
+what the cache held when the ranking was taken; by the time the campaign started the background
+buyer had finished both languages and the true pool over 2,000 rows was **1,172**. §13.1's lesson
+holds without qualification — a ranking is a measurement with a date on it — and the correction
+went the unusual way this time, upward.
+
+### 19.1 The cross-family tell that §18 disarmed applies here, in its strong form
+
+§18.1's rule is that a cross-family comparison is evidence only where the two vocabularies actually
+differ on the script in question. Here they do, and the reading is not "identical, so structural"
+but its opposite:
+
+```
+1,000 Goldfish rows each, against recorded counts, before anything
+                v3                          v4.7
+sin_sinh   1,000 exact   over    0     635 exact   over 703
+khm_khmr   1,000 exact   over    0     686 exact   over 469
+```
+
+v3 reproduces every row of both languages and v4.7 does not, through the same `normalize` and
+`engine` code — the families differ in their frame constants and a handful of flags, none of which
+touches a Sinhala or Khmer codepoint. So a defect on one side and not the other is a vocabulary
+question before a single probe is bought, and the place to look first is the vocabulary that is
+already right. It is the mirror image of §17's tell rather than a contradiction of §18's warning:
+a cross-family reading is evidence exactly when the two vocabularies differ on the script in hand,
+and here the difference is the whole of it. As with Tamil, v4.7's script pieces are a strict
+SUBSET of v3's (78 ⊂ 96 Sinhala, 76 ⊂ 81 Khmer, zero v4.7-only in either), which says which
+direction the port can run.
+
+### 19.2 Localize first, and both are Catalan-shaped
+
+§0's method, no word cap — every distinct word of every over-charging row priced alone:
+
+| | over-charge | hot rows | words priced | wrong words | inside words |
+|---|---:|---:|---:|---:|---:|
+| `sin_sinh` v4.7 | 703 | 365 | 9,399 | 311 | 699/703 (**99%**) |
+| `khm_khmr` v4.7 | 469 | 314 | 4,369 | 244 | 469/469 (**100%**) |
+
+Tamil was 0% and no word miner could reach it; these are Catalan-shaped and a word miner is exactly
+the instrument. That one measurement, bought before anything else, is what said so.
+
+### 19.3 A batch cross-port is a net disaster, and both instruments refuse the same nineteen
+
+v3 holds 23 script-bearing pieces v4.7 lacks. Ported as a set, against the same corpus words:
+
+```
+18 Sinhala v3-only pieces, all at once     repaired 311 words   pushed 93 words BELOW the oracle
+ 5 Khmer   v3-only pieces, all at once     repaired 244 words   pushed 15 words BELOW
+```
+
+That is §1's 2026-08-07 shape in a new script — a batch that removes over-charge by manufacturing
+under-count — and §4 says under-count is the direction nothing can undo. **Membership is per-family
+and a piece that is real in a 48,234-piece vocabulary is not thereby real in a 15,159-piece one.**
+
+Judged one at a time, the two instruments agree completely and neither was told about the other.
+The v4.7 template probe first, `cost = raw − 12 + 1 − overhead`:
+
+```
+ාය       mid  .ヲ{}ヲ.  raw 20 -> cost 1      ករ       mid  .ヲ{}ヲ.  raw 20 -> cost 1
+ික⟨eow⟩  eow  .ヲ{}.   raw 17 -> cost 1      ⟨bow⟩រប  bow  .{}ヲ.   raw 17 -> cost 1
+the other nineteen                           cost 2 (seventeen of them), cost 3 (two)
+```
+
+Then the corpus court — one probe per DISTINCT word of the hot rows, each candidate alone, with
+§18's control that the words must be WRONG without it:
+
+| | repaired | pushed below |
+|---|---:|---:|
+| `ාය` | **179** | 0 |
+| `ික⟨eow⟩` | **139** | 0 |
+| `ករ` | **157** | 0 |
+| `⟨bow⟩រប` | **88** | 0 |
+| the other nineteen, worst case each | 0–2 | 0–27 |
+
+`ඛ` repairs nothing and takes 27 words below; `⟨bow⟩ති⟨eow⟩` and `යය` 17 each; `මම` (Khmer) 12.
+Not one of the nineteen repairs three distinct words. **The probe and the court partition the same
+23 candidates the same way**, which is the reassuring part: had only the corpus been consulted, the
+greedy cover would still have found the same four, and had only the template been consulted, the
+same four survive.
+
+### 19.4 The wider court, and why the four are the whole answer
+
+The candidates were not taken from v3 alone. `witness._fitness_candidates` was run over every wrong
+word — every single-piece addition that makes that word reproduce — which proposes 916 spans for
+Sinhala and 2,865 for Khmer. Ranked by distinct wrong words explained and probed on their own
+templates:
+
+| | candidates probed | admissible on their own template | kept |
+|---|---:|---:|---:|
+| `sin_sinh` | 80 | 2 | 2 |
+| `khm_khmr` | 120 | 2 | 2 |
+
+The 196 refused read cost 2 or more, or the encoder does not place them in their own probe. This is
+§13.6's wall again, and again it did all the work: **the net-word control never had to fire**, and
+the four survivors are exactly the four v3 already ships. A greedy loop over the admissible set —
+accept, re-baseline, repeat — takes both word pools to **zero over-charge in zero words** in two
+rounds each and stops with nothing left to propose.
+
+A separate 50-probe sibling grid is what says the `mid` template is not §1's ヲ hazard here rather
+than merely asserting it: `ා`+18 Sinhala consonants, 5 consonants+`ා`, `ក`+20 Khmer consonants and
+7 consonants+`រ`, all on `.ヲ{}ヲ.`, read **cost 1 three times out of fifty** — `ාය`, `ករ` and one
+inert `ාන`. A frame that answered 1 for a Brahmic cluster because of its katakana base would answer
+1 for all fifty. `ාන` explains no wrong word and was NOT taken: a candidate whose probes already
+reproduce explains nothing (§1), and that applies to a candidate the template likes just as much as
+to one the corpus likes.
+
+### 19.5 What it cost, over every text that could move
+
+A piece changes only a text whose STREAM holds its surface (§13.8), so the differential is that set,
+tiled twice — v4.7 only, since v3 already ships all four:
+
+| | texts with a piece in their stream | exact | over | under |
+|---|---:|---:|---:|---:|
+| v4.7, before | 2,401 | 484 | 2,813 | 0 |
+| v4.7, after | 2,401 | **2,400** | **1** | **0** |
+
+Not one row was broken and not one under-counts. Note that "before exact 484" is not zero here —
+unlike §18's seam, these surfaces occur in plenty of texts that were already right, and every one of
+them stays right.
+
+Row level, against recorded counts:
+
+| | v4.7 exact | v4.7 over | v3 (unchanged) |
+|---|---:|---:|---|
+| `sin_sinh` 1,000 Goldfish rows | 635 → **996** | 703 → **4** | 1,000 exact |
+| `khm_khmr` 1,000 Goldfish rows | 686 → **1,000** | 469 → **0** | 1,000 exact |
+
+The 67 Goldfish languages on disk read 56,452/58,000 exact and 2,363 tokens of over-charge, with
+neither Sinhala nor Khmer in the top twelve any more. The whole-cache under scan afterwards reads
+**0 tokens in 0 texts** on both families, over 547,182 v3 and 1,040,746 v4.7 cached texts.
+
+### 19.6 The residue is four rows and none of them is Sinhala vocabulary
+
+```
++1  '” ගොඩයගේ කුතුහලය වැඩියි.……”…””'
++1  '””'
++1  '” නෑ .. උගත්කම කියන්නෙ උපාධි –””'
++1  a 4,000-character row of running Sinhala
+```
+
+Every word of all four prices exactly. Three of them turn on `””` — U+201D twice, with no Sinhala
+character between — and the second is that pair and nothing else, a **two-character message with no
+Sinhala in it at all**. It is a punctuation-run question of the §7 kind and it belongs to whatever
+campaign takes the quotation marks, not to this script. The fourth has no wrong word either and is
+the joining residue §13.7 records for Assamese, at 1 token in 703 rather than 2 in 203.
+
+The held-out gates, read once at the end: UDHR **484 → 486** exact on v4.7 and v5, error mass
+**0.0019% → 0.0007%**. Exactly two documents move and they are the two this campaign is about —
+Sinhala, the family's worst at **+33 (+0.334%) → 0**, and Central Khmer **+8 (+0.073%) → 0** — which
+is the shape a real fix has on a corpus that chose nothing: it moves what it explains and nothing
+else. v3 is untouched at 355/501 and 0.0228%. Rosetta 1,741/1,741, the 250-document holdout 250/250
+and MultiPL-E 22/22 unmoved; no document in either family under-counts or is over 1%; the worst v4.7
+document is now Shilluk at +0.10%; 219 tests pass.
+
+## 20. Six Devanagari languages were one digit, and the localizer said so before any probe
+
+**Measured 2026-08-11.** Six languages of the Goldfish sweep — Marathi, Newari, Maithili, Sanskrit,
+Nepali and Konkani — each carried a small residue on v4.7 and a larger one on v3, and Hindi carried
+almost none. Six independent languages sharing a script and each holding a tail is the shape of a
+script-wide gap rather than six vocabulary tails, so the question asked first was *one cause or
+six*, and the answer cost one measurement rather than six campaigns.
+
+All seven languages now reproduce every cached row on v3 and all but two on v4.7.
+
+### 20.1 Localize before spending, and read the shape of the answer
+
+§18.2's method, no word cap, on v4.7: price every distinct word of every over-charging row alone.
+
+```
+            hot rows   over   words priced   wrong   explained
+hin_deva          10     16            340       1          6%
+mar_deva          99    160          5,089       0          0%
+new_deva         104    124          3,549       2          2%
+mai_deva          62     74          1,065       0          0%
+san_deva          45     77          2,647       1          1%
+nep_deva          50     70          2,153       1          3%
+gom_deva          39     51          2,545       1          2%
+```
+
+17,388 words priced alone and seven of them wrong. That is Tamil-shaped, not Catalan-shaped — the
+over-charge is at the joins, where no word miner can reach it — and, more to the point, it is
+Tamil-shaped **identically in all six languages and in the Hindi control**. A single cause was the
+only hypothesis that fit before a probe was bought.
+
+### 20.2 The site, and the one cell of the grid
+
+In-situ window deletion — delete a window from the real row and never build a new string — put
+**41 of the 44 worst rows on DEVANAGARI DIGIT ZERO**. `⟨bow⟩१०⟨eow⟩` costs the oracle 2 where
+`⟨bow⟩०१⟨eow⟩` costs 4: the difference is a zero closing the run.
+
+The piece is `०⟨eow⟩`, reached by `digit_eow` (`1{} a`) — the template that bought §18's Tamil seam,
+asked the same way. The grid that decides whether this is Devanagari's or a Brahmic law is ten
+digits × eighteen digit scripts × both families, and it reads cost 1 in **exactly one cell**:
+
+```
+1० a  = 11 / 15  cost 1     MEMBER
+1१ a  = 12 / 16  cost 2
+1२ a  = 12 / 16  cost 2
+1३ a  = 12 / 16  cost 2
+1९ a  = 12 / 16  cost 2
+```
+
+It is Devanagari's own, and it is Devanagari's zero alone. The same instrument note as §18 applies:
+the span priced is character-for-character the span the corpus writes, because a digit run never
+includes the letter before it.
+
+### 20.3 v3 carried a second shape, and it was §13.4's
+
+v3's residue localized the other way: 220 hot rows, **100% explained inside words**, 201 of 10,166
+priced words wrong — and every one of them either opens on `ि` or carries `़ि`, which is the same
+site, since the nukta is a terminal separator. That is the shape §13.4 recorded for Bengali.
+
+The piece is `⟨bow⟩ि`, **which v4.7 already shipped and v3 did not** — the mirror of §19's finding,
+and the reason the two families read differently on the same rows. Fifteen word-initial Devanagari
+signs asked on the `bow` template in both families: one cell at cost 1.
+
+### 20.4 What it cost
+
+```
+              v4.7 exact          v3 exact
+hin_deva      990 -> 1,000        936 -> 1,000
+mar_deva      901 -> 1,000        871 -> 1,000
+new_deva      896 -> 1,000        863 -> 1,000
+mai_deva      938 -> 1,000        917 -> 1,000
+san_deva      955 ->   998        931 -> 1,000
+nep_deva      950 -> 1,000        934 -> 1,000
+gom_deva      961 -> 1,000        947 -> 1,000
+TOTAL       6,591 -> 6,998      6,399 -> 7,000
+over          572 ->     2        826 ->     0
+under           0 ->     0          0 ->     0
+```
+
+Five pieces: v4.7 takes `०⟨eow⟩ ाि ाा ―⟨eow⟩` and v3 those plus `⟨bow⟩ि`. Each was courted **alone**
+at cache scale — a piece can only change a text whose *stream* holds its surface — with 0 rows
+broken, 0 pushed below and 0 under-counts in either family. The control fires the right way round:
+of the 1,200 v4.7 texts `०⟨eow⟩` touches, only 56 already reproduced, so the piece is explaining
+something rather than decorating rows that were already right.
+
+Across the 67 Goldfish languages on disk no language got worse in either family, and the five that
+moved outside the pool all improved. Held out and read once at the end: UDHR v3 **355 → 358**, with
+Bhojpuri, Hindi and Magahi going +1 → 0, and **all seven Devanagari UDHR documents now reproduce
+exactly in both families**.
+
+### 20.5 Refused
+
+* **`――`** (two horizontal bars) reads cost 1 on its own probe in both families, but its only
+  corpus evidence is five Japanese rows **plus two of the campaign's own probe strings**, and none
+  at all on v3. Counting your own probes as corpus is circular, and it is not this pool's language:
+  a lead, not a piece.
+* **`⟨bow⟩િ`** — the Gujarati vowel sign, literally §20.3's defect one script over. It reads cost 1
+  on v3's `bow` probe and v4.7 already ships it. There is no Gujarati corpus here to court it
+  against, so it stays a recorded lead. It is the obvious next thing to buy.
+
+### 20.6 Residue
+
+Two tokens on v4.7, in two Sanskrit rows: one is PUA mojibake and one a `।““` punctuation run.
+Neither is Devanagari vocabulary, and the second is the same quotation-mark question §19 left open.
+
+## 21. The Latin/Cyrillic tail was superscript two, and only on v4.7 was it not vocabulary
+
+**Measured 2026-08-11.** Seven Goldfish languages — Lombard, Serbian (Latin), Hill Mari, Sranan
+Tongo, Romanian, Kabyle, Walloon — carried 1,307 tokens of over-charge on v4.7 and 1,785 on v3
+across 7,000 rows. Lombard alone was 854 and 877, the largest single pool left in the sweep. The
+brief that sent this campaign called it "ordinary missing word vocabulary, which the word miners are
+built for". That was right for v3 and wrong for the v4.7 bulk, and §0's localize step is what said
+so before anything was spent.
+
+### 21.1 Localize first, and the two families disagree about what this pool IS
+
+Every distinct word of every over-charging row, priced alone through the `raw` template — §13.2's
+correction, no word cap. 6,967 distinct words on v4.7 and 13,435 on v3:
+
+| | v4.7 over | inside words | v3 over | inside words |
+|---|---:|---|---:|---|
+| `lmo_latn` | 854 | **0%** | 877 | 3% |
+| `srp_latn` | 101 | **0%** | 113 | 10% |
+| `srn_latn` | 86 | **0%** | 89 | 3% |
+| `kab_latn` | 43 | **0%** | 51 | 16% |
+| `mrj_cyrl` | 104 | 6% | 113 | 13% |
+| `wln_latn` | 52 | 92% | 61 | 92% |
+| `ron_latn` | 67 | 100% | 481 | **100%** |
+
+Catalan was 98% inside words and Tamil 0% (§18.2). **Lombard, Serbian, Sranan and Kabyle read 0% on
+v4.7 too** — 1,084 of v4.7's 1,307 tokens sit at the joins, where no word miner reaches. v3 is the
+opposite: 597 of its 1,785 are inside words, 537 of those in Romanian and Walloon alone, and the
+rest is the same seam. **The same seven languages are two different campaigns in the two
+families**, which is what the per-family probe rule already implies and what a shared candidate
+list would have hidden.
+
+### 21.2 The site is `²`, and the neighbouring superscripts refute the obvious generalization
+
+Minimal failing substrings of 50 Lombard rows (trim from both ends while the row stays wrong) come
+back as `'².'` and `'² '`, over and over. In situ:
+
+```
+x km² x   +1      x km²x   0      x km2 x  0      x cm³ x  0
+```
+
+`km²x` is exact and `km² x` is not, so the defect is the border and not the character: U+00B2 is
+category `No`, a non-ASCII digit run, and such a run takes punctuation's border markers on both
+sides (§7's 2026-08-09 correction). The stream is `⟨bow⟩km⟨eow⟩²⟨eow⟩` and we were spending `²` and
+`⟨eow⟩` where the oracle spends one token.
+
+`digit_eow` (`1{} a`) and `digit_mid` (`1{}1`) place all four spellings, in both families, with
+twenty-three controls:
+
+```
+cost 1   ²⟨eow⟩   ².⟨eow⟩   ²,⟨eow⟩   ².                          v3 and v4.7 alike
+cost 2-3 ²; ²: ²! ²? ²) ²] ²} ²" ²' ²% ²/ ²- ²), ²]. ²» ²”        the other borders
+cost 2-3 ³. ³, ½. ½, ¹. °. °,                                     the other superscripts
+cost 1   ° ⟨bow⟩° °⟨eow⟩                                          already shipped: the positive control
+```
+
+So it is **U+00B2 specifically**, not a rule about superscripts and not a rule about digit runs —
+the same shape §18.5 established for the Tamil virama by sweeping twenty killers and keeping one.
+`⟨bow⟩²⟨eow⟩`, `⟨bow⟩².⟨eow⟩`, `⟨bow⟩²,⟨eow⟩` and `⟨bow⟩²` all read cost 2 and are refused.
+
+### 21.3 Three more seams, one per language, each with its own refutation
+
+* **Kabyle** is `⟨bow⟩»,⟨eow⟩` on `digit_word` (`a », a`) — a closing guillemet and a comma,
+  space-flanked, in a bibliography. `»,⟨eow⟩` was already a piece in both families; what was missing
+  is the run that also owns its ⟨bow⟩, which is why the suffix piece could not reach it.
+* **Hill Mari** is `―⟨eow⟩`, U+2015 HORIZONTAL BAR, its dash separator. `—` and `–` already carry
+  the full bow/eow/word/mid set at cost 1 in both families; `‒` and `⸺` read 3–5. `⟨bow⟩―⟨eow⟩` and
+  `⟨bow⟩―` read 2 and are refused, so it is the suffix and not the run.
+* **Walloon** is `åd` on `mid` — 22 of the 22 words the localize step flagged contain it.
+
+Romanian's are ordinary cased whole words on the `raw` template (`După`, `României`, `București`),
+and Hill Mari's three are the same shape (`András`, `István`, `График`).
+
+### 21.4 v3's other half is the word campaign the brief expected
+
+`mine_lang.py` on the same seven languages, 8,276 independently priced words as the control set:
+65 candidates passed their own probe and repaired 116 of the 154 standalone-wrong words with none
+pushed below. The row court then **dropped five of them** — `⟨bow⟩oraș`, `⟨bow⟩èp`, `⟨bow⟩româ`,
+`⟨bow⟩transil`, `eleb` — because once the pieces ranked above them were in, they repaired no row and
+gained no token. That is the control doing the only job it has: a candidate whose probes already
+reproduce explains nothing (§1's hazard 9).
+
+The pieces are unremarkable and that is the point: Romanian `ău⟨eow⟩` `⟨bow⟩ști` `ârș` `⟨bow⟩bucure`
+`⟨bow⟩orașul⟨eow⟩`, Lombard `ània⟨eow⟩` `ària⟨eow⟩` `⟨bow⟩època⟨eow⟩` — the same `-ància` shape the
+2026-08-08 Catalan batch found — Kabyle `awaw` `riri` `čč`, Hill Mari `илил` `осос`.
+
+### 21.5 What it cost, measured before and after on everything
+
+A piece changes only a text whose STREAM holds its surface (§13.8), so the differential is that set,
+tiled twice. Not one cached text in either family was broken or pushed below:
+
+| | texts the pieces touch | exact before | exact after | over before | over after | under |
+|---|---:|---:|---:|---:|---:|---:|
+| v3, 70 pieces | 2,211 of 562,763 | 534 | **2,174** | 2,337 | **54** | 0 → **0** |
+| v4.7, 13 pieces | 7,379 of 1,040,784 | 454 | **7,371** | 9,840 | **10** | 0 → **0** |
+
+The pool itself, against recorded counts:
+
+| | rows | exact | over | under |
+|---|---:|---|---:|---:|
+| v4.7, seven languages | 7,000 | 6,167 → **7,000** | 1,307 → **0** | 0 → 0 |
+| v3, seven languages | 7,000 | 5,845 → **6,947** | 1,785 → **69** | 0 → 0 |
+
+**v4.7 reproduces every one of the 7,000 rows**, including all 1,000 Lombard. v3's residue is 65
+tokens of Romanian word vocabulary and four tokens elsewhere.
+
+The whole-cache under scan afterwards reads **0 tokens in 0 texts** on both families, over 562,763
+v3 and 1,040,784 v4.7 cached texts.
+
+The held-out gates, read once at the end: UDHR **355 → 375** exact on v3 (mass 0.023% → 0.018%,
+speakers-weighted 0.005%) and **484 → 486** on v4.7 and v5 (0.002%, speakers-weighted 0.002%);
+Rosetta 1741/1741, the 250-document holdout 250/250 and MultiPL-E 22/22 unmoved; no document in
+either family under-counts and none is over 1%; 222 tests pass. UDHR chose none of this — it is the
+consequence §0 says a real fix shows up as.
+
+### 21.6 An instrument note: a trial model is not a copy with one more piece in it
+
+`TokenizerModel` derives a reverse trie, the cost-1 whole-character set and the byte floor from the
+vocabulary once, at construction. After #15 a rig helper that cloned the model and edited `.vocab`
+changed nothing the tiler reads, so **every candidate silently measured as explaining nothing** —
+the failure mode looks exactly like an honest refusal and reports clean. The tell was a candidate
+whose own probe reads cost 1 repairing zero rows it demonstrably fixes by hand. Anything that builds
+a model with extra pieces has to rebuild the derived structures, and a trial model that cannot
+change a row it should is worth one assertion before a campaign trusts it.
