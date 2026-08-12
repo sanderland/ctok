@@ -168,6 +168,21 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
     literal instead ALSO drops ⟨shift⟩ and reads two Indic rows carrying one Latin capital
     (`Vಗಳನ್ನು`, `4G`) one under.
 
+    **A marker asserts a LOWERED body, so a character that cannot supply one blocks it** (§27,
+    measured 2026-08-12). ``ℳ`` is `isupper()` and ``'ℳ'.lower()`` is ``'ℳ'`` — there is no
+    lowercase letterlike M — so ⟨shift⟩ + ``span.lower()`` writes a marker in front of a body it
+    did not change, and the oracle spends one token less. That is the same sentence the İ head
+    clause below already rests on, one Unicode property wider, so "caseless" becomes "cannot
+    supply a lowered form": every titlecase and caseless character the narrower predicate held is
+    still held, and the uppercase letters with no lowercase mapping join them. 19 BMP heads
+    (``ϒ ℋ ℌ ℍ ℐ ℒ ℕ ℙ ℚ ℛ ℜ ℝ ℤ ℨ ℬ ℭ ℰ ℱ ℳ``) read `x {C}iji x` = `x {c}iji x` with **step 0** in
+    both families where we wrote a ⟨shift⟩, against 21 heads that DO lower (Latin, Cyrillic,
+    Cherokee, ``Æ Ø Đ Ŋ``) at step +1 and exact; ⟨caps⟩ carries the same defect on v3
+    (`x ℳℳℳℳ x` = `x ℒℒℒℒ x` = 12 against our 13) and the widened predicate closes it. Astral
+    heads (``𝕊``, ``𝐀``) were already exact — §17's astral rule writes no marker there — and stay
+    so. Every reachable cached text moves to exact and none is broken: 28 of 68 on v3, 81 of 136
+    on v4.7.
+
     **İ is transparent to the title-case test and literal in its lowered body** (§12.2, closed
     2026-08-10). `Hnovunİ` IS a title-case span to the oracle: it takes ⟨shift⟩, and the İ — which
     has no clean lowercase byte form (it lowers to i + U+0307) — simply stays İ. That single
@@ -201,10 +216,10 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
             return SHIFT_G + span[0].lower() + "".join(c if c == "İ" else c.lower()
                                                        for c in tail)
         return span
-    caseless = any(unicodedata.category(c)[0] in ("L", "M") and not (c.islower() or c.isupper())
-                   for c in span)
+    unlowerable = any(unicodedata.category(c)[0] in ("L", "M") and not c.islower()
+                      and (not c.isupper() or c.lower() == c) for c in span)
     if allcaps_min is not None and span.isupper() and len(span) >= allcaps_min \
-            and not caseless:
+            and not unlowerable:
         # Python's str.lower() applies Unicode's Final_Sigma context rule — 'ΣΚΙΕΣ'.lower() is
         # 'σκιες' — and the oracle's ⟨caps⟩ body does not: it lowers Σ to σ everywhere. Measured
         # 2026-08-10 on the two Greek documents the residue scan left: `x ΣΚΙΕΣ x` = 16 is the
@@ -214,6 +229,8 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
         # both spellings. An input span that is isupper() contains no ς of its own, so the
         # replace only ever touches what lower() just produced.
         return CAPS_G + span.lower().replace("ς", "σ")
+    if span[:1].lower() == span[:1]:
+        return span
     if span[:1].isupper() and not any(c.isupper() for c in span[1:]):
         return SHIFT_G + span.lower()
     return span

@@ -46,7 +46,7 @@
         "glued": 1110,
         "mark_mid": 19,
         "mark_sep": 19,
-        "mid": 2349,
+        "mid": 2353,
         "prefix": 467,
         "raw": 2100,
         "special": 4,
@@ -13216,7 +13216,11 @@
       "⟨shift⟩⟨bow⟩györgy⟨eow⟩": {"probe": ".György.", "raw": 14, "kind": "word"},
       "⟨bow⟩król": {"probe": ".królヲ.", "raw": 17, "kind": "bow"},
       "⟨bow⟩події⟨eow⟩": {"probe": ".події.", "raw": 14, "kind": "word"},
-      "ecec": {"probe": ".ヲececヲ.", "raw": 20, "kind": "mid"}
+      "ecec": {"probe": ".ヲececヲ.", "raw": 20, "kind": "mid"},
+      "ìì": {"probe": ".ヲììヲ.", "raw": 20, "kind": "mid"},
+      "ââ": {"probe": ".ヲââヲ.", "raw": 20, "kind": "mid"},
+      "emem": {"probe": ".ヲememヲ.", "raw": 20, "kind": "mid"},
+      "oror": {"probe": ".ヲororヲ.", "raw": 20, "kind": "mid"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
