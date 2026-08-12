@@ -46,7 +46,7 @@
     "digit_word": 117,
     "eow": 7790,
     "glued": 1110,
-    "mark_mid": 21,
+    "mark_mid": 22,
     "mark_sep": 22,
     "mid": 4737,
     "prefix": 467,
@@ -45693,7 +45693,8 @@
    "րր": {"probe": ".ヲրրヲ.", "raw": 16, "kind": "mid"},
    "⟨shift⟩⟨bow⟩storbritannien⟨eow⟩": {"probe": "Storbritannien", "raw": 8, "kind": "raw"},
    "ostost": {"probe": ".ヲostostヲ.", "raw": 16, "kind": "mid"},
-   "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 8, "kind": "raw"}
+   "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 8, "kind": "raw"},
+   "েে": {"probe": ".ᛒেেᛒ.", "raw": 18, "kind": "mark_mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
