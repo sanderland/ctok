@@ -87,8 +87,8 @@ message frame, so it lands on the same documents with the same errors;
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.014% | 0.018% | 395/501 | 100% |
-| UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 490/501 | 100% |
+| UDHR (501 languages) | v3 | 0.005% | 0.007% | 437/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 498/501 | 100% |
 
 **No document in either family is over 1% off any more, and none under-counts** — not in these
 501 documents and not in any of the 3.0M texts ever measured against either model. That second
@@ -97,7 +97,7 @@ than the smaller cache the earlier claims were read on, the model still believed
 v3 texts and 4 in 4 v4.7 ones were cheaper than they are. All three causes were missing boundary
 glyphs, none of them was a piece, and both stores now read zero (§26). Tem, the worst document
 in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala, Yoruba and
-Maldivian. Weighted by speakers rather than by document the error is 0.005% (v3) and 0.001% (v4.7).
+Maldivian. Weighted by speakers rather than by document the error is 0.002% (v3) and 0.001% (v4.7).
 
 Almost none of that was won by mining words. Each campaign below first priced every distinct word
 of every failing row *alone*: the share of the error that sits inside a word decides whether a word
@@ -115,6 +115,8 @@ miner can reach it at all, and it usually could not.
 | the last under-count | 0 | a ⟨caps⟩ written on a caseless **mark** — `'းUNDPA'.isupper()` is True because a Myanmar spacing mark has no case to contradict it. §15 had fixed this for caseless letters; the predicate was one Unicode category too narrow | [§24](LIMITS.md) |
 | Tibetan, Dzongkha | 1 | 58% of v3's residue on the Goldfish batches was one piece v4.7 already shipped, `ླ`+`ོ`. Seven vowel signs and all 44 subjoined letters refuse — one cell on each axis | [§25](LIMITS.md) |
 | the whole store's under-count | 0 | three missing boundary glyphs, no piece anywhere: ten Bamum **letters** Unicode types `Nl`, a leading space normalization MADE (NBSP, NUL) absorbed as if it were the raw head, and content that normalizes to nothing writing no frame `⟨bow⟩`. The Bamum grid moves in both directions, which is what says it is a boundary and not a piece | [§26](LIMITS.md) |
+
+| ten tone-marked orthographies | 25 | named after a property that was not their defect: every accent-bearing row already reproduced, and the shared cause was a piece written **twice** (`ojoj`, `eheh`, `ìì`). Doubling is not a rule — 0 of 39 cells on v4.7 — so each is its own membership question, and 16 of v3's 19 pieces are refused by v4.7's probe | [§27](LIMITS.md) |
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it

@@ -3109,3 +3109,240 @@ pass. v5 borrows v4.7's vocabulary under its own frame and has no frame ⟨bow�
   "the whole cache", and both were true of the cache they were read over; the store has since more
   than doubled, and three populations that were never in it turned up the moment the scan was run
   again. `scripts/under_scan.py` exists so the next campaign re-runs it rather than quoting a number.
+
+## 27. The tone-marked pool was not about tone marks, and the shared cause was a piece written twice
+
+**Measured 2026-08-12.** Ten Goldfish languages picked out as *tone-marked orthographies* — Hausa,
+Guarani, Igbo, Yoruba, Mizo, Ayacucho Quechua, Fon, North Azerbaijani, Slovak and Malay (Meo) —
+carried **88 of v3's 121** remaining over-charged tokens on the 35,774-row corpus, and five of them
+(Fon, Yoruba, Hausa, Igbo, Guarani) carried **19 of v4.7's 26**, which was most of that family's
+entire residue across all 190 languages. The families disagreed about which were hard: Fon and
+Yoruba were *worse* on v4.7 than on v3.
+
+All fifteen language-family cells now reproduce every row. **Twenty-one pieces on v3, four on
+v4.7, and one stream rule that belongs to neither.**
+
+### 27.1 §14 already answers the accent material, and that check is one query
+
+The brief for this campaign was written around §14's accent law — a combining accent stands outside
+its word and closes it before itself — because these are exactly the orthographies it governs. The
+law is not what is wrong here, and partitioning the corpus by it says so before anything is bought:
+
+```
+rows carrying a combining mark (NFC)          rows carrying none
+v4.7   616 rows   616 exact   over 0          6,884 rows   6,866 exact   over 19
+v3     618 rows   613 exact   over 6          8,442 rows   8,368 exact   over 82
+```
+
+Every accent-bearing row in the v4.7 pool reproduces, and **not one of the 77 mis-priced words this
+campaign then localized carries a combining mark in either family** — including the six v3
+accent-bearing rows, whose error is in an unaccented word elsewhere on the line. `ọ ẹ ɓ ɗ ƙ` are
+precomposed and NFC leaves them alone; the tone marks that do decompose are priced exactly. The
+pool is named after a property that is not its defect, which is worth stating because the cheap
+check is what establishes it: a word miner could not have reached a boundary question, and this is
+not one.
+
+### 27.2 Localize first — and on v4.7 the pool is not in these languages at all
+
+Every distinct word of every over-charging row, priced alone (§0, no word cap):
+
+| | v4.7 over | hot rows | words | wrong words | inside words | v3 over | inside words |
+|---|---:|---:|---:|---:|---|---:|---|
+| `hau_Latn` | 2 | 1 | 2 | 1 | **100%** | 29 | **100%** |
+| `grn_Latn` | 1 | 1 | 4 | 1 | 100% | 13 | 100% |
+| `ibo_Latn` | 1 | 1 | 31 | 1 | 100% | 9 | 100% |
+| `yor_Latn` | 7 | 7 | 73 | 5 | 100% | 6 | 67% |
+| `fon_Latn` | 8 | 8 | 91 | 7 | 100% | 4 | 100% |
+| `lus_Latn` | — | — | — | — | — | 6 | 100% |
+| `quy_Latn` | — | — | — | — | — | 5 | 100% |
+| `azj_Latn` | — | — | — | — | — | 9 | 100% |
+| `slk_Latn` | — | — | — | — | — | 4 | 100% |
+| `meo_Latn` | — | — | — | — | — | 3 | 100% |
+
+Catalan-shaped throughout (§18.2), so a word miner is the instrument in both families. Then reading
+the wrong words shows what the share alone cannot: **twelve of v4.7's fifteen are mojibake.**
+`êáììÝíç` `Óõììåôåß÷á` `ñóììà` `äèàãðàììó` are Greek and Cyrillic decoded as Latin-1, filed by the
+corpus under Fon and Yoruba, and they are the whole of those two languages' v4.7 residue. The
+"tone-marked orthography" that was worse on v4.7 than on v3 is not Fon and not Yoruba; it is
+CP1251 read as ISO-8859-1.
+
+### 27.3 The languages do share a cause, and it is a shape rather than a rule
+
+Every single-piece addition that makes a wrong word reproduce, enumerated over the stream and then
+asked on its own template — 606 askable candidates on v3 and 106 on v4.7. Nineteen and four
+accept. Ranked, the shape is unmistakable:
+
+```
+v4.7   ìì (11 words)   ââ   emem   oror                     4 of 4 are a piece written TWICE
+v3     iyy(13)  ojoj(6)  eheh(4)  ⟨bow⟩netw(5)  ələ(6)  ayay(3)  aiah⟨eow⟩(3)  ukuk(2)
+       êê(3)  ⟨bow⟩žid(4)  opop  ⟨bow⟩pë(2)  ⟨bow⟩among(2)  ââ  eleb  unun  afaf  omom  ichich
+                                                            11 of 19 are a piece written twice
+```
+
+`sojojin` tiles `s·oj·oj·in` and the oracle spends three; `shafaffu` is `sh·af·af·fu`; `pukukue` is
+`p·uk·uk·ue`; `hehehehe` is `h·eh·eh·ehe`; `nememme` is `n·em·em·me`. Five unrelated languages, one
+shape. **It is not a rule, and the obvious generalization is refused on both axes.** Forty
+lowercase Latin pieces of length 2 and twelve of length 1, doubled, against controls `XY` with
+X ≠ Y drawn from the same pool:
+
+```
+v4.7   doubled  0 / 39 read cost 1      controls  0 / 46
+v3     doubled  4 / 33 (ayay azaz udud ugug)   controls  0 / 45
+```
+
+The doubling is *enriched* in the vocabulary and it is not automatic — the same answer §20.2's
+Devanagari zero and §25.3's Tibetan cluster gave, one population wider. So each doubling is its own
+membership question, which is why 587 of v3's 606 candidates and 102 of v4.7's 106 are refused.
+
+The accented-letter axis is the sharpest cut, and it is where the family asymmetry lives. Every
+Latin-1 accented lowercase letter and every Greek lowercase letter, doubled, on `mid`:
+
+```
+v4.7  already ships  àà áá ãã ää åå ææ çç éé íí ðð ññ öö αα ββ νν ππ ττ      cost 1: ââ ìì
+                                                                            cost 2: the other 36
+v3    already ships  àà áá ãã ää åå ææ çç èè éé ìì íí ðð ññ öö αα ββ νν ππ ττ  cost 1: ââ êê υυ
+                                                                            cost 2: the other 33
+```
+
+**v3 already ships `ìì` and v4.7 did not.** That single piece is the whole reason Fon and Yoruba
+read worse on v4.7 — it is §25's Tibetan tell running the other way, and it costs one query to
+find out which direction you are in. `υυ` reads cost 1 on v3 with no corpus behind it anywhere in
+this pool and is a recorded lead, not a piece (§20.5).
+
+### 27.4 Membership is per-family, and this pool is the strongest evidence of it yet
+
+Every v3 acceptance asked again on v4.7's own template, and the reverse:
+
+```
+16 of the 19 v3 pieces are REFUSED by v4.7's probe    iyy and aiah⟨eow⟩ cost 3, the other 14 cost 2
+ 3 of the 19 v4.7 already ships                       ələ  ⟨bow⟩žid  unun
+ 1 is a member in both                                ââ
+ 3 of the 4 v4.7 pieces v3 already ships              ìì  emem  oror
+```
+
+Not one piece crossed on a cross-family argument, and §19's non-transitivity did not have to be
+argued: the probes said so directly, in the same run that accepted them at home.
+
+### 27.5 The court, and the two the residue named afterwards
+
+Each candidate alone against the whole 35,774-row corpus, then greedily re-baselined, with §1's
+hazard-9 control that the rows it repairs must be WRONG without it. **All 19 and all 4 were kept,
+none idle, none refused, and no row in any of the 190 languages was pushed below the oracle.**
+`eleb` is worth naming: §21.4 dropped it as idle once the pieces above it had landed, and here it
+is the only candidate that repairs its Fon row, which is what "a candidate whose probes already
+reproduce explains nothing" cuts both ways about.
+
+Re-reading the residue afterwards named two more, both v3-only and both a family asymmetry again:
+
+* **`⟨shift⟩⟨bow⟩comuna⟨eow⟩`** — `x Comuna x` reads 3 against our 4 while `x comuna x` is exact,
+  so the site is the cased whole word, not the `Comuna-gua` hyphen it was found in. Cost 1 on the
+  `raw` template on v3 and **cost 4 on v4.7**. Nine cached texts hold it, all nine wrong before,
+  all nine exact after. The §23.4 proper-noun shape.
+* **`±⟨eow⟩`** — v4.7 ships it and v3 did not. `x ì± x` = 5 against our 6 while `x ±ì x`,
+  `x ì±ì x`, `x ì¶ x`, `x ì£ x` and `x ì±` are all exact, so it is the word-final border and not
+  the character: exactly §21.2's `²⟨eow⟩`. `£⟨eow⟩` `¶⟨eow⟩` `¤⟨eow⟩` `¡⟨eow⟩` `÷⟨eow⟩` read 2–3 and
+  `±.⟨eow⟩` `±,⟨eow⟩` `⟨bow⟩±` `⟨bow⟩±⟨eow⟩` read 2, with `©⟨eow⟩` and `×⟨eow⟩` at cost 1 as the
+  already-shipped positive controls. 305 cached texts hold it, 98 repaired, none broken, and none
+  of the 13 that under-count in that set moves by a token.
+
+### 27.6 One row was not vocabulary at all: a marker asserts a LOWERED body
+
+The last row of the pool, wrong in **both** families by exactly 2, is a Hausa headline:
+`・ Sirrin・ℳaιιakar・ℳiji`. Its two `ℳ` (U+2133 SCRIPT CAPITAL M) are the whole error, and the
+vocabulary is not what is wrong: `ℳ` reads cost 2 on the host-free `aℳa` template in both families,
+which is its byte-floor price, and `ιι` `ℳa` `aι` `ιa` all refuse. By §8 that leaves the stream.
+
+`'ℳ'.isupper()` is True and `'ℳ'.lower()` is `'ℳ'` — there is no lowercase letterlike M — so
+`mark_case` wrote ⟨shift⟩ in front of a body `str.lower` had not changed. **A case marker asserts a
+lowered body; a character that cannot supply one cannot take the marker that claims it.** That is
+the same sentence the İ head clause has rested on since §12.2 was closed, one Unicode property
+wider, so `caseless` becomes *cannot supply a lowered form* — strictly wider than
+`not (islower or isupper)`, keeping every titlecase and caseless character it already held.
+
+Nineteen BMP heads with no lowercase mapping, in `x {C}iji x` against their own lowered bodies, with
+21 heads that DO lower as controls:
+
+```
+ϒ ℋ ℌ ℍ ℐ ℒ ℕ ℙ ℚ ℛ ℜ ℝ ℤ ℨ ℬ ℭ ℰ ℱ ℳ      step 0   ours one OVER, in both families
+M A B H I L N P Q R S Z T G K Ꮖ Я Æ Ø Đ Ŋ   step +1   ours exact, in both families
+x MMMM x = x mmmm x + 1  (⟨caps⟩ fires)     x ℳℳℳℳ x = x ℒℒℒℒ x = 12 against our 13 on v3
+𝕊 𝐀                                          step 0, and already exact — §17's astral rule
+```
+
+A ⟨shift⟩ spelling can never cost the *same* as its lowered body, so 38 rows refute it outright and
+42 controls hold; ⟨caps⟩ carries the identical defect on v3 and the widened predicate closes it.
+Courted over the whole measurement store on `scripts/stream_court.py --variant lowerable_head`:
+
+| | reachable texts | exact | over | under | repaired | broken |
+|---|---:|---|---:|---:|---:|---:|
+| v3 | 68 of 1,251,052 | 40 → **68** | 28 → **0** | 0 → 0 | 28 | **0** |
+| v4.7 | 136 of 1,709,761 | 55 → **136** | 81 → **0** | 0 → 0 | 81 | **0** |
+
+Every text the rule can reach becomes exact and none is broken. The corpus evidence is a single
+Goldfish row, and that is honest to say: the rule was *selected* by one row and *accepted* by 80
+probes over a population the corpus barely touches.
+
+### 27.7 What it cost, measured before and after on everything
+
+The differential is the texts whose stream holds a piece's surface (§13.8), tiled twice with the
+derived structures rebuilt (§21.6):
+
+| | texts touched | exact before | exact after | over before | over after | broken | pushed below |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| v3, the first 19 pieces | 1,779 of 1,250,792 | 1,424 | **1,771** | 384 | **8** | 0 | 0 |
+| v4.7, 4 pieces | 673 of 1,709,678 | 537 | **673** | 140 | **0** | 0 | 0 |
+
+The Goldfish corpus, 35,774 rows over 190 languages, both families fully counted:
+
+| | v3 exact | v3 over | v4.7 exact | v4.7 over |
+|---|---|---:|---|---:|
+| `hau_Latn` 1,700 | 1,674 → **1,700** | 29 → **0** | 1,699 → **1,700** | 2 → **0** |
+| `grn_Latn` 700 | 690 → **700** | 13 → **0** | 699 → **700** | 1 → **0** |
+| `ibo_Latn` 1,700 | 1,692 → **1,700** | 9 → **0** | 1,699 → **1,700** | 1 → **0** |
+| `yor_Latn` 1,700 | 1,694 → **1,700** | 6 → **0** | 1,693 → **1,700** | 7 → **0** |
+| `lus_Latn` 700 | 694 → **700** | 6 → **0** | 700 | 0 |
+| `quy_Latn` 740 | 735 → **740** | 5 → **0** | 740 | 0 |
+| `fon_Latn` 1,700 | 1,696 → **1,700** | 4 → **0** | 1,692 → **1,700** | 8 → **0** |
+| `azj_Latn` 40 | 31 → **40** | 9 → **0** | 40 | 0 |
+| `slk_Latn` 40 | 38 → **40** | 4 → **0** | 40 | 0 |
+| `meo_Latn` 40 | 37 → **40** | 3 → **0** | 40 | 0 |
+| whole corpus | 35,664 → **35,752** | 121 → **23** | 35,749 → **35,767** | 26 → **7** |
+
+**No language in either family got worse and 19 improved on v3, 5 on v4.7** — nine of v3's are
+outside the pool, because these shapes are nobody's property: Aymara, Diq and Wolof took `ayay`,
+Ganda took `ukuk`, Tumbuka took `opop`, Chokwe and Dhivehi took `eheh`, and Burmese and South
+Azerbaijani took `±⟨eow⟩`. Every one of the 19 and all 5 went to **zero** over-charge.
+
+The whole measurement store, every text ever measured against either family, before and after:
+**v3 194 tokens under in 139 of 1,251,052 texts, v4.7 4 in 4 of 1,709,761 — identical readings.**
+No text in either family becomes an under-count that was not one, and none of the pre-existing ones
+is this campaign's: they are the Bamum/Vai and control-character sweep strings §24.7 lists.
+
+Held out and read once at the end: UDHR **395 → 437** exact on v3 (error mass 0.014% → 0.005%,
+speakers-weighted 0.002%) and **490 → 498** on v4.7 and v5 (0.000%, speakers-weighted 0.001%);
+Rosetta 1,741/1,741, the 250-document holdout 250/250, MultiPL-E 22/22, witness coverage 100% in
+both files (48,431 and 15,214 pieces), 223 tests pass. No document in either family under-counts and
+none is over 1%. **UDHR chose none of this**, and it carries Yoruba, Hausa, Igbo and Guarani
+documents that were never looked at until the end — the +42 is the consequence §0 says a real fix
+shows up as, and most of it is outside the pool: `ayay`, `ukuk`, `eheh`, `iyy` and `ələ` are
+common shapes in languages this campaign never named.
+
+### 27.8 Refused, and the residue
+
+* **587 of 606 v3 candidates and 102 of 106 v4.7 ones** — refused by their own probe. That wall did
+  all the work again (§13.6): the corpus proposed, the templates disposed, and the net-row control
+  never had to fire.
+* **16 of the 19 v3 pieces, asked on v4.7** — cost 2 or 3 there. No cross-port.
+* **`υυ`, `azaz`, `udud`, `ugug`** — cost 1 on v3 with no corpus behind them. Leads, not pieces.
+* **`ℳ` `ιι` `ℳa` `aι` `ιa`** — the Hausa row's vocabulary candidates, all refused in both
+  families, which is what left §8's second cause and pointed at the stream.
+* **`£⟨eow⟩` `¶⟨eow⟩` `¤⟨eow⟩` `¡⟨eow⟩` `÷⟨eow⟩` `±.⟨eow⟩` `±,⟨eow⟩` `⟨bow⟩±` `⟨bow⟩±⟨eow⟩`** —
+  what makes `±⟨eow⟩` a claim about that one border rather than about symbols.
+* The pool's residue is **zero over-charge in all fifteen language-family cells**. The whole-corpus
+  residue is 23 v3 tokens and 7 v4.7 ones, in nineteen and five languages this campaign was not
+  sent for.
+
+One row is worth recording because it is the only pool row a word miner could not have reached and
+is now gone by a different route: the two Korean-mojibake Yoruba lines whose every word priced
+exactly while the line did not (54 word tokens against a 56-token line, us at 57). The prefix ladder
+put the divergence at `ì± `, and `±⟨eow⟩` — a border piece, not a word one — closed both.
