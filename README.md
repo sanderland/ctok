@@ -67,14 +67,14 @@ These results compare `ctok` with recorded `count_tokens` responses:
 | MultiPL-E, 22 programming languages | held out | 22 | 22 |
 | Rosetta Code, 1,741 documents | mining | 1,741 | 1,741 |
 | Rosetta Code, separate 250 documents | mining | 250 | 250 |
-| UDHR, 501 languages | held out | 493 | 500 |
+| UDHR, 501 languages | mining (in-sample since 2026-08-12) | 501 | 501 |
 
-Every UDHR document is within 1%; the worst v3 document is `+0.1%`. v5 has the same content result as
-v4.7 because it uses the same vocabulary.
+v5 has the same content result as v4.7 because it uses the same vocabulary.
 
 The stored measurement sets contain no under-counts: 0 of 1,664,940 v3 texts and 0 of 1,722,961
-v4.7 texts. This is an empirical result, not a guarantee for arbitrary input. Goldfish and Rosetta
-may select candidates. UDHR and MultiPL-E never do.
+v4.7 texts. This is an empirical result, not a guarantee for arbitrary input. Goldfish, Rosetta and
+(since its final six pieces were selected by bisecting it) UDHR may select candidates; MultiPL-E
+never does, and is the one remaining held-out corpus in this table.
 
 Run the public gates with:
 

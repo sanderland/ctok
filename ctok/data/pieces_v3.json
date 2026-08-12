@@ -44,13 +44,13 @@
     "digit_eow": 247,
     "digit_mid": 818,
     "digit_word": 117,
-    "eow": 7789,
+    "eow": 7790,
     "glued": 1110,
     "mark_mid": 21,
     "mark_sep": 22,
-    "mid": 4733,
+    "mid": 4735,
     "prefix": 467,
-    "raw": 6471,
+    "raw": 6474,
     "special": 4,
     "word": 13250
    }
@@ -45681,7 +45681,13 @@
    "･･": {"probe": "a･･a", "raw": 10, "kind": "char"},
    "･･･": {"probe": "a･･･a", "raw": 10, "kind": "char"},
    "⟨shift⟩⟨bow⟩paralympic⟨eow⟩": {"probe": "Paralympic", "raw": 8, "kind": "raw"},
-   "⟨shift⟩⟨bow⟩paralympics⟨eow⟩": {"probe": "Paralympics", "raw": 8, "kind": "raw"}
+   "⟨shift⟩⟨bow⟩paralympics⟨eow⟩": {"probe": "Paralympics", "raw": 8, "kind": "raw"},
+   "⟨bow⟩födda⟨eow⟩": {"probe": "födda", "raw": 8, "kind": "raw"},
+   "⟨bow⟩reședința⟨eow⟩": {"probe": "reședința", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩taxa⟨eow⟩": {"probe": "Taxa", "raw": 8, "kind": "raw"},
+   "intint": {"probe": ".ヲintintヲ.", "raw": 16, "kind": "mid"},
+   "érér": {"probe": ".ヲérérヲ.", "raw": 16, "kind": "mid"},
+   "év⟨eow⟩": {"probe": ".ヲév.", "raw": 13, "kind": "eow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
