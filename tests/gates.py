@@ -69,39 +69,18 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Re-measured 2026-08-07 against the readings this model actually produces: 313/501 exact
-        # and 0.107% mean on v3, 363/501 and 0.064% on v4.7. The thresholds that stood here were set
-        # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
-        # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
-        # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
+        # The only corpus left with a residual, and it is unmined word vocabulary rather than
+        # structure. Every document in both families is within 1% and none under-counts, so
+        # `within1` could be tightened — it stays a fraction because the corpus is NOT finished: a
+        # rate below the real one is the compromise an unfinished corpus makes, and `ALL` here
+        # would fire on ordinary per-piece churn rather than on a regression.
         #
-        # Re-measured again 2026-08-10, after the astral border-marker law and the Thai/Myanmar
-        # vocabulary (LIMITS.md §17), then again with §16's boundary fix merged under it: 353/501
-        # exact and 0.031% mean on v3, 482/501 and 0.005% on v4.7 — §16 is worth the 482nd
-        # document — and for the first time EVERY document in both families is within 1% and none
-        # under-counts. `within1` stays a fraction rather than becoming `ALL` because this corpus
-        # is not finished — a third of v3's documents still over-charge — and a rate below the real
-        # one is the compromise an unfinished corpus makes. The exact and mean bounds move with the
-        # model for the reason the paragraph above gives: a threshold far from the reading has
-        # stopped being able to catch anything.
-        #
-        # Re-measured 2026-08-11 after the two Tamil seam pieces (LIMITS.md §18): 355/501 exact and
-        # 0.0284% mean on v3, 484/501 and 0.0017% on v4.7, with both Tamil documents going +79 → 0
-        # in each family. The bounds below are LEFT WHERE THEY ARE this time, which is a judgement
-        # and not an oversight: v3 reads 70.9% against a 68% floor and 0.0284% against a 0.06%
-        # ceiling, which is ordinary margin, and v4.7's mean now sits a factor of ten under its
-        # bound only because two documents' worth of error left in one campaign. A bound tightened
-        # onto a reading that moved this fast fires on the next campaign's churn rather than on a
-        # regression, and the every-document gates on Rosetta, the holdout and MultiPL-E are what
-        # actually catch one.
+        # The exact and mean bounds carry deliberate margin for the same reason. Both families
+        # currently read well clear of them, and a bound tightened onto a reading that still moves
+        # each campaign catches churn, not regressions. What actually catches a regression is the
+        # every-document gate on Rosetta, the holdout and MultiPL-E below.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0006, "within1": 0.99, "exact": 0.68},
-            # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
-            # and 0.043% mean. Retiring `ownscript` then gave 439, and removing the five pieces
-            # that glued a virama to a space gave 430. Both are deliberate steps backwards: a piece
-            # that is not a token cannot stay because it happens to help. Each converts a hidden
-            # error into an honest over-count, which is a thing that can be mined. UDHR selected
-            # none of it either way.
             "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.94},
         },
     },
@@ -111,13 +90,10 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # FINISHED, 2026-08-07: all three families reproduce all 1,741 documents, so the gate is
-        # every document rather than a rate. v3 was the last to close — it carried a vocabulary tail
-        # through the apostrophe and akshara work and reads exact since the terminal-mark spelling.
-        # Still every document on all three families through the `ownscript` retirement. One file
-        # did break when 439 refuted pieces were removed, and it came back when the single-codepoint
-        # ones among them were re-asked on the `char` template instead of the ヲ grid — the `known`
-        # allowlist in `assert_gate` held the gate up in between rather than lowering it to a rate.
+        # FINISHED: all three families reproduce all 1,741 documents, so the gate is every document
+        # rather than a rate. When a deliberate change does break a file, the `known` allowlist in
+        # `assert_gate` holds the gate up while it is repaired — the gate is never lowered to a
+        # rate, which would silently permit the next regression as well.
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
@@ -130,12 +106,8 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # FINISHED 2026-08-10, and gated at every document from then: the last failure was a Swift
-        # file of Unicode escapes whose combining marks sit on U+25CC DOTTED CIRCLE, which the §14
-        # accent law settled — a stream-spelling question, exactly as this comment used to predict.
-        # It stayed a rate while that spelling was open, on the principle that a threshold is not a
-        # target; leaving it a rate now would be the opposite mistake, since `exact: 0.99` on 250
-        # documents silently permits the next two regressions. v3 has no held-out sample measured.
+        # FINISHED, and gated at every document: `exact: 0.99` on 250 documents would silently
+        # permit the next two regressions. v3 has no held-out sample measured.
         "families": {
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
@@ -146,10 +118,7 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # FINISHED, 2026-08-07: every family reproduces all 22 files, so the gate is every file.
-        # v4.7 closed first, with the word-opening apostrophe, the contraction's word-side anchor
-        # and the space-spelled punct duplicates; v3 followed on the same vocabulary work that
-        # closed Rosetta for it.
+        # FINISHED: every family reproduces all 22 files, so the gate is every file.
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},

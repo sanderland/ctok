@@ -149,10 +149,9 @@ def glued_contraction(cn: str) -> str:
 def build_vocab(pieces, tokens: dict) -> frozenset[str]:
     """The tiling vocabulary: every parsed piece and the glued contraction spelling.
 
-    The structural markers used to be added here as well, which made three places that decided a
-    marker costs one token: this line, `tile`'s unit floor below, and the two of the four that the
-    vocabulary file happened to list. They live in the file now, in a `markers` group of their own —
-    a reader of `pieces.json` sees the whole tiling vocabulary rather than most of it.
+    The structural markers are NOT added here: they live in the vocabulary file, in a `markers`
+    group of their own, so a reader of `pieces.json` sees the whole tiling vocabulary rather than
+    most of it and there is one place that decides a marker costs one token.
     """
     vocab = set(pieces)
     # The contraction suffix, in the spelling the stream uses. The file stores `'t` and the encoder
@@ -161,8 +160,8 @@ def build_vocab(pieces, tokens: dict) -> frozenset[str]:
     #
     # That is measured, not a spelling convention. The increment a contraction adds over its left
     # context alone is 1 after a letter, a digit or a space, and 2 after punctuation — uniformly
-    # across all four v4.7 suffixes, all seven v3 suffixes and `}` `.` `)` in both families
-    # (2026-08-05). The step is the boundary token, appearing exactly where the apostrophe does not
+    # across all four v4.7 suffixes, all seven v3 suffixes and `}` `.` `)` in both families.
+    # The step is the boundary token, appearing exactly where the apostrophe does not
     # supply one. Marking every wordy span uniformly instead would have to reproduce that step out
     # of the vocabulary, which moves the special case rather than removing it.
     vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
@@ -219,9 +218,8 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # The frame absorbs RAW ASCII whitespace, which is why this strip runs before NFC rather
         # than after it: `nfc` folds NBSP and the other space separators to U+0020, and those do
         # NOT come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
-        # same. Stripping the folded text would hand back that token and under-count 363 documents
-        # of the Rosetta corpus, which is how this was found. `normalize.raw_head_space` is the
-        # same fact at the message HEAD, and it was missing there until 2026-08-12.
+        # same. Stripping the folded text hands back that token and under-counts 363 documents of
+        # the Rosetta corpus. `normalize.raw_head_space` is the same fact at the message HEAD.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
     s = stream_norm(norm, model, raw_head_space=raw_head_space(text))

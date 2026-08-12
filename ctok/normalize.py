@@ -60,7 +60,7 @@ def is_hard_cp(o: int) -> bool:
         # Quranic ANNOTATION signs — ayah ends, rub-el-hizb, the zeros, sajdah, the stop marks.
         # Two contiguous ranges, and each already contains members Unicode types as Cf or So which
         # were never in the letter class; the ones that leak through are the Mn members, because
-        # `classify` admits category M. Measured 2026-08-08 in `ف_ى`, delta against the unmarked
+        # `classify` admits category M. Measured in `ف_ى`, delta against the unmarked
         # baseline: U+06D6–06DC read +2, U+06DD–06E0 read +4, U+06E1–06E8 read +2, U+06E9–06EC
         # read +4, U+06ED reads +2 — so the boundaries are pinned on both sides of both ranges.
         # +4 is the unattached-mark spelling: its own ⟨bow⟩, the mark at the byte floor, and the
@@ -120,27 +120,25 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
     ``GaN``/``WiFi``/``QQ`` keep their bytes. ``allcaps_min=None`` disables ⟨caps⟩ (v4.7).
 
     **A caseless letter anywhere in the span blocks ⟨caps⟩ — and only ⟨caps⟩.** ``str.isupper``
-    is True for ``ヲBUTTヲ`` — katakana has no case, so "all cased letters are upper" holds — and
-    the ⟨caps⟩ the old test wrote there is one to three tokens cheaper than the literal spelling
-    the oracle uses. Measured 2026-08-10 on `.ヲBUTTヲ.` = 19 and its six grid mates, and on the
-    corpus rows that led there (`அறிவியலNATIONAL`, `ロデオFUCK`, `BODYの`, `परिएाजनाÓ` — 36 texts
-    across Tamil, Japanese and Hindi documents); confirmed against bought predictions in both
-    families (`x ロデオFUCK x` `x BODYの x` `x アBUTT x` `x BUTTア x` `x அறிவியலNATIONAL x`
-    literal, `x BUTT x` exact as control). ⟨shift⟩ is NOT blocked, and extending the block to it
-    was tried and caught by the full-cache re-scan before it shipped: a title-case head with a
-    caseless tail keeps its marker — `.Collectionヲ.` `.Ghostヲ.` and eighteen more `bow`-template
-    witnesses read ±1 both ways as literal, and the Assamese corpus spans `Gৰ` and `Gলৈকে`
-    (one Latin capital opening a Bengali word) read −2.
+    is True for ``ヲBUTTヲ`` — katakana has no case, so "all cased letters are upper" holds
+    vacuously — and ⟨caps⟩ + a lowered body prices such a span one to three tokens below the
+    literal spelling the oracle uses. Measured on `.ヲBUTTヲ.` = 19 and its six grid mates, on 36
+    corpus texts across Tamil, Japanese and Hindi documents (`அறிவியலNATIONAL`, `ロデオFUCK`,
+    `BODYの`, `परिएाजनाÓ`), and on bought predictions in both families (`x ロデオFUCK x`
+    `x BODYの x` `x アBUTT x` `x BUTTア x` `x அறிவியலNATIONAL x` literal, `x BUTT x` exact as
+    control). ⟨shift⟩ is deliberately NOT blocked: a title-case head with a caseless tail keeps
+    its marker — `.Collectionヲ.` `.Ghostヲ.` and eighteen more `bow`-template witnesses read ±1
+    both ways as literal, and the Assamese spans `Gৰ` and `Gলৈকে` (one Latin capital opening a
+    Bengali word) read −2 where it is blocked.
 
-    **A caseless MARK blocks it too**, and reading the block as per-LETTER was the last
-    under-counting text in the corpus. A wordy span holds letters and marks and nothing else, so
+    **A caseless MARK blocks it too.** A wordy span holds letters and marks and nothing else, so
     "all its cased letters are upper" is as vacuously true of `းUNDPA` as it is of `ヲBUTTヲ`: the
     span is a Myanmar sign glued to Latin capitals, and ⟨caps⟩ + a lowered body prices it one
-    token below the literal spelling the oracle uses. Measured 2026-08-11 over every text in the
-    measurement store that holds an uppercase letter and a mark (v3, 35,796 texts). Five spans in
-    the whole store put a caseless mark inside an all-caps run, three of them discriminate, and
-    the widened block is exact on all three — in BOTH directions, which is what makes it a
-    spelling rather than a fitted constant:
+    token below the literal spelling. Measured over every text in the measurement store that
+    holds an uppercase letter and a mark (v3, 35,796 texts). Five spans in the whole store put a
+    caseless mark inside an all-caps run, three of them discriminate, and the block is exact on
+    all three — in BOTH directions, which is what makes it a spelling rather than a fitted
+    constant:
 
         ၵၢၼ်ဢုပ်ႇဢူဝ်းUNDPA   ⟨caps⟩ reads 1 UNDER    literal exact
         ပႃႊတီႊသိူဝ်ၽိူၵ်ႇSNDP  ⟨caps⟩ reads 1 OVER     literal exact
@@ -149,8 +147,8 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
 
     Nothing else in either family moves: 5 texts move, all 5 to exact, 35,791 are untouched.
 
-    **The block is position-free, and that half was bought rather than assumed.** All five corpus
-    spans put the mark at the head, so they cannot tell "a mark anywhere" from "a mark at the
+    **The block is position-free**, and the corpus alone cannot say so: all five corpus spans put
+    the mark at the head, so they cannot tell "a mark anywhere" from "a mark at the
     head". A grid of 41 probes per family settles it on the membership reading — a span takes
     ⟨caps⟩ iff it costs exactly one more than its own lowered body — over five marks of combining
     class 0 from four scripts, each at the head, in the interior and at the tail of `BUTT`, the
@@ -166,44 +164,40 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
     everywhere**, exactly as the caseless letter is at the head (`அறிவியலNATIONAL`) and at the tail
     (`x BUTTア x`, `BODYの`). The corpus spans read as membership too: `x းUNDPA x` = 7 against
     `x းundpa x` = 5, and `x ႇSNDP x` = `x ႇsndp x` = 8 — a ⟨caps⟩ spelling can never cost the
-    same as its lowered body, let alone two more. The pre-block rule is wrong on 18 of the 41 v3
-    rows and the shipped one on none; v4.7 has no ⟨caps⟩ and reads 0 wrong either way, which is
-    the null control.
+    same as its lowered body, let alone two more. v4.7 has no ⟨caps⟩ and reads 0 wrong with the
+    block or without it, which is the null control.
 
     ⟨shift⟩ is untouched: the block suppresses ⟨caps⟩ and falls through, and returning the span
     literal instead ALSO drops ⟨shift⟩ and reads two Indic rows carrying one Latin capital
     (`Vಗಳನ್ನು`, `4G`) one under.
 
-    **A marker asserts a LOWERED body, so a character that cannot supply one blocks it** (§27,
-    measured 2026-08-12). ``ℳ`` is `isupper()` and ``'ℳ'.lower()`` is ``'ℳ'`` — there is no
+    **A marker asserts a LOWERED body, so a character that cannot supply one blocks it.**
+    ``ℳ`` is `isupper()` and ``'ℳ'.lower()`` is ``'ℳ'`` — there is no
     lowercase letterlike M — so ⟨shift⟩ + ``span.lower()`` writes a marker in front of a body it
-    did not change, and the oracle spends one token less. That is the same sentence the İ head
-    clause below already rests on, one Unicode property wider, so "caseless" becomes "cannot
-    supply a lowered form": every titlecase and caseless character the narrower predicate held is
-    still held, and the uppercase letters with no lowercase mapping join them. 19 BMP heads
+    did not change, and the oracle spends one token less. It is the same sentence the İ head
+    clause below rests on, one Unicode property wider: "caseless" here means "cannot supply a
+    lowered form", which holds every titlecase and caseless character plus the uppercase letters
+    with no lowercase mapping. 19 BMP heads
     (``ϒ ℋ ℌ ℍ ℐ ℒ ℕ ℙ ℚ ℛ ℜ ℝ ℤ ℨ ℬ ℭ ℰ ℱ ℳ``) read `x {C}iji x` = `x {c}iji x` with **step 0** in
     both families where we wrote a ⟨shift⟩, against 21 heads that DO lower (Latin, Cyrillic,
     Cherokee, ``Æ Ø Đ Ŋ``) at step +1 and exact; ⟨caps⟩ carries the same defect on v3
-    (`x ℳℳℳℳ x` = `x ℒℒℒℒ x` = 12 against our 13) and the widened predicate closes it. Astral
-    heads (``𝕊``, ``𝐀``) were already exact — §17's astral rule writes no marker there — and stay
-    so. Every reachable cached text moves to exact and none is broken: 28 of 68 on v3, 81 of 136
-    on v4.7.
+    (`x ℳℳℳℳ x` = `x ℒℒℒℒ x` = 12 against our 13). Astral heads (``𝕊``, ``𝐀``) are exact either
+    way — :func:`_borders`'s astral rule writes no marker there. Every cached text the predicate
+    can reach is exact under it and none is broken: 28 of 68 on v3, 81 of 136 on v4.7.
 
-    **İ is transparent to the title-case test and literal in its lowered body** (§12.2, closed
-    2026-08-10). `Hnovunİ` IS a title-case span to the oracle: it takes ⟨shift⟩, and the İ — which
-    has no clean lowercase byte form (it lowers to i + U+0307) — simply stays İ. That single
-    reading closes all thirteen §12.2 rows and was confirmed on their lowercase counterparts:
-    `x Hnİ x` = 14 = 1 + `x hnİ x`, `x Hnovunİİ x` = 15 = 1 + `x hnovunİİ x`, `x Hüseynovunİ x` =
-    18 = 1 + `x hüseynovunİ x`, and the never-measured shapes `x Hnİvo x` = 14 and `x Hİk x` = 13
-    step off their lowercase rows by exactly the ⟨shift⟩, in both families. The old reading — a
-    rule over a tile five tiles before the İ — was the literal tiling's coincidences: `HHnovunİ`,
-    `HNovunİ` and `hnovunİ` are not title-case, so the piece never budged there. İ at the span
-    HEAD still blocks (⟨shift⟩ asserts a lowered first letter, which İ cannot supply), and ẞ
-    measured literal in every position and stays an unconditional block.
+    **İ is transparent to the title-case test and literal in its lowered body.** `Hnovunİ` IS a
+    title-case span to the oracle: it takes ⟨shift⟩, and the İ — which has no clean lowercase byte
+    form (it lowers to i + U+0307) — simply stays İ. Thirteen corpus rows step off their lowercase
+    counterparts by exactly the ⟨shift⟩: `x Hnİ x` = 14 = 1 + `x hnİ x`, `x Hnovunİİ x` = 15 =
+    1 + `x hnovunİİ x`, `x Hüseynovunİ x` = 18 = 1 + `x hüseynovunİ x`, and so do the predicted
+    shapes `x Hnİvo x` = 14 and `x Hİk x` = 13, in both families. Spans that are not title-case
+    (`HHnovunİ`, `HNovunİ`, `hnovunİ`) take no marker and are literal throughout. İ at the span
+    HEAD blocks (⟨shift⟩ asserts a lowered first letter, which İ cannot supply), and ẞ measures
+    literal in every position and is an unconditional block.
 
     **``head_mark`` — the span is the tail of a word an unattached mark run opened, so its head is
     that mark and NEITHER marker can assert what it asserts.** The span is spelled literally.
-    Measured 2026-08-10 over 57 rows per family, on three marks (U+0363, U+05B1, U+2DE0):
+    Measured over 57 rows per family, on three marks (U+0363, U+05B1, U+2DE0):
     ⟨shift⟩ kept reads +1 on `x ͣThe x` = 13/18, `x ͣJohn x` = 14/19, `x ͣHello x` = 14/18,
     `x ͣXyz x`, `ͣThe x`, `!ͣThe x`, `x ͣThe`, `x ͣͣThe x`; ⟨caps⟩ kept reads −2 on
     `x ͣHELLO x` = 17, −4 on `x ͣЖЖЖЖ x` = 21 and −5 on `x ͣЖЖЖЖЖ x` = 23 (v3, where ⟨caps⟩
@@ -228,7 +222,7 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
             and not unlowerable:
         # Python's str.lower() applies Unicode's Final_Sigma context rule — 'ΣΚΙΕΣ'.lower() is
         # 'σκιες' — and the oracle's ⟨caps⟩ body does not: it lowers Σ to σ everywhere. Measured
-        # 2026-08-10 on the two Greek documents the residue scan left: `x ΣΚΙΕΣ x` = 16 is the
+        # on two Greek corpus documents: `x ΣΚΙΕΣ x` = 16 is the
         # σκιεσ spelling (σκιες reads 14, literal 21), `x ΕΠΙΤΡΟΠΗΣ x` = 17 = `x επιτροπησ x` + 1,
         # `x ΔΙΑΦΘΟΡΑΣ x` and `x ΣΣΣΣ x` step the same way, and every caps word WITHOUT a final
         # sigma — `x ΣΚΙΕ x` `x ΑΓΟΡΑ x` `x ΕΠΙΤΡΟΠΗ x` `x ΜΟΣΧΑ x` `x ΤΕΣΤ x` — is exact under
@@ -249,16 +243,15 @@ def _is_borderable_text(body: str) -> bool:
     """Does this HARD body take the punctuation border markers — every character punctuation,
     symbol or format, judged PER CHARACTER by :func:`_marks_like_punct`?
 
-    This is deliberately per-character: the earlier homogeneous run tests let a MIXED body — a
-    format character against a BMP symbol — fall through and lose its markers. Measured
-    2026-08-10 on the Sorani corpus row's `🎓 ‎⏰` (LRM + alarm clock, one under while glued
-    markerless) and the grid bought from it: `1 ‎⏰ 1` `1 ⏰‎ 1` `1 €‎ 1` `1 ‎€ 1` `x ‎⏰ 5`.
-    Ideographic punctuation and astral characters exclude their runs, exactly as they always
-    excluded themselves; a trailing variation selector rides its base.
+    The test is per-character rather than per-run: a homogeneous-run test lets a MIXED body — a
+    format character against a BMP symbol — fall through and lose its markers. Measured on
+    `🎓 ‎⏰` (LRM + alarm clock, one under while glued markerless) and the grid around it:
+    `1 ‎⏰ 1` `1 ⏰‎ 1` `1 €‎ 1` `1 ‎€ 1` `x ‎⏰ 5`. Ideographic punctuation and astral characters
+    exclude their runs, exactly as they exclude themselves; a trailing variation selector rides
+    its base.
 
     A body of ONLY selectors is borderable too — a lone selector is still the catch-all
-    alternative's material, whatever it failed to ride. Measured 2026-08-10, the row an in-situ
-    window deletion manufactured and both families then confirmed on a bought grid: `5 ️ 5` reads
+    alternative's material, whatever it failed to ride. Measured in both families: `5 ️ 5` reads
     two under with no markers, `a️ 5` `1️ 5` `!️ 5` `Э️ 5` `x ️ 5` `️ 5` `x ️️ 5` and `5 ️`
     one, while `a️ z` `x ️ x` (the seam cancels), `a️5` (no space), `a️` (message end) and the
     space-run rows `x ️  5` `a️  5` are exact. The run is not a symbol, but it takes the markers
@@ -319,7 +312,7 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     And the run on the far side of that apostrophe must not write a right-hand border marker of
     its own (:func:`_takes_right_border`). That third condition began as "not punctuation", which
     the second one already covers, and the population is wider: it is every run the catch-all
-    pretoken alternative owns. Measured 2026-08-10, one token under without it, in both families:
+    pretoken alternative owns. Measured one token under without it, in both families:
 
         x a̱'s x   x a्'s x   x a่'s x   x a݀'s x       a terminal separator run
         x ̱'re x   x .̱'re x   x 5̱'re x                 a separator run with no letter before it
@@ -356,13 +349,13 @@ def _is_no_run(body: str) -> bool:
     """A run of Unicode *other* numbers (No): vulgar fractions, super/subscripts, circled and
     parenthesized digits, and the script-specific fraction and numeral signs.
 
-    These classify HARD — they are neither Nd nor letters — so before this they took no markers at
-    all, and a single space hid it: the seam absorbs the ⟨bow⟩, so `a ½ b` is exact either way. Two
-    spaces do not absorb, and there `a  ½  b` reads one MORE than a marker-free ½ allows. Swept over
-    every assigned No codepoint below U+3000: 228 of 232 take the ⟨bow⟩ on the double-space probe
-    and are exact on the single-space one, with no split by script or by block. The four that differ
-    — U+00B2, U+2460, U+2461, U+2463 — disagree on the SINGLE-space probe too, which is a missing
-    piece rather than a missing marker, and they are recorded as open rather than excepted here.
+    These classify HARD — they are neither Nd nor letters — and a single space hides whether they
+    take a marker: the seam absorbs the ⟨bow⟩, so `a ½ b` is exact either way. Two spaces do not
+    absorb, and there `a  ½  b` reads one MORE than a marker-free ½ allows. Swept over every
+    assigned No codepoint below U+3000: 228 of 232 take the ⟨bow⟩ on the double-space probe and
+    are exact on the single-space one, with no split by script or by block. The four that differ
+    — U+00B2, U+2460, U+2461, U+2463 — disagree on the SINGLE-space probe too, which makes them a
+    vocabulary question rather than a marker one, and each is a piece in its own right.
     """
     return bool(body) and all(unicodedata.category(c) == "No" for c in body)
 
@@ -370,11 +363,11 @@ def _is_no_run(body: str) -> bool:
 def _borders(ch: str) -> bool:
     """Is this character one that can carry a border marker at all?
 
-    An ASTRAL character cannot, and that is the same exclusion :func:`_marks_like_punct` and
-    :func:`_is_symbol_text` already carry for punctuation, symbols and emoji — stated once here
-    so the digit and terminal-separator branches stop being the two places it was missing.
+    An ASTRAL character cannot, and that is the same exclusion :func:`_marks_like_punct` carries
+    for punctuation, symbols and emoji — stated once here so the digit and terminal-separator
+    branches share it rather than restating it.
 
-    Measured 2026-08-10, and the sweep is exhaustive over both populations rather than sampled.
+    The sweep is exhaustive over both populations rather than sampled.
     **All 30 astral terminal separators** — Kharoshthi, Brahmi ×3, Kaithi, Chakma ×2, Sharada,
     Khojki, Khudawadi, Grantha, Newa, Tirhuta, Siddham, Modi, Takri, Ahom, Dogra, Dives Akuru ×2,
     Nandinagari, Zanabazar ×2, Soyombo, Bhaiksuki, Masaram Gondi ×2, Gunjala Gondi, Kawi ×2 —
@@ -419,7 +412,7 @@ def _digit_bow(body: str) -> bool:
     exactly as the punctuation marker is (see :func:`_marks_like_punct`) — the run's FIRST
     character decides, not the run as a whole.
 
-    Measured 2026-08-09 on mixed ASCII/Arabic-Indic runs, which are the only runs where the two
+    Measured on mixed ASCII/Arabic-Indic runs, which are the only runs where the two
     readings differ (a HARD digit sub-run is all non-ASCII by construction, since ASCII digits are
     their own class). `文 5٥` = 17 and `٥5 5` = 17 and `文 ٥5 5` = 20 each read one MORE under a
     whole-run test, which wrote a ⟨bow⟩ on a run that opens with `5`; `文 ٥5` = 18 and `文 ٥5 文`
@@ -432,8 +425,8 @@ def _digit_eow(body: str) -> bool:
     """Does a digit run write ⟨eow⟩ where it borders a single space on the right? The run's LAST
     character decides, the mirror of :func:`_digit_bow`.
 
-    This is the half the digit branch never had, and the reason it looked complete is that the
-    seam hides it: an ⟨eow⟩ before `space + ⟨bow⟩` is deleted along with the space, so every probe
+    The seam hides this marker almost everywhere: an ⟨eow⟩ before `space + ⟨bow⟩` is deleted
+    along with the space, so every probe
     whose right neighbour is a word, a punctuation run or another marker-taking digit run reads
     the same with it and without it (`x ５ x` `８ ９` `١ ٢` `a ½ b` `文 ５ x` all exact either
     way). It shows only before a run that writes no ⟨bow⟩ of its own — a CJK or Hangul letter, or
@@ -469,14 +462,15 @@ def is_killer(c: str) -> bool:
     whole syllable exactly as a virama is written after the whole cluster, and the vowel signs that
     do not split are written inside it.
 
-    Every killer stands OUTSIDE the word: `⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩`. The U+0300 block used
-    to be excepted from that — it closed the word AFTER the mark — on the strength of decomposed
-    Latin corpus slices. Those slices do not distinguish the two spellings: they differ only on a
-    host whose whole word is one token, and only against a right neighbour that opens no word.
+    Every killer stands OUTSIDE the word: `⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩`, U+0300 block included.
+    The two spellings — the word closing before the mark or after it — differ only on a host whose
+    whole word is ONE token, and only against a right neighbour that opens no word, so a
+    byte-floored host cannot tell them apart (:data:`SEPARATOR_MARKS` carries the frames that can).
 
-    **One ccc-9 character dissents, and being DEFINED rather than measured is how it hid**
-    (:data:`NON_KILLERS`). Asked ours-against-oracle on a consonant of its own script, all 121
-    characters this predicate claims reproduce except U+0E3A THAI PHINTHU:
+    **One ccc-9 character dissents** (:data:`NON_KILLERS`). Because the viramas are DEFINED by
+    combining class rather than listed, the population has no membership test; asked
+    ours-against-oracle on a consonant of its own script, all 121 characters this predicate claims
+    reproduce except U+0E3A THAI PHINTHU:
 
     ```
                         x HMH x   HMH    x HM x   x HMHH x   x HHMH x
@@ -485,12 +479,11 @@ def is_killer(c: str) -> bool:
     U+094D  क virama     0         0      0        0          0     and 8 more, all zero
     ```
 
-    It reads +2 in both families because the split is not there to be made, and the same
-    misreading is an UNDER-count wherever the phinthu has no letter in front of it and our
-    `_KILLER` branch writes no boundary at all: `!ฺ` = 12 / 16 against our 10 / 14, `1ฺ` `[ฺ]`
-    `[文ฺ]` `◌ฺ` alike, which is 38 of the 151 texts that still under-counted. As an ordinary mark
-    it is a word's own material after a letter (`xฺ` `xฺx` `กฺก` exact) and a stray-mark run after
-    anything else, which is what those rows measure.
+    Read as a killer it is +2 in both families, because the split is not there to be made, and it
+    UNDER-counts wherever the phinthu has no letter in front of it and the `_KILLER` branch writes
+    no boundary at all: `!ฺ` = 12 / 16 against 10 / 14, `1ฺ` `[ฺ]` `[文ฺ]` `◌ฺ` alike. As an
+    ordinary mark it is a word's own material after a letter (`xฺ` `xฺx` `กฺก` exact) and a
+    stray-mark run after anything else, which is what those rows measure.
     """
     return (unicodedata.combining(c) == 9 and c not in NON_KILLERS
             or c in EXTRA_KILLERS
@@ -508,10 +501,10 @@ def _stray_mark(c: str) -> bool:
     fires only where a mark's base is not a letter: after a symbol, a digit, punctuation, an
     ideograph, an emoji, or at the very start of the text.
 
-    Measured against the alternatives on the corpora (v4.7 / v3 UDHR mean, 2026-08-07):
+    Measured against the alternatives on the corpora (v4.7 / v3 UDHR mean):
 
         this rule                                       0.0643% / 0.1094%   362 / 314 exact
-        a mark opens a word of its own (what preceded)  0.0644% / 0.1096%   361 / 313
+        a mark always opens a word of its own           0.0644% / 0.1096%   361 / 313
         a mark is an unmarked separator                 0.1403% / 0.1932%   361 / 315
         a mark is NOT in the letter class at all        1.5416% / 1.5842%   329 / 293
 
@@ -521,10 +514,7 @@ def _stray_mark(c: str) -> bool:
     is the only one the corpora support.
 
     Only a BMP mark reaches this branch: an astral one is HARD and takes no word model at all
-    (:func:`is_hard_cp`), and a separator is a killer. Of the 2,435 cached `<mark>ꝛ` rows exactly
-    243 are stray-mark runs, every one of them BMP; the five marks §14.4 cited against dropping the
-    letter's ⟨bow⟩ — U+1BE6, U+2CEF, U+302A, U+3099, U+A8E0 — became ``SEPARATOR_ANNOTATIONS`` in
-    §15's fifth pass and have not been in this branch since.
+    (:func:`is_hard_cp`), and a separator is a killer.
     """
     if _syriac_vowel(c):
         return False                   # a baseless Syriac vowel is a word-forming letter instead
@@ -535,8 +525,8 @@ def _syriac_vowel(c: str) -> bool:
     """A Syriac vowel point (or superscript alaph) — a mark that acts as a word-forming LETTER
     wherever no base can hold it, rather than as a stray mark or a killer-run rider.
 
-    Measured 2026-08-09 on 160 cached rows plus eight bought probes, every one reconciled by the
-    letter reading and none by any marker rule tried before it:
+    Measured on 160 cached rows plus eight bought probes, every one reconciled by the letter
+    reading and none by any marker rule:
 
       * riding a killer: `ܒ݂ܶ` = 21 is `⟨bow⟩ܒ⟨eow⟩ ݂ ⟨bow⟩ܶ⟨eow⟩` (10 content tokens — a word
         model around the vowel, ⟨eow⟩ and all, at MESSAGE END, which no stray-mark spelling
@@ -576,15 +566,12 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = classify(ch)
-        # A Syriac-dot absorb clause stood here: a non-vowel combining mark after U+0740–U+074A
-        # rode the killer run instead of opening a stray word. It predated §14 — its one motivating
-        # row, `x ݂́ܒ x`, has the ACUTE as the rider, and the acute has been a killer in its own
-        # right since the accent sweep, joining the run with no clause needed. For every rider the
-        # clause still touched it was one token UNDER: the stray-word spelling is exact on
-        # `x ݀ͅ x` = 16/20 and on ten bought predictions in both families — `x ݀ͣ x` `x ٰ݀ x`
+        # A combining mark riding a Syriac dot run (U+0740–U+074A) opens a stray word like any
+        # other, with no clause of its own: an acute after the dot is a killer in its own right and
+        # joins the run, and every other rider reads one token UNDER if it is made to ride.
+        # Measured on `x ݀ͅ x` = 16/20 and ten predictions in both families — `x ݀ͣ x` `x ٰ݀ x`,
         # `݀ͅ` at message end, `x ݀ͅ 5`, the double rider `x ݀ͅͅ x`, `x ݀ͅa x` (a letter
-        # continues the stray word), `5݀ͅ5` — with `x ݂́ܒ x` and the vowel row `x ݂ܶ x` exact as
-        # controls. So the clause is gone rather than narrowed.
+        # continues the stray word), `5݀ͅ5` — with `x ݂́ܒ x` and the vowel row `x ݂ܶ x` as controls.
         if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
             cur += ch                  # consecutive unattached marks are one regex-style run
         elif c == cur_cls:
@@ -597,18 +584,17 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
             cur, cur_cls = ch, c
     out.append((cur_cls, cur))
 
-    # A HARD run is not homogeneous. `文？` is one run by class, so a whole-run test sees a mixed
-    # body and the `？` loses the border markers it is entitled to — while the same character in a
-    # run of its own gets them. Measured
-    # 2026-08-08: `文？ 文` and `文 ？文` each cost one more than that spelling charges, `文？文`
-    # and `文？  文` are exact, and `あ？ 文` (already its own run) was exact all along. So the run
-    # is split where the character KIND changes, and the existing predicates then apply per piece.
+    # A HARD run is not homogeneous, so it is split where the character KIND changes and the
+    # predicates below then apply per sub-run. `文？` is one run by class, and judged whole its
+    # mixed body costs `？` the border markers the same character gets in a run of its own:
+    # `文？ 文` and `文 ？文` each cost one more than that spelling charges, while `文？文`,
+    # `文？  文` and `あ？ 文` (already its own run) are exact.
     #
     # A variation selector never opens a sub-run of its own: it rides its base's sub-run. So is
     # punct-like and Mn is not, so `⚖️` would otherwise sever at the selector — the symbol sub-run
     # takes its ⟨bow⟩ but the trailing selector falls to the no-marker branch and the ⟨eow⟩ is
-    # lost. Measured 2026-08-09: `1 ⚖️ 1` = 22 and `1 ✔️ 1` = 21, one more than the severed
-    # spelling charges; `a ⚖️ b` = 19 is exact either way because the letter seam cancels it.
+    # lost. `1 ⚖️ 1` = 22 and `1 ✔️ 1` = 21, one more than the severed spelling charges;
+    # `a ⚖️ b` = 19 is exact either way because the letter seam cancels it.
     split = []
     for cls, body in out:
         if cls != HARD or len(body) == 1:
@@ -629,7 +615,7 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
 def _ideographic_punct(ch: str) -> bool:
     """Punctuation of the CJK Symbols and Punctuation block, which takes NO border marker.
 
-    Measured 2026-08-08 over every P-category character of U+3001–U+303F: 25 of 25 write neither
+    Measured over every P-category character of U+3001–U+303F: 25 of 25 write neither
     ⟨bow⟩ nor ⟨eow⟩. Two independent signatures agree — the digit frames over-charge if a marker is
     written (`1 。 1` reads 17 against the 19 a marker costs), and the seam frame rejects a fused
     piece as the alternative explanation (`a。 b` reads 15; a `。⟨eow⟩` piece would make it 14, which
@@ -649,7 +635,7 @@ def _hard_kind(ch: str) -> str:
     A HARD run is a run of our own class, not a pretoken: the conventional pretokenizer regex
     alternates ``\\p{L}\\p{M}*`` | ``\\p{N}+`` | ``[^\\s\\p{L}\\p{N}]+``, so a number and the
     ideograph beside it are different pretokens however our classifier grouped them. The
-    punctuation split was measured first (`文？ 文`); the number split is the same fact for the
+    punctuation split shows on `文？ 文`; the number split is the same fact for the
     other alternative, and `件 ５年` = 17, `件 ½年` = 17, `件 ５。` = 17, `件 ５５年` = 18,
     `取 ５年` = 17, `문 ５년` = 17 each cost one more than an unsplit run charges — the ⟨bow⟩ the
     digit branch writes once `５` is a run of its own. Controls: `件 5年` `x 5年 x` (ASCII digits
@@ -674,10 +660,9 @@ def _marks_like_punct(ch: str) -> bool:
     is judged as a whole.
 
     ASTRAL characters are excluded too: an emoji takes no border marker, so it must not be the
-    punct KIND either — a format
-    character in front of one would be glued into a single markerless sub-run and lose the ⟨bow⟩
-    it is entitled to. Measured 2026-08-10 on the Sorani corpus row's three sites and the grid
-    bought from them: `📐 ‎📝` `🎓 ‎⏰` `🔍 ‎📝` `📐 ‎👨` (LRM before an emoji) each read one
+    punct KIND either — a format character in front of one would be glued into a single markerless
+    sub-run and lose the ⟨bow⟩ it is entitled to. Measured on three corpus sites and the grid
+    around them: `📐 ‎📝` `🎓 ‎⏰` `🔍 ‎📝` `📐 ‎👨` (LRM before an emoji) each read one
     under glued, in both families, while `1 📐 ‎1` `文 📐 ‎文` `📐 ‎` `📐‎📝` `📐 📝` are exact
     either way — the sub-run split at the letter/punct kind change is what keeps the LRM its own
     run against `文`, and this exclusion is what keeps it one against `📝`.
@@ -708,16 +693,14 @@ def raw_head_space(text: str) -> bool:
     not absorb across it — whether :func:`nfc` then STRIPS that character or FOLDS it INTO the
     space makes no difference to what the oracle saw.
 
-    This predicate used to ask the narrower question "did nfc strip the first character", and the
-    fold half was missing. Measured 2026-08-12, one token under without it in both families and
-    exact with it: '\\xa0a' '\\xa0.' '\\xa0::' (the three NBSP-led Rosetta prefixes in the store),
-    the other folded spaces '\\u2009a' '\\u202fa' '\\u2007a', and NUL, which ``nfc`` folds to a
-    space rather than stripping: '\\x00a' '\\x00.' — 8 shapes per family, all at oracle 2 where the
-    absorbed spelling charges 1.
+    So a FOLD counts as much as a STRIP: 8 shapes per family read one token under if the space a
+    fold produced is absorbed, and exact if it is not — '\\xa0a' '\\xa0.' '\\xa0::' (the three
+    NBSP-led Rosetta prefixes in the store), the other folded spaces '\\u2009a' '\\u202fa'
+    '\\u2007a', and NUL, which ``nfc`` folds to a space rather than stripping: '\\x00a' '\\x00.'.
 
-    Controls, unmoved by the widening: ' a' = 1 and 'a' = 1 (a real raw space still absorbs),
+    Controls: ' a' = 1 and 'a' = 1 (a real raw space still absorbs),
     '  a' = 2, '\\x95a' = 1 (the strip itself is right — the character costs nothing), '\\x95 a'
-    and '\\uf0d8 a' = 2 (2026-08-09, the rows this predicate was built on), '\\xa0 a' and
+    and '\\uf0d8 a' = 2 (a stripped character in front of a real space), '\\xa0 a' and
     '\\xa0\\xa0a' = 2 (a second space is not absorbed either way), 'a\\xa0a' 'a\\xa0b'
     'x \\xa0 x' (mid-text folds never touch the head rule), '\\ta' '\\na' '5 a' ' 5' ' .'.
     """
@@ -749,12 +732,12 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     if not runs:
         # Content that normalizes away entirely still pays for the frame's ⟨bow⟩. It is the same
         # ⟨bow⟩ the `out` list below writes when the first run supplies none: with nothing to
-        # attach to it tiles as itself, and returning "" dropped it. Measured 2026-08-12, oracle 1
-        # against our 0 in both families, on eight messages that strip to nothing — the private-use
-        # characters U+F0B7, U+F0E8, U+E000 and U+F0B7 doubled, and the controls U+0095, U+0001,
-        # U+007F and U+0095 U+0096. Controls, unmoved at 1, where the same ⟨bow⟩ is absorbed into
+        # attach to it, it tiles as itself. Oracle 1 in both families on eight messages that strip
+        # to nothing — the private-use characters U+F0B7, U+F0E8, U+E000 and U+F0B7 doubled, and
+        # the controls U+0095, U+0001, U+007F and U+0095 U+0096 — where dropping the marker
+        # charges 0. Controls at 1, where the same ⟨bow⟩ is absorbed into
         # the word that follows: 'a', '\x95a', '\uf0b7a'. A whitespace-only message cannot be
-        # asked at all — the API refuses U+000B.
+        # asked at all — the API refuses it.
         return BOW_G if model.frame_bow else ""
     caps = model.allcaps_min
     n_runs = len(runs)
@@ -777,7 +760,7 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             return False
         if side < 0:
             return runs[j][1][-1:] == " "
-        # Run-kills-marker (measured 2026-07-30, `punct_ws` grids): a punct right-marker is
+        # Run-kills-marker (measured on the `punct_ws` grids): a punct right-marker is
         # written for the SEAM space only. Before a run of two or more spaces there is no
         # charge — uniform over run lengths 2/3/4/17 — while tab and newline neighbours keep
         # their (differently priced) boundaries.
@@ -821,7 +804,7 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             # writes no ⟨eow⟩ and the letter writes no ⟨bow⟩ of its own (the WORDY branch above):
             # `⟨bow⟩M abc⟨eow⟩`, one word, exactly as `_syriac_vowel` and U+0CF3 already fuse.
             #
-            # Measured 2026-08-10, on the frame that cancels the mark's own price. The two
+            # Measured on the frame that cancels the mark's own price. The two
             # spellings differ ONLY by the word's ⟨bow⟩, so across right-hand words W the severed
             # error moves with `cost(⟨bow⟩W⟨eow⟩) - cost(W⟨eow⟩)` and the fused error cannot move
             # at all — whatever the mark costs, it costs the same in every column:
@@ -834,22 +817,19 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             # the Arabic harakat and annotations, Samaritan, Thaana, Tibetan, Thai and Buginese,
             # each on those six words in two frames (`x MW x`, `!MW x`) and both families: the
             # severed spelling reads a SPREAD of −1/0/+1 for every mark and the fused spelling a
-            # constant, never the other way round. `x ͣabc x` = 14 on v3 and `x ͣthe x` = 18 on
-            # v4.7 — the last two under-counting texts in the cache — are two cells of it, and
-            # §14.6's `x ͣก x` `x ͣب x` over-counts are two more.
+            # constant, never the other way round. `x ͣabc x` = 14 on v3, `x ͣthe x` = 18 on v4.7
+            # and `x ͣก x` `x ͣب x` are four cells of it.
             #
-            # The run head does NOT byte-price. That clause was standing in for this boundary: with
-            # the word's ⟨bow⟩ wrongly written, every mark that owns a unit piece read one under,
-            # and forcing the raw floor cancelled it. Separated, the floor is a constant over-charge
-            # on exactly those marks — U+064F U+0E38 U+05B0 +1 and U+0F72 U+064B +1/+2 in all nine
+            # The run head does NOT byte-price: the mark reaches its own unit piece here as
+            # anywhere else. Forcing the raw byte floor on it is a constant over-charge on exactly
+            # the marks that own one — U+064F U+0E38 U+05B0 +1 and U+0F72 U+064B +1/+2 in all nine
             # frames of the head grid, exact without it, with U+0363 U+05B1 U+2DE0 U+0670 U+0EB8
-            # unmoved either way. That closes LIMITS §14.6's "three marks over-priced at a stray
-            # run head by a constant"; the marks reach their piece here as anywhere else.
+            # unmoved either way.
             letter_follows = i + 1 < n_runs and runs[i + 1][0] == WORDY
             out.append(BOW_G + body + ("" if letter_follows else EOW_G))
         elif cls == _KILLER:
             # A terminal separator run takes the same border markers punctuation does. Measured
-            # 2026-08-08 on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each
+            # on Lao ່, Khmer ់, Myanmar ့, Thai ่, Bengali ্: `ກ່ 5` and `5 ່ກ` each
             # cost one more than an unmarked run charges, `5 ່ 5` costs two, and `ກ່5`, `ກ່  5`
             # (space run kills the marker) and `ກ່` at message end are exact. The control is a
             # NON-terminal mark of the same script — Lao ຸ — which is exact unmarked.
@@ -869,13 +849,12 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             # A digit run takes the same border markers punctuation does, on BOTH sides, and which
             # side is written is decided by the border character (`_digit_bow`, `_digit_eow`).
             #
-            # The ⟨eow⟩ half was missing, and with it went a clause that gave an ASCII run a ⟨bow⟩
-            # "against a non-ASCII digit neighbour across the space". That clause was standing in
-            # for the neighbour's own ⟨eow⟩: wherever it fired, the seam deleted the space between
-            # the two markers, so the pair is interchangeable and the probes could not tell them
-            # apart. They separate on a space RUN, which kills the marker but not the seam-less
-            # ⟨bow⟩ — `٥  5` = 16 and `٥5 5` = 17 and `文 ٥5 5` = 20 each read one MORE with the
-            # lookback clause and exact without it. So it is gone rather than mirrored.
+            # There is deliberately no lookback across the space: an ASCII run does NOT take a
+            # ⟨bow⟩ because a non-ASCII digit run stands on the far side of the seam. That reading
+            # is interchangeable with the neighbour's own ⟨eow⟩ wherever the seam deletes the space
+            # between the two markers, and the two separate on a space RUN, which kills a border
+            # marker but not a seamless ⟨bow⟩: `٥  5` = 16, `٥5 5` = 17 and `文 ٥5 5` = 20 each
+            # read one MORE with a lookback clause and exact without one.
             out.append((BOW_G if _digit_bow(body) and borders_space(i, -1) else "") + body
                        + (EOW_G if _digit_eow(body) and borders_space(i, +1) else ""))
         else:

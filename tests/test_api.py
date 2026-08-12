@@ -157,7 +157,7 @@ def test_a_stray_mark_run_is_a_word(version: float):
     `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run.
 
     The fusion is measured on the frame that cancels the mark's own price, where the two spellings
-    differ ONLY by the word's ⟨bow⟩ (LIMITS §16): over 22 marks and six right-hand words the
+    differ ONLY by the word's ⟨bow⟩: over 22 marks and six right-hand words the
     severed spelling's error moves with the word — `x ͣabc x` = 14 one under on v3, `x ͣก x` = 13
     one over — and the fused spelling's does not move at all. The mark's head is ordinary
     vocabulary here, not a forced byte floor; that floor was standing in for the missing ⟨bow⟩.
