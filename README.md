@@ -87,7 +87,7 @@ message frame, so it lands on the same documents with the same errors;
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.015% | 0.019% | 393/501 | 100% |
+| UDHR (501 languages) | v3 | 0.014% | 0.018% | 395/501 | 100% |
 | UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 490/501 | 100% |
 
 **No document in either family is over 1% off any more, and none under-counts** — not in these
@@ -108,6 +108,8 @@ miner can reach it at all, and it usually could not.
 | seven Latin/Cyrillic languages | 83 | the same rows are two different problems in the two families: 0% inside words on v4.7 where the site is `²` at a word-closing border, 100% inside words on v3 where it is ordinary vocabulary | [§21](LIMITS.md) |
 | eleven CJK, Greek and Arabic-script languages | 19 | not one of them a word — Han is the isolated HARD class, so no word localizer reaches a Chinese row. A baseless Arabic fatha, the CJK punctuation *pair*, and three enclosed numerals | [§22](LIMITS.md) |
 | ten European languages | 19 | three were one document each (a flyer of `××`, a birth/death list, a Gospel's nested quote); the other seven are proper nouns — `София` alone is 54 of Bulgarian's 86 | [§23](LIMITS.md) |
+| the last under-count | 0 | a ⟨caps⟩ written on a caseless **mark** — `'းUNDPA'.isupper()` is True because a Myanmar spacing mark has no case to contradict it. §15 had fixed this for caseless letters; the predicate was one Unicode category too narrow | [§24](LIMITS.md) |
+| Tibetan, Dzongkha | 1 | 58% of v3's residue on the Goldfish batches was one piece v4.7 already shipped, `ླ`+`ོ`. Seven vowel signs and all 44 subjoined letters refuse — one cell on each axis | [§25](LIMITS.md) |
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
