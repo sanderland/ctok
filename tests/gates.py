@@ -69,39 +69,18 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Re-measured 2026-08-07 against the readings this model actually produces: 313/501 exact
-        # and 0.107% mean on v3, 363/501 and 0.064% on v4.7. The thresholds that stood here were set
-        # before the terminal-mark spelling and had drifted a long way clear of the model — v3 was
-        # gated at 53% while reading 62% — so they had stopped being able to catch anything. This is
-        # the only corpus left with a residual, and it is unmined vocabulary rather than structure.
+        # The only corpus left with a residual, and it is unmined word vocabulary rather than
+        # structure. Every document in both families is within 1% and none under-counts, so
+        # `within1` could be tightened — it stays a fraction because the corpus is NOT finished: a
+        # rate below the real one is the compromise an unfinished corpus makes, and `ALL` here
+        # would fire on ordinary per-piece churn rather than on a regression.
         #
-        # Re-measured again 2026-08-10, after the astral border-marker law and the Thai/Myanmar
-        # vocabulary (LIMITS.md §17), then again with §16's boundary fix merged under it: 353/501
-        # exact and 0.031% mean on v3, 482/501 and 0.005% on v4.7 — §16 is worth the 482nd
-        # document — and for the first time EVERY document in both families is within 1% and none
-        # under-counts. `within1` stays a fraction rather than becoming `ALL` because this corpus
-        # is not finished — a third of v3's documents still over-charge — and a rate below the real
-        # one is the compromise an unfinished corpus makes. The exact and mean bounds move with the
-        # model for the reason the paragraph above gives: a threshold far from the reading has
-        # stopped being able to catch anything.
-        #
-        # Re-measured 2026-08-11 after the two Tamil seam pieces (LIMITS.md §18): 355/501 exact and
-        # 0.0284% mean on v3, 484/501 and 0.0017% on v4.7, with both Tamil documents going +79 → 0
-        # in each family. The bounds below are LEFT WHERE THEY ARE this time, which is a judgement
-        # and not an oversight: v3 reads 70.9% against a 68% floor and 0.0284% against a 0.06%
-        # ceiling, which is ordinary margin, and v4.7's mean now sits a factor of ten under its
-        # bound only because two documents' worth of error left in one campaign. A bound tightened
-        # onto a reading that moved this fast fires on the next campaign's churn rather than on a
-        # regression, and the every-document gates on Rosetta, the holdout and MultiPL-E are what
-        # actually catch one.
+        # The exact and mean bounds carry deliberate margin for the same reason. Both families
+        # currently read well clear of them, and a bound tightened onto a reading that still moves
+        # each campaign catches churn, not regressions. What actually catches a regression is the
+        # every-document gate on Rosetta, the holdout and MultiPL-E below.
         "families": {
             "v3": {"version": 3.0, "mean": 0.0006, "within1": 0.99, "exact": 0.68},
-            # Re-measured 2026-08-08 TWICE. The Goldfish word campaign took v4.7 to 448/501 exact
-            # and 0.043% mean. Retiring `ownscript` then gave 439, and removing the five pieces
-            # that glued a virama to a space gave 430. Both are deliberate steps backwards: a piece
-            # that is not a token cannot stay because it happens to help. Each converts a hidden
-            # error into an honest over-count, which is a thing that can be mined. UDHR selected
-            # none of it either way.
             "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.94},
         },
     },
@@ -111,13 +90,10 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # FINISHED, 2026-08-07: all three families reproduce all 1,741 documents, so the gate is
-        # every document rather than a rate. v3 was the last to close — it carried a vocabulary tail
-        # through the apostrophe and akshara work and reads exact since the terminal-mark spelling.
-        # Still every document on all three families through the `ownscript` retirement. One file
-        # did break when 439 refuted pieces were removed, and it came back when the single-codepoint
-        # ones among them were re-asked on the `char` template instead of the ヲ grid — the `known`
-        # allowlist in `assert_gate` held the gate up in between rather than lowering it to a rate.
+        # FINISHED: all three families reproduce all 1,741 documents, so the gate is every document
+        # rather than a rate. When a deliberate change does break a file, the `known` allowlist in
+        # `assert_gate` holds the gate up while it is repaired — the gate is never lowered to a
+        # rate, which would silently permit the next regression as well.
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
@@ -130,12 +106,8 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # FINISHED 2026-08-10, and gated at every document from then: the last failure was a Swift
-        # file of Unicode escapes whose combining marks sit on U+25CC DOTTED CIRCLE, which the §14
-        # accent law settled — a stream-spelling question, exactly as this comment used to predict.
-        # It stayed a rate while that spelling was open, on the principle that a threshold is not a
-        # target; leaving it a rate now would be the opposite mistake, since `exact: 0.99` on 250
-        # documents silently permits the next two regressions. v3 has no held-out sample measured.
+        # FINISHED, and gated at every document: `exact: 0.99` on 250 documents would silently
+        # permit the next two regressions. v3 has no held-out sample measured.
         "families": {
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
@@ -146,10 +118,7 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # FINISHED, 2026-08-07: every family reproduces all 22 files, so the gate is every file.
-        # v4.7 closed first, with the word-opening apostrophe, the contraction's word-side anchor
-        # and the space-spelled punct duplicates; v3 followed on the same vocabulary work that
-        # closed Rosetta for it.
+        # FINISHED: every family reproduces all 22 files, so the gate is every file.
         "families": {
             "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
@@ -281,6 +250,22 @@ def _breaches(cov: dict[str, dict[str, dict[str, int]]], kind: str) -> list[tupl
             for g, c in by_group.items() if c.get(kind)]
 
 
+def cells_of(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
+    """``(pieces, witnessed-or-special, percentage, the gaps by kind)`` for one set of counts.
+
+    Module level rather than a closure because :func:`report` needs the same arithmetic for the
+    single coverage cell it prints, and two copies of it would be free to drift apart.
+    """
+    known = known_kinds()
+    total, w = sum(counts.values()), witnessed(counts)
+    bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
+              "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
+              "special": sum(counts.get(k, 0) for k in SPECIAL),
+              "other": sum(n for k, n in counts.items() if k not in known)}
+    pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
+    return total, w, pct, bucket
+
+
 def report_vocabulary(markdown: bool = False) -> None:
     """Piece counts by group, and what share of each group carries a witness.
 
@@ -300,18 +285,32 @@ def report_vocabulary(markdown: bool = False) -> None:
     # unknown kinds used to fall through to the witnessed side, which is the direction that
     # flatters.
     cols = ("missing", "unresolved", "special", "other")
-    known = known_kinds()
-
-    def cells(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
-        total, w = sum(counts.values()), witnessed(counts)
-        bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
-                  "unresolved": sum(counts.get(k, 0) for k in UNRESOLVED),
-                  "special": sum(counts.get(k, 0) for k in SPECIAL),
-                  "other": sum(n for k, n in counts.items() if k not in known)}
-        pct = "100%" if w == total else (f"{100 * w / total:.2f}%" if total else "n/a")
-        return total, w, pct, bucket
-
+    cells = cells_of
     refuted = _breaches(cov, "refuted")
+
+    # At 100% on every file this table is one number per group and four columns of dots, and
+    # `report` already prints that number. Print the breakdown when it has something to say — a gap
+    # anywhere, or a piece its own probe refutes — and the summary line otherwise.
+    gap = refuted or any(cells(totals(by_group))[0] != cells(totals(by_group))[1]
+                         for by_group in cov.values())
+    if not gap:
+        if markdown:
+            print("\n## Vocabulary\n")
+            for fam, by_group in cov.items():
+                total, w, pct, _ = cells(totals(by_group))
+                print(f"* **{fam}** — {total:,} pieces, every one on a fixed template or "
+                      f"structural-special.")
+            for line in _borrowers():
+                print(f"* {line}.")
+            print()
+        else:
+            for fam, by_group in cov.items():
+                total, _, _, _ = cells(totals(by_group))
+                print(f"  [{fam}] {total:,} pieces, all witnessed or special")
+            for line in _borrowers():
+                print(f"  {line}")
+            print()
+        return
 
     if markdown:
         print("\n## Vocabulary and witness coverage\n")
@@ -430,24 +429,77 @@ def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go.
 
+    **A corpus every family reproduces document for document gets one cell, not a table.** Three of
+    the four are finished, and a finished corpus has exactly one thing to say — a per-document error
+    breakdown of a corpus with no error is nine columns of zeroes, and the one line that still
+    carries information (UDHR's) was buried under them. So the finished corpora collapse into a
+    single grid, one row per family, and only a corpus with a residual gets its documents listed.
+
+    A corpus leaving the grid is itself the signal: it means some document stopped reproducing.
+
     The corpora are scored in a process pool: there are eight independent (corpus, family) replays
     and the biggest of them is most of the wall clock, so running them sequentially is the slowest
-    thing in CI for no reason. Results are collected into a dict and printed in GATES order, so the
-    report is byte-identical to the sequential one.
+    thing in CI for no reason.
     """
     jobs = [(name, family) for name, cfg in GATES.items() for family in cfg["families"]]
     with ProcessPoolExecutor() as pool:
         scored = {(n, f): a for n, f, a in pool.map(_score_one, jobs)}
+    for name, family in jobs:
+        assert_gate(name, family, scored[(name, family)])
+
+    finished = [n for n, cfg in GATES.items()
+                if all(scored[(n, f)]["exact"] == scored[(n, f)]["n"] for f in cfg["families"])]
+    families = list(dict.fromkeys(f for _, f in jobs))
+    cov = {fam: cells_of(totals(by_group)) for fam, by_group in witness_coverage().items()}
+
+    def cell(name: str, family: str) -> str:
+        if family not in GATES[name]["families"]:
+            return "—"                        # no recorded counts for that family on that corpus
+        return f"✅ {scored[(name, family)]['n']:,}"
+
+    def wcell(family: str) -> str:
+        if family not in cov:
+            return "—"
+        total, w, pct, _ = cov[family]
+        return f"✅ {total:,}" if w == total else f"⚠️ {pct} of {total:,}"
+
+    head = [GATES[n]["title"] for n in finished] + ["witness coverage"]
+    rows = [[fam] + [cell(n, fam) for n in finished] + [wcell(fam)] for fam in families]
     if markdown:
         print("## Reproduction gates\n")
-        print("Documents by absolute error against recorded `count_tokens` values.\n")
-        print("| corpus | family | docs | error mass | mean \\|err\\| "
-              "| exact | ≤1% | 1–5% | >5% | worst |")
-        print("|---|---|---:|---:|---:|---:|---:|---:|---:|---|")
-    for name, cfg in GATES.items():
+        print("Every document reproduced, against recorded `count_tokens` values.\n")
+        print("| family | " + " | ".join(head) + " |")
+        print("|---" * (len(head) + 1) + "|")
+        for r in rows:
+            print("| " + " | ".join(r) + " |")
+        print()
+    else:
+        # ✅ and ⚠️ are one character to `len` and two columns to a terminal, so pad on the
+        # rendered width or the grid comes out ragged exactly where the marks are.
+        def shown(s: str) -> int:
+            return len(s) + sum(c in "✅⚠️" for c in s)
+
+        def pad(s: str, w: int) -> str:
+            return s + " " * max(w - shown(s), 0)
+
+        width = max(max(shown(h) for h in head), max(shown(c) for r in rows for c in r[1:])) + 2
+        print("Reproduction gates — every document exact\n")
+        print("  " + " " * 7 + "".join(pad(h, width) for h in head).rstrip())
+        for r in rows:
+            print("  " + pad(r[0], 7) + "".join(pad(c, width) for c in r[1:]).rstrip())
+        print()
+
+    for name in GATES:
+        if name in finished:
+            continue
+        cfg = GATES[name]
+        if markdown:
+            print(f"### {cfg['title']} — not finished\n")
+            print("| family | docs | error mass | mean \\|err\\| | exact | ≤1% | 1–5% | >5% | worst |")
+            print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
         for family in cfg["families"]:
             a = scored[(name, family)]
-            assert_gate(name, family, a)
+
             def label(row: dict) -> str:
                 """A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
                 documents, so fall back to the key the counts are stored under."""
@@ -456,7 +508,7 @@ def report(markdown: bool = False) -> None:
             w = a["worst"]
             worst = f"{label(w)} {100 * w['rel']:+.1f}%"
             if markdown:
-                print(f"| {cfg['title']} | {family} | {a['n']} | {100 * a['mass']:.3f}% "
+                print(f"| {family} | {a['n']} | {100 * a['mass']:.3f}% "
                       f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
                       f"| {a['over5']} | {worst} |")
                 continue

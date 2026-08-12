@@ -157,7 +157,7 @@ def test_a_stray_mark_run_is_a_word(version: float):
     `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run.
 
     The fusion is measured on the frame that cancels the mark's own price, where the two spellings
-    differ ONLY by the word's ⟨bow⟩ (LIMITS §16): over 22 marks and six right-hand words the
+    differ ONLY by the word's ⟨bow⟩: over 22 marks and six right-hand words the
     severed spelling's error moves with the word — `x ͣabc x` = 14 one under on v3, `x ͣก x` = 13
     one over — and the fused spelling's does not move at all. The mark's head is ordinary
     vocabulary here, not a forced byte floor; that floor was standing in for the missing ⟨bow⟩.
@@ -336,14 +336,37 @@ def test_recorded_apostrophe_and_space_run_costs(version, text, content):
     assert token_count(text, version=version) - overhead == content
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+# A message whose content strips to nothing is pinned to the count the ORACLE gives it, not to
+# another stripped message. The frame is all that survives, so the reading IS the family's base —
+# measured 2026-08-11, one call each, over a BMP private-use codepoint, a C0 control, and the two
+# together: 8 on v3, 12 on v4.7, 6 on v5.
+#
+# The comparison this replaced was `token_count("<PUA>") == token_count("")`, which cannot fail:
+# when `stream_norm` returned "" the frame's own boundary marker had nothing to attach to and tiled
+# as itself, so BOTH sides carried the same wrong value and both moved together when it was fixed.
+# The empty message cannot serve as the anchor either, since the oracle rejects it.
+FRAME_ONLY = {3.0: 8, 4.7: 12, 5.0: 6}
+
+
+@pytest.mark.parametrize("version, expected", sorted(FRAME_ONLY.items()))
+@pytest.mark.parametrize("text", ["\uf8ff", "\x01", "\ue000\x01\x85"])
+def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected):
+    assert normalize(text, version=version) == ""
+    assert token_count(text, version=version) == expected
+
+
+@pytest.mark.parametrize("version", [3.0, 4.7, 5.0])
 def test_private_use_characters_are_stripped(version: float):
-    """A BMP private-use codepoint costs nothing AND joins its neighbours into one word — it is
-    deleted, like the C0/C1 controls, not merely free. An UNASSIGNED codepoint is the control: it
-    survives and pays its bytes."""
-    assert token_count("ab", version=version) == token_count("ab", version=version)
-    assert token_count("", version=version) == token_count("", version=version)
-    assert normalize("ab", version=version) == "ab"
+    """A BMP private-use codepoint costs nothing AND joins its neighbours into one word \u2014 it is
+    deleted, like the C0/C1 controls, not merely free.
+
+    Two controls, because "costs nothing" is also true of a character that is merely free: an
+    ASTRAL private-use codepoint is NOT stripped and pays its four bytes (frame + 4 for one, + 8
+    for two), and an UNASSIGNED codepoint survives and pays its bytes as well."""
+    assert token_count("a\uf0b7b", version=version) == token_count("ab", version=version)
+    assert normalize("a\ue000\uf8ffb", version=version) == "ab"
+    assert token_count("\U000f0000", version=version) == FRAME_ONLY[version] + 4
+    assert token_count("\U000f0000\U000f0001", version=version) == FRAME_ONLY[version] + 8
     assert token_count("a\U00090095a", version=version) > token_count("aa", version=version)
 
 

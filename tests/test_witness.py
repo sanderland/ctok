@@ -207,7 +207,7 @@ def test_no_piece_mixes_whitespace_with_other_material(name):
     Five such pieces shipped — a virama glued to a space, in Devanagari, Tamil, Malayalam, Sinhala
     and Myanmar. They carried most of those languages' accuracy AND all of their under-count, and
     their witness could not tell ``्`` from ``् ``: the probe ``.ᛒ् ᛒ.`` reads the same as
-    ``.ᛒ्ᛒ.``, because a following letter absorbs the space and it costs nothing. See LIMITS.md §7.
+    ``.ᛒ्ᛒ.``, because a following letter absorbs the space and it costs nothing.
     """
     doc = _doc(name)
     bad = [piece for entries in doc["tokens"].values() for piece in entries

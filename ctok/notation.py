@@ -12,6 +12,7 @@ from .constants import ATOM_TO_GLYPH, GLYPH_TO_ATOM, L, R
 
 _ATOM_RE = re.compile(f"{L}(?:bow|eow|shift|caps|pad|0x[0-9A-Fa-f]{{2}}){R}" "|.", re.DOTALL)
 _BYTE_ATOM_RE = re.compile(f"{L}0x([0-9A-Fa-f]{{2}}){R}")
+_MARKER_TRANSLATION = str.maketrans(GLYPH_TO_ATOM)
 
 
 def escape_bytes(bs: bytes) -> str:
@@ -37,7 +38,7 @@ def render_bytes(bs: bytes) -> str:
 
 def render_marked(marked: str) -> str:
     """An internal marked string → its public form: glyphs become named atoms, text is escaped."""
-    return "".join(GLYPH_TO_ATOM.get(c) or escape_text(c) for c in marked)
+    return escape_text(marked).translate(_MARKER_TRANSLATION)
 
 
 def atoms(public: str):

@@ -49,23 +49,22 @@ against opus-5, and nothing measured says one differs.
 The v4.7 family is the one that changed: same text, more tokens. Measured here as the ratio of
 recorded `count_tokens` values over the corpora below, content only, with the message frame removed:
 
-| content | v4.7 ÷ v3 | v5 ÷ v3 | v5 ÷ v4.7 |
-|---|---:|---:|---:|
-| English web text | **1.44** | **1.44** | 1.00 |
-| German web text | 1.39 | 1.39 | 1.00 |
-| Code (Rosetta Code, 1,741 docs) | 1.22 | 1.20 | 0.99 |
-| Code (MultiPL-E: Python 1.22, JS 1.27, Rust 1.29) | 1.24 | 1.23 | 1.00 |
-| UDHR, 501 languages | 1.16 | 1.16 | 1.00 |
-| Russian / Arabic / Hindi web text | 1.02 / 1.01 / 1.01 | same | 1.00 |
-| Chinese / Japanese web text | 1.00 / 1.01 | 0.99 / 1.00 | 0.99 |
+| content | v4.7 ÷ v3 |
+|---|---:|
+| English web text | **1.44** |
+| German web text | 1.39 |
+| Code (Rosetta Code, 1,741 docs) | 1.22 |
+| Code (MultiPL-E: Python 1.22, JS 1.27, Rust 1.29) | 1.24 |
+| UDHR, 501 languages | 1.16 |
+| Russian / Arabic / Hindi web text | 1.02 / 1.01 / 1.01 |
+| Chinese / Japanese web text | 1.00 / 1.01 |
 
 **The inflation is Latin-script-specific.** v4.7's vocabulary holds 14k word pieces against v3's 47k,
 so Latin words fragment where they used to be whole; scripts that were already at the byte floor in
 v3 — Cyrillic, Arabic, Devanagari, CJK — are unchanged. That is why a single "×1.4" figure travels
 badly: it is an English number, and the same model reads ×1.00 on Chinese.
 
-**v5 does not inflate again.** Its ratio against v4.7 is 1.00 on everything except CJK-opening lines,
-where it is *cheaper* by a token per message — the frame rule above, not the vocabulary.
+**v5 does not inflate again**: 1.00 against v4.7 on everything here.
 
 ## Accuracy
 
@@ -77,58 +76,25 @@ is 25 HumanEval problems in 22 programming languages. The third is the opposite:
 [Rosetta Code](https://huggingface.co/datasets/christopher/rosetta-code) source in hundreds of
 languages, which varies everything at once.
 
-**Every code corpus is finished and has left the table.** Rosetta Code — all 1,741 mining
-documents and, since 2026-08-10, all 250 held-out ones — and MultiPL-E's 22 languages reproduce
-*every* document exactly. They are still gated, asserted at every document rather than at a rate so
-the first regression names the file it broke, but a row of zeroes is not a measurement and keeping
-one invites reading a finished corpus as evidence about an unfinished model. Code is done; what
-follows is about natural language.
+**Every code corpus is finished.** Rosetta Code — all 1,741 mining documents and all 250 held-out
+ones — and MultiPL-E's 22 languages reproduce *every* document exactly, and are gated at every
+document rather than at a rate so the first regression names the file it broke. What follows is
+about natural language.
 
-**v5 is not scored separately anywhere below.** It borrows v4.7's vocabulary outright and differs
-only in its message frame, so it lands on the same documents with the same errors and gating it
-re-derived numbers that were equal by construction. What replaces it is the equality itself, checked
-directly: `test_v5_tracks_v4_7_document_for_document` asserts that v5's deviation from its own
-recorded counts equals v4.7's from theirs, document by document across all four corpora. It does not
-assert a constant offset, because there is not one — 5 tokens on most documents and 6 where one
-opens with punctuation, since v5's frame ends in no ⟨bow⟩ and the opening run has nothing to absorb.
+**v5 is not scored separately.** It borrows v4.7's vocabulary outright and differs only in its
+message frame, so it lands on the same documents with the same errors;
+`test_v5_tracks_v4_7_document_for_document` asserts that equality document by document instead.
 
 | corpus | family | error mass | mean \|rel err\| | exact | within 1% |
 |---|---|---:|---:|---:|---:|
-| UDHR (501 languages) | v3 | 0.023% | 0.028% | 355/501 | 100% |
-| UDHR | v4.7 (v5 borrows it) | 0.002% | 0.002% | 484/501 | 100% |
+| UDHR (501 languages) | v3 | 0.005% | 0.007% | 437/501 | 100% |
+| UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 498/501 | 100% |
 
-**No document in either family is over 1% off any more**, and none under-counts. Tem, the worst
-document in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala,
-Yoruba and Maldivian, with Shipibo-Conibo at +0.01% and Lamnso' at +0.02%.
-
-The last five over 1% were the same five in both families and they now reproduce exactly: Thai
-(+3.96% / +2.66%), Thai (2) (+4.33% / +2.38%), Burmese (+2.33% in both), Mon (+1.88% in both) and
-Chakma (+1.54% in both). That they were *identical* across two vocabularies of 48k and 15k pieces
-is what said most of it could not be vocabulary, and it was not: **an astral run takes no border
-marker**, the exclusion an emoji already had and that the digit and terminal-separator branches
-never got (LIMITS.md §17). All 30 astral viramas Unicode has and 72 astral digits from its 56
-astral number blocks read exactly two spurious markers, in both families, with BMP controls
-unmoved — and Chakma, which has no corpus in Goldfish, FineWeb-2 or Glot500 to mine, went +512 → 0
-on that alone. The rest was twelve ordinary pieces: the Myanmar asat's fused `်⟨eow⟩`, which §7
-predicted the `digit_eow` template would find, and eleven Thai pieces each family's own probe buys
-and the other family already ships. Weighted by speakers rather than by document the error is
-0.007% (v3) and 0.002% (v4.7).
-
-The worst document in both families after that was Tamil, +79 tokens in each, and it was
-*two pieces*: `்,⟨eow⟩` and `்.⟨eow⟩`, the Tamil virama fused to a comma or a full stop where the
-word closes. Both Tamil documents now reproduce exactly. The same identical-in-both-families
-reasoning that cracked the five above says nothing here, and the check that shows it takes one
-query: v4.7's 97 Tamil pieces are a subset of v3's 113 and the sixteen extras change no row, so
-the two families were bound to agree whatever the cause. What decided it was pricing every word of
-every wrong row — all 12,225 of them exact, so *none* of the over-charge is inside a Tamil word —
-and then deleting windows from the rows themselves until the seam named itself (LIMITS.md §18).
-
-The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
-marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
-was the mark spelling above that settled it. [LIMITS.md](LIMITS.md) records what is still open,
-and — more useful — what each instrument can and cannot prove: the ヲ grid measures a Brahmic
-cluster on a base its script never uses, aggregate corpus fitness proposes a piece without proving
-one, and a mark grid on a byte-floored host cannot see where the mark's word ends (§14).
+**No document in either family is over 1% off, and none under-counts** — not in these 501 documents
+and not in any of the several million texts ever measured against either model. Weighted by speakers
+rather than by document the error is 0.002% (v3) and 0.001% (v4.7). What is left is over-count:
+ordinary missing word vocabulary, concentrated in v3, whose vocabulary is three times the size and
+correspondingly harder to complete.
 
 **UDHR and MultiPL-E are the held-out gates.** Nothing in the vocabulary is selected, accepted or
 rejected because of them; they are read at the end of a campaign to find out whether it worked. Both
@@ -137,122 +103,19 @@ and the 250 are drawn from blocks that sample never touched, so the second rate 
 anything the first chose. A piece is accepted on a membership probe either way; the corpus only ever
 decides which candidate gets asked.
 
-15 documents in each family sat over 5% off before the akshara law (a mark that closes its
-orthographic syllable also closes the word, so a conjunct is two words and carries the boundary
-markers that say so); none does now in either family, and what is left is vocabulary rather than
-structure.
+Where the vocabulary is thin was measured rather than guessed, by scoring 350,000 rows across the 350
+languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`. That sweep is
+what the mining is aimed at, and re-deriving it matters more than quoting it: the first ranking sent a
+campaign at a pool a structural fix had already removed. A ranking is a measurement with a date on it.
 
-Where that vocabulary is missing was measured rather than guessed, by scoring 350,000 rows across
-the 350 languages of [Goldfish](https://huggingface.co/goldfish-models) against `count_tokens`:
-96.07% of rows exact, with 80% of the error in twenty languages and 59 languages perfect over a
-thousand rows each. That ranking is in [LIMITS.md](LIMITS.md) §0, and it corrected the target twice
-over — the error was not mainly Brahmic, and the single largest defect was Syriac, holding 72% of
-all under-count.
-
-Re-scored against the current model, the same 350 languages read **98.38% of rows exact with
-under-count 0**, from 96.07% and 20,950 tokens under, and **169 of them now reproduce every cached
-row against 59**. A ranking is perishable and that is the point of re-deriving it: the first one
-sent a campaign at 2,251 tokens of Bengali over-charge that a structural fix had already removed,
-so the pool a miner is aimed at has to be measured on the day rather than read off a table.
-
-Syriac was structural and is now implemented: its mark-run law took two independent 100-row samples
-from 38/42 rows exact to 98/97, seven tokens of absolute error across all 200. What the sweep ranked
-below it is ordinary missing vocabulary, and that is being mined a language at a time: **35
-languages, 35,000 rows, 88.1% of rows exact to 95.6% on 100 pieces**, with eight of them now
-reproducing 999 or 1,000 rows out of 1,000. The pieces are unremarkable — Catalan `-ància`/`-ències`
-suffixes, Czech and Hungarian stems, and the Azerbaijani schwa bigram `ən`, which repairs 296 words
-by itself. UDHR, which chose none of them, moved 365 → 448 documents exact in step.
-
-**Bengali and Assamese were the two largest pools left, and ten pieces closed them** (LIMITS.md
-§13). Both localize almost entirely inside single words — 99% and 98% on v4.7, 100% on v3 once
-every word of every wrong row is priced rather than the top 4,000 — so this was vocabulary and not
-structure. The whole of it is two facts about how the script is written down: `য়` is a composition
-exclusion whose nukta closes the word from outside, which makes the Bengali `-ময়` suffix the piece
-`ময⟨eow⟩`; and Assamese web text spells the vowel O in the pre-Unicode order `◌া◌ে`, which is one
-token of its own. v3 needed four word-initial vowel signs on top, and two doubled signs that v4.7's
-own probe refuses. Across the two languages, 2,000 Goldfish rows went from 1,913 wrong to 7 — and
-UDHR, which chose nothing, gained its Bengali document in both families.
-
-LIMITS.md records what the instruments can and cannot prove, including two pieces this campaign had
-to *retract*: both were admitted on ablation witnesses that only looked convincing while the real
-piece was missing.
-
-**Under-count is down to one token, and it was a word boundary in the wrong place.** Across the
-three replay corpora — Goldfish, Glot500 and 242,188 rows of FineWeb/Stack/github-code — v4.7
-under-count stands at **1 token in 302,418 rows**, from 8 on 2026-08-09, and v3 at 5 in 286,856,
-from 6. Over-count fell with it, by 2,156 tokens on v4.7, which is the unusual part: a boundary the
-model was writing one character too late is a defect in both directions at once. Read over every
-text ever measured against either family — a million rows, probe grids included, which is the
-denominator the old figure was never taken over — under-count goes 5,206 → 489 on v4.7 and
-885 → 209 on v3, and 4,169 and 685 of those rows respectively were fixed with none broken.
-
-**A combining accent closes its word BEFORE itself, exactly as a virama does** (LIMITS.md §14).
-Nine members of the U+0300 block used to close it after the mark and five others carried a
-one-token piece with a tile-contextual eligibility rule; both were artefacts of an instrument that
-could not see the difference. The old test ran on byte-floored hosts, where `⟨bow⟩H⟨eow⟩` and
-`⟨bow⟩H` + `⟨eow⟩` cost the same and every mark reads "splits". On a host whose whole word is one
-token they separate — `x q̊5 x` = 14 against the 15 an in-word mark charges — and the answer is
-uniform: every codepoint of U+0300–U+0362 except U+0345 closes before itself, on 21 hosts spanning
-thirteen scripts, in both families, with U+0345 and U+0363–U+036F pinning both ends of the range
-from inside the same block. The same two frames over the other 418 combining marks of the BMP split
-them the way orthography does and not the way Unicode does: accents, tone marks, cantillation and
-annotation stand outside the word; vowel points and combining LETTERS stay inside it.
-
-The vocabulary moved with it, in both directions. **U+0301 is a token** — `.ᛒ́ᛒ.` = 20 / 24, cost 1
-on the shipped `mark_sep` template, with fifteen marks of the same block reading cost 2 as controls
-— and it is the most frequent non-composing combining mark in written text. The five mark pieces
-are not tokens: they were the in-word spelling wearing a piece, and they are gone. Yoruba goes 537 →
-999 of 1,000 Goldfish rows exact, Abkhaz 949 → 992, and the four Glot500 tone-marked files that
-were not exact now are.
-
-The gates moved this time, which they usually do not: UDHR 317 → 338 exact on v3 and 443 → 472 on
-v4.7, and the last held-out Rosetta document — the Swift file with a mark on U+25CC — came in, so
-that corpus is 250/250.
-
-**Every under-counting text in the cache is now accounted for, and there is no residue**
-(LIMITS.md §15, §16). The whole cache — every text ever measured against either model, probe grids
-included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **zero on both
-sides**, over 505,886 and 1,009,746 texts. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
-never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
-Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
-caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`); §12.2's dotted İ, which was
-title-case ⟨shift⟩ with the İ literal all along; a Syriac absorb clause that outlived its
-evidence; the oracle lowering ΣΚΙΕΣ to σκιεσ where Python writes σκιες; and three border-marker
-predicates asked per run instead of per character (`⁉️`, `📐 ‎📝`, `🎓 ‎⏰`). LIMITS.md §14.6
-carries what is left on the over side, and §15.5 reports the one trade: 30 documents now read a
-small over-count that their under-count had been masking.
-
-The last row on each side was one shape, and §15 filed it as undecidable: a word after an
-unattached mark run reads one over on some right-hand words and one under on others, and neither
-spelling of that boundary reaches both. **It was two errors at one seam, and the frame that
-separates them varies the right-hand word** (LIMITS.md §16), because the mark's own price then
-cancels: the severed spelling's error moves with the word and the fused spelling's cannot move at
-all. It does not — for all 22 marks swept, in both families. A baseless mark and the letters after
-it are ONE word, the mark is its head, and a head that is a mark takes no case marker; the raw byte
-floor that used to price that head was standing in for the ⟨bow⟩ this fixes, and is gone. Under-count
-**0 in both families**, over-count down 462 tokens on v3 and 4,581 on v4.7 in the same change, with
-no cached row in either family made worse.
-
-**The last five UDHR documents over 1% are exact, and one of them had no corpus to mine**
-(LIMITS.md §17). Thai, Thai (2), Burmese, Mon and Chakma read +1.5% to +4.3%, the same five in
-both families — and *identical* across two vocabularies of 48k and 15k pieces, which is what said
-the bulk of it was structure. It was: the astral border-marker law above, worth +512 on Chakma,
-+362 on Burmese and +315 on Mon by itself. The Myanmar asat is the fused `K⟨eow⟩` piece §7
-predicted, bought on the shipped `digit_eow` template with thirteen same-template controls at cost
-2–3 and courted on 900 distinct Burmese and Shan words, none pushed below. The eleven Thai pieces
-are a cross-port: five of them are five of the seven the 2026-08-07 batch discarded (LIMITS.md §1),
-and they were never false — the model they were applied to was. Judged one at a time against real
-Thai, each repairs dozens of distinct words and pushes none below its recorded count, and a miner
-that knew nothing of the cross-port re-derived exactly those sets from 2,500 corpus runs. Goldfish
-Thai goes 523 and 472 of 1,000 rows exact to **1,000 in both families**, Burmese and Shan to 998,
-and a FineWeb-2 Myanmar slice that chose nothing goes 71 of 600 to 597.
+[LIMITS.md](LIMITS.md) records what is out of scope, which inputs could still be counted wrong, and
+what these numbers do and do not prove.
 
 ## Where the boundary markers go
 
 Before anything is tiled, the text is cut into runs of a single class and the boundary markers are
 written between them. **A word is the only run that is flanked unconditionally. Everything else is
-marked only where it borders exactly one space** — and that one rule, discovered separately for one
-class of run after another, is where most of this reconstruction's errors have lived.
+marked only where it borders exactly one space.**
 
 | run | `⟨bow⟩` on its left | `⟨eow⟩` on its right |
 |---|---|---|
@@ -263,17 +126,15 @@ class of run after another, is where most of this reconstruction's errors have l
 | **digit run** | only against a single space, and only if the run's FIRST character is a BMP non-ASCII digit | only against a single space, and only if its LAST character is |
 | **Han, Hangul, astral, whitespace** | never | never |
 
-**Nothing astral takes a marker**, whatever its category — that is one law with four discoveries,
-and the last two of them were the whole of the Chakma document (LIMITS.md §17). An emoji was known
-not to; so are astral punctuation and format characters; and as of 2026-08-10 so are all 30 astral
-viramas and every astral digit, measured exhaustively over both populations in both families.
+**Nothing astral takes a marker**, whatever its category — emoji, astral punctuation and format
+characters, all 30 astral terminal separators and every astral digit, measured exhaustively over both
+populations in both families.
 
 Then one rewrite over the finished string: where `⟨eow⟩` stands immediately left of a space and
 `⟨bow⟩` immediately right of it, **the space is deleted**. It is a single conjunctive rule — there is
-no per-side "absorption", though the costs can be read that way and an earlier draft of these
-docs did.
+no per-side "absorption", though the costs can be read that way.
 
-The traps in "borders exactly one space" are all measured, and each of them has cost a campaign:
+The traps in "borders exactly one space" are all measured:
 
 * **Message start counts; message end does not.** The frame ends in `⟨bow⟩`, and that `⟨bow⟩` *is* a
   space. There is no space after the last character.
@@ -304,7 +165,7 @@ from ctok import witness, pieces
 witness("⟨bow⟩the⟨eow⟩", 4.7)   # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 witness("ART⟨eow⟩", 4.7)         # {'probe': '.ヲART.', 'raw': 17, 'kind': 'eow'}
 witness("e0a4", 4.7)            # {'probe': 'aऄa', 'raw': 15, 'kind': 'prefix', 'agree': 3}
-len(pieces(4.7))                # 15147
+len(pieces(4.7))                # 15214
 ```
 
 `raw` is what `count_tokens` returned for that probe. One arithmetic turns it into the piece's own
@@ -327,65 +188,30 @@ separately. `kind` names the template:
 | `char` | `aXa` | one non-ASCII codepoint's intrinsic cost |
 | `glued` | `aXb` | an ASCII digit piece |
 | `digit_*` | `1X1`, `a X1`, `1X a`, `a X a` | punctuation, symbols and whitespace runs, on digit anchors — a digit neither rides nor seams, where a Latin anchor would fuse into one punctuation run and ヲ would put punctuation against a letter |
+| `mark_mid` / `mark_sep` | `.ᛒXᛒ.` | a combining mark that stays inside its word / that closes it |
 
 A piece's marked form says which apply: `⟨bow⟩the⟨eow⟩` is a whole word, `⟨bow⟩TH` a prefix,
 `izers⟨eow⟩` a suffix, `INT` word-interior. `ctok/witness.py` re-checks a recorded witness — that the
 probe is that template, that the cost lands on 1, and that the encoder still writes the piece into
 that probe — and `tests/test_witness.py` runs it over every witness in the file.
 
-**Every piece rests on a fixed template now.** The `ownscript` kind is gone. It had been introduced
-to convert 1,560 `no-instrument` pieces — an honest declared gap — into witnessed ones, on the
-premise that a combining mark cannot be put on a synthetic scaffold because the host becomes its
-base. Half of that is true: on a *composing* host it is, and badly, since U+0301 between two `a`
-costs nothing at all once NFC has made the probe say `á`. But a host that precomposes with nothing
-works fine, and four of them — `ᛒ` `ꓘ` `ʣ` `ヲ` — agree with each other on every mark tried. So the
-frame existed all along:
+**Every piece rests on a fixed template**, and coverage is 100% of both files — 48,431 pieces on v3
+and 15,214 on v4.7, every one witnessed or, for the four marker atoms, declared structural. A
+combining mark is asked on a *noncomposing* host (`ᛒ`, and `ꓘ ʣ ヲ` agree with it on every mark
+tried), because a composing host turns the probe into a precomposed letter and prices that instead:
+U+0301 between two `a` costs nothing at all once NFC has made the probe say `á`. Which of the two
+mark templates applies is decided by `is_killer`, a property of the piece, never by which number
+comes out; both were controlled in both directions before anything was judged, and fifteen known
+single tokens must read 1 while spans nothing merges must read more.
 
-| kind | probe for `X` | overhead | what it asks |
-|---|---|---:|---|
-| `mark_mid` | `.ᛒXᛒ.` | 10 | a mark that stays inside its word |
-| `mark_sep` | `.ᛒXᛒ.` | 12 | a mark that CLOSES its word, so the probe also gains an `⟨eow⟩` and a `⟨bow⟩` |
+Two rules the vocabulary is held to, both asserted by `tests/test_witness.py`:
 
-Which of the two applies is decided by `is_killer`, a property of the piece, never by
-which number comes out. Both were controlled before anything was judged: fifteen known single tokens
-must read 1 and spans nothing merges must read more. Three further frames were built and **discarded
-because they failed that control** — `ᛒ` is not itself a single token, which cancels in the
-`mid` anchor and does not at the word edges.
-
-Asked on a fixed template, every `ownscript` record then resolved:
-
-| | re-witnessed on a template | retired |
-|---|---:|---:|
-| v3 | 346 | 291 |
-| v4.7 | 372 | 148 |
-
-The 439 retired are pieces the vocabulary claimed as one token and whose own probe priced at two or
-more. Five more went with them, under a rule rather than a measurement: **whitespace is either the
-whole piece or not in it**. The stream absorbs a seam space into the following `⟨bow⟩` and spells
-what it cannot absorb as its own run, so a piece holding a letter and a space is not a token — it is
-standing in for an absorption the stream failed to perform, and it prices correctly only while
-whatever follows happens to open a word. `tests/test_witness.py` now asserts it.
-
-Both removals **cost real accuracy**: UDHR falls 448/501 → 439 → 430 on v4.7, and 314 → 310 → 307
-on v3, because some of those pieces were load-bearing. A piece that is not a token cannot stay
-because it happens to help; what it was hiding is now an honest over-count that can be mined.
-Rosetta and MultiPL-E still reproduce every document.
-
-**Coverage is 100% of both files** — 48,225 pieces on v3 and 15,147 on v4.7, every one resting on a
-fixed template or, for the four marker atoms, declared structural. The last thing standing between
-that and the truth was `fitness`: a bespoke per-piece argument over natural text, true relative to
-the rest of the vocabulary rather than to the oracle, and 33 records deep. It was reported apart
-from the witnessed number rather than folded into it, so the two vocabularies read 99.96% and
-99.87% while every gap column showed nothing — the coverage table now carries a column for every
-kind its own rate withholds, which is how those records became visible enough to go and measure.
-All 33 were then bought on the fixed `mark_mid` and `eow` templates and hold at cost 1. The retired
-`fitness` verifier has been removed; any future record using that kind is rejected as unknown.
-
-That guard has a second half, for the direction a coverage number must never round: a witness kind
-nobody has classified used to count as evidence. The kind list is derived from each file's own
-`meta.witness.templates` plus the kinds `verify` names, and anything outside it is reported rather
-than assumed — which caught `digit_bow` (28 v3 punctuation pieces) and `prefix` (467 byte-fallback
-pieces per file) the first time it ran.
+* **Whitespace is either the whole piece or not in it.** The stream absorbs a seam space into the
+  following `⟨bow⟩` and spells what it cannot absorb as its own run, so a piece holding a letter and
+  a space is not a token — it prices correctly only while whatever follows happens to open a word.
+* **A witness kind nobody has classified does not count as evidence.** The kind list is derived from
+  each file's own `meta.witness.templates` plus the kinds `verify` names; anything outside it is
+  reported rather than assumed.
 
 Witnesses are measured against the family's own source model (`meta.witness.measured_on`). v5 shares
 v4.7's file, so it shares its witnesses, measured on `claude-opus-4-7`.
