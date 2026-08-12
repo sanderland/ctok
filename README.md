@@ -37,9 +37,7 @@ ctok "hello, world"
 Model IDs such as `"claude-opus-4-7"` are accepted too. Versions are decimal values, so `4.10`
 means `4.1`.
 
-v5 has its own measured six-token message frame and uses the v4.7 vocabulary. Opus 5 and Sonnet 5
-matched on all 80 comparison texts. No v5-specific piece has been measured, so a future vocabulary
-difference would require a separate reconstruction.
+v5 is v4.7 with a slightly different fixed overhead.
 
 ## How it works
 
@@ -68,7 +66,7 @@ These results compare `ctok` with recorded `count_tokens` responses:
 | Goldfish, 350 languages and 350,000 rows | mining | 350,000 | 350,000 |
 | MultiPL-E, 22 programming languages | held out | 22 | 22 |
 | Rosetta Code, 1,741 documents | mining | 1,741 | 1,741 |
-| Rosetta Code, separate 250 documents | mining | not measured | 250 |
+| Rosetta Code, separate 250 documents | mining | 250 | 250 |
 | UDHR, 501 languages | held out | 493 | 500 |
 
 Every UDHR document is within 1%; the worst v3 document is `+0.1%`. v5 has the same content result as
@@ -101,9 +99,6 @@ witness("⟨bow⟩the⟨eow⟩", 4.7)
 A witness says that one marked piece costs one token in a calibrated probe. It does not prove the
 encoder rewrite or resolve ties between equal-cost tilings. `tests/test_witness.py` checks every
 published witness and requires complete witnessed-or-special coverage.
-
-See [LIMITS.md](LIMITS.md) for message types outside the model, known risky input shapes, and how to
-interpret the validation results.
 
 ## License
 

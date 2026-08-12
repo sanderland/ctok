@@ -107,8 +107,9 @@ GATES: dict[str, dict] = {
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
         # FINISHED, and gated at every document: `exact: 0.99` on 250 documents would silently
-        # permit the next two regressions. v3 has no held-out sample measured.
+        # permit the next two regressions.
         "families": {
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
