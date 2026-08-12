@@ -48,7 +48,7 @@
         "mark_sep": 21,
         "mid": 2361,
         "prefix": 467,
-        "raw": 2107,
+        "raw": 2108,
         "special": 4,
         "word": 30
       }
@@ -13242,7 +13242,8 @@
       "⟨bow⟩househol": {"probe": ".householヲ.", "raw": 17, "kind": "bow"},
       "ささ": {"probe": ".ヲささヲ.", "raw": 20, "kind": "mid"},
       "ález⟨eow⟩": {"probe": ".ヲález.", "raw": 17, "kind": "eow"},
-      "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"}
+      "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"},
+      "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 12, "kind": "raw"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},

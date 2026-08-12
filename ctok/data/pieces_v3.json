@@ -50,7 +50,7 @@
     "mark_sep": 22,
     "mid": 4737,
     "prefix": 467,
-    "raw": 6477,
+    "raw": 6478,
     "special": 4,
     "word": 13250
    }
@@ -45692,7 +45692,8 @@
    "⟨bow⟩orașe⟨eow⟩": {"probe": "orașe", "raw": 8, "kind": "raw"},
    "րր": {"probe": ".ヲրրヲ.", "raw": 16, "kind": "mid"},
    "⟨shift⟩⟨bow⟩storbritannien⟨eow⟩": {"probe": "Storbritannien", "raw": 8, "kind": "raw"},
-   "ostost": {"probe": ".ヲostostヲ.", "raw": 16, "kind": "mid"}
+   "ostost": {"probe": ".ヲostostヲ.", "raw": 16, "kind": "mid"},
+   "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 8, "kind": "raw"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
