@@ -18,9 +18,12 @@ unedited source in hundreds of languages, so it exercises the whole model rather
     anything the 1,741 chose, which makes them the sharper accuracy reading; the in-sample gate is
     the sharper regression detector, and both are asserted.
 
-**UDHR and MultiPL-E are the held-out gates and Rosetta is not.** Mining may bisect Rosetta freely;
-nothing may select, accept or reject a piece because of UDHR or MultiPL-E. The dev repo's
-``CLAUDE.md`` carries the same table, and it is the reason these two numbers mean anything.
+**MultiPL-E is the held-out gate and Rosetta is not.** Mining may bisect Rosetta freely; nothing may
+select, accept or reject a piece because of MultiPL-E. UDHR was held out until 2026-08-12, when its
+last nine non-exact readings were closed by bisecting the documents themselves — six pieces selected
+off the gate, each accepted on its own fixed-template membership witness. Its rate is in-sample from
+that date, and is labeled so wherever it is quoted. The dev repo's ``CLAUDE.md`` carries the same
+table, and it is the reason these numbers mean what they say.
 
 Each fixture ships the corpus once (``<name>.jsonl.gz``) plus one recorded count per family
 (``<name>_counts.json``) — the corpus text is identical across families, only the counts differ. No
@@ -69,19 +72,15 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # The only corpus left with a residual, and it is unmined word vocabulary rather than
-        # structure. Every document in both families is within 1% and none under-counts, so
-        # `within1` could be tightened — it stays a fraction because the corpus is NOT finished: a
-        # rate below the real one is the compromise an unfinished corpus makes, and `ALL` here
-        # would fire on ordinary per-piece churn rather than on a regression.
-        #
-        # The exact and mean bounds carry deliberate margin for the same reason. Both families
-        # currently read well clear of them, and a bound tightened onto a reading that still moves
-        # each campaign catches churn, not regressions. What actually catches a regression is the
-        # every-document gate on Rosetta, the holdout and MultiPL-E below.
+        # FINISHED 2026-08-12: both families reproduce all 501 documents, so the gate is every
+        # document. The final six pieces were selected by bisecting the gate's own documents —
+        # UDHR is IN-SAMPLE from that date (see the module docstring) — but selection is not
+        # acceptance: each piece carries its own fixed-template membership witness in
+        # `pieces_*.json`, and the corpus court passed it (65 cached rows repaired, none broken,
+        # none pushed below).
         "families": {
-            "v3": {"version": 3.0, "mean": 0.0006, "within1": 0.99, "exact": 0.68},
-            "v4.7": {"version": 4.7, "mean": 0.0002, "within1": 0.99, "exact": 0.94},
+            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta": {

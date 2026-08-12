@@ -42,7 +42,7 @@
         "digit_eow": 92,
         "digit_mid": 261,
         "digit_word": 47,
-        "eow": 2800,
+        "eow": 2801,
         "glued": 1110,
         "mark_mid": 20,
         "mark_sep": 21,
@@ -13241,7 +13241,8 @@
       "⟨shift⟩⟨bow⟩františek⟨eow⟩": {"probe": "František", "raw": 12, "kind": "raw"},
       "⟨bow⟩househol": {"probe": ".householヲ.", "raw": 17, "kind": "bow"},
       "ささ": {"probe": ".ヲささヲ.", "raw": 20, "kind": "mid"},
-      "ález⟨eow⟩": {"probe": ".ヲález.", "raw": 17, "kind": "eow"}
+      "ález⟨eow⟩": {"probe": ".ヲález.", "raw": 17, "kind": "eow"},
+      "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
