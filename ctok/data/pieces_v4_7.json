@@ -36,7 +36,7 @@
       "coverage": {
         "bow": 3342,
         "cased_bow": 201,
-        "char": 2365,
+        "char": 2366,
         "contraction": 4,
         "digit_bow": 5,
         "digit_eow": 92,
@@ -48,7 +48,7 @@
         "mark_sep": 21,
         "mid": 2361,
         "prefix": 467,
-        "raw": 2107,
+        "raw": 2108,
         "special": 4,
         "word": 30
       }
@@ -13242,7 +13242,9 @@
       "⟨bow⟩househol": {"probe": ".householヲ.", "raw": 17, "kind": "bow"},
       "ささ": {"probe": ".ヲささヲ.", "raw": 20, "kind": "mid"},
       "ález⟨eow⟩": {"probe": ".ヲález.", "raw": 17, "kind": "eow"},
-      "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"}
+      "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"},
+      "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 12, "kind": "raw"},
+      "░": {"probe": "a░a", "raw": 14, "kind": "char"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},

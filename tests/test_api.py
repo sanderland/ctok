@@ -211,6 +211,72 @@ def test_normalization_is_family_specific():
     assert normalize("don’t", version=4.7) == "don’t"
 
 
+@pytest.mark.parametrize("version", (3.0, 4.7))
+def test_thai_sara_am_composes_but_nfkc_does_not_apply(version):
+    """Claude composes Thai SARA AM without applying NFKC generally."""
+    assert normalize("ทํางาน", version=version) == "ทำงาน"
+    assert token_count("ทํางาน", version=version) == token_count("ทำงาน", version=version)
+    assert normalize("นํ้า", version=version) == "นํ้า"
+    assert normalize("น้ํา", version=version) == "น้ำ"
+
+    for text in ("ﬁ", "１", "Ⅻ", "①", "²"):
+        assert normalize(text, version=version) == text
+
+
+@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("literal", [chr(cp) for cp in range(0xFDD0, 0xFDD5)])
+def test_literal_internal_marker_codepoints_are_byte_priced(version, overhead, literal):
+    """Input noncharacters must not become the engine's structural markers."""
+    assert normalize(literal, version=version) == literal
+    assert token_count(literal, version=version) == overhead + 4
+    assert token_count(literal * 2, version=version) == overhead + 7
+    assert token_count(f"a{literal}b", version=version) == overhead + 5
+    assert "⟨0xEF⟩" in marked_stream(literal, version=version)
+
+
+@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+def test_apostrophe_opens_an_unattached_mark_word(version, overhead):
+    assert token_count("'ً", version=version) == overhead + 4
+    assert token_count("a 'ً x", version=version) == overhead + 6
+    assert token_count("1 'ً 1", version=version) == overhead + 8
+    assert token_count("a 'ͣ x", version=version) == overhead + 8
+
+    # Syriac vowels are already word-forming; separator accents are not mark words.
+    assert token_count("a 'ܶ x", version=version) == overhead + 8
+    assert token_count("a '́ x", version=version) == overhead + 5
+
+
+@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+def test_variation_selector_keeps_its_base_kind_and_owns_the_right_edge(version, overhead):
+    assert token_count("  ☀️夏", version=version) == overhead + 7
+    assert token_count("🏻️ 5", version=version) == overhead + 8
+    assert token_count("夏️ 5", version=version) == overhead + 7
+    assert token_count("☀️ 5", version=version) == overhead + 7
+
+
+@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+def test_bmp_unassigned_characters_take_space_border_markers(version, overhead):
+    for literal, content_cost in (("\u0378", 9), ("\u083f", 10), ("\u0efb", 9), ("\ufdef", 10)):
+        assert token_count(f"5 {literal} 5", version=version) == overhead + content_cost
+
+    # Astral unassigned codepoints remain markerless.
+    assert token_count("5 \U0001000c 5", version=version) == overhead + 9
+
+
+@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+def test_unicode_16_letters_use_the_word_and_case_model(version, overhead):
+    """The source models know two cased letters newer than Python 3.13's Unicode table."""
+    assert token_count("\u1c89", version=version) == overhead + 6
+    assert token_count("\u1c8a", version=version) == overhead + 5
+    assert token_count("\ua7cb", version=version) == overhead + 5
+    assert token_count("\u0264", version=version) == overhead + 4
+    assert token_count("\u1c89abc", version=version) == overhead + 7
+    assert token_count("\ua7cb\u0264\u0264\u0264", version=version) == overhead + 11
+
+    expected_caps = 11 if version == 3.0 else 14
+    assert token_count("\ua7cb" * 4, version=version) == overhead + expected_caps
+
+
 def test_dotted_capital_i_uses_the_ordinary_unit_piece():
     """İ is literal inside a cased span. It does not become a two-byte fallback after an uppercase
     vocabulary tile; that retired reading over-counted every short form where it still applied."""

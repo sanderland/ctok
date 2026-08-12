@@ -9,9 +9,7 @@ import re
 
 # ---- marker notation ----------------------------------------------------------------------------
 
-# The engine computes over marked strings in which each structural marker is ONE codepoint, so the
-# tiling DP can do per-position arithmetic. All are permanent Unicode noncharacters, which can never
-# appear in interchanged text, so a literal `^` or `↑` in the input is never mistaken for a marker.
+# The engine computes over marked strings in which each structural marker is one codepoint.
 BOW_G, EOW_G, PAD_G = "\ufdd0", "\ufdd1", "\ufdd2"
 SHIFT_G, CAPS_G = "\ufdd3", "\ufdd4"
 
@@ -26,6 +24,13 @@ PAD = f"{L}pad{R}"
 
 GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS}
 ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G}
+
+# Scraped text can contain the noncharacters used above. NFC strips BMP private-use input, so these
+# five private-use codepoints are safe internal escapes inserted after NFC. The byte floor and
+# renderer map them back to the original noncharacters.
+LITERAL_MARKER_ESCAPES = {glyph: chr(0xE000 + i) for i, glyph in enumerate(GLYPH_TO_ATOM)}
+ESCAPED_MARKER_LITERALS = {escape: glyph for glyph, escape in LITERAL_MARKER_ESCAPES.items()}
+LITERAL_MARKER_ESCAPE_TABLE = str.maketrans(LITERAL_MARKER_ESCAPES)
 
 # ---- character classes --------------------------------------------------------------------------
 
