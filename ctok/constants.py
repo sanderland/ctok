@@ -45,6 +45,16 @@ SYMBOL_LETTERS = (
     (0x16EE, 0x16F0),   # Runic golden numbers (Nl, caseless)
     (0x2160, 0x2188),   # Roman numerals (Nl/Lu/Ll, cased pairs)
     (0x24B6, 0x24E9),   # circled letters (So, cased)
+    # The ten Bamum number-letters, gc=Nl in the middle of a block that is otherwise Lo. Without
+    # this they fell to HARD and took no markers at all: `文ꛦ文` and `x  ꛦ  x` each read two
+    # tokens UNDER, and a Bamum word written around one — `x ꚠꛦꚠ x` — read two OVER, because the
+    # Lo letters on either side closed words the oracle keeps open. The rival spelling, a
+    # border-marked number run like `½`, is refuted by those same two cells: it writes no marker
+    # against an ideograph and loses one before a space RUN, where the oracle writes both.
+    # 40 cells per family, 2026-08-12, `mined/bamum_nl.jsonl.gz`. It is the BLOCK that predicts
+    # this and not the category: the Hangzhou numerals `〡` (also Nl) are exact with no markers
+    # on the same four shapes, so they are not here.
+    (0xA6E6, 0xA6EF),   # Bamum number-letters (Nl, caseless)
 )
 
 # Variation selectors are gc=Mn, which would put them in the WORDY class and give them the whole

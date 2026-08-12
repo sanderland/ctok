@@ -91,7 +91,11 @@ message frame, so it lands on the same documents with the same errors;
 | UDHR | v4.7 (v5 borrows it) | 0.000% | 0.000% | 490/501 | 100% |
 
 **No document in either family is over 1% off any more, and none under-counts** — not in these
-501 documents and not in the 1.6M texts ever measured against either model. Tem, the worst document
+501 documents and not in any of the 3.0M texts ever measured against either model. That second
+clause was ahead of its evidence until 2026-08-12: scanned over the whole measurement store rather
+than the smaller cache the earlier claims were read on, the model still believed 194 tokens in 139
+v3 texts and 4 in 4 v4.7 ones were cheaper than they are. All three causes were missing boundary
+glyphs, none of them was a piece, and both stores now read zero (§26). Tem, the worst document
 in both for a month at +6.23% / +6.08%, reproduces exactly, and so do Navajo, Lingala, Yoruba and
 Maldivian. Weighted by speakers rather than by document the error is 0.005% (v3) and 0.001% (v4.7).
 
@@ -110,6 +114,7 @@ miner can reach it at all, and it usually could not.
 | ten European languages | 19 | three were one document each (a flyer of `××`, a birth/death list, a Gospel's nested quote); the other seven are proper nouns — `София` alone is 54 of Bulgarian's 86 | [§23](LIMITS.md) |
 | the last under-count | 0 | a ⟨caps⟩ written on a caseless **mark** — `'းUNDPA'.isupper()` is True because a Myanmar spacing mark has no case to contradict it. §15 had fixed this for caseless letters; the predicate was one Unicode category too narrow | [§24](LIMITS.md) |
 | Tibetan, Dzongkha | 1 | 58% of v3's residue on the Goldfish batches was one piece v4.7 already shipped, `ླ`+`ོ`. Seven vowel signs and all 44 subjoined letters refuse — one cell on each axis | [§25](LIMITS.md) |
+| the whole store's under-count | 0 | three missing boundary glyphs, no piece anywhere: ten Bamum **letters** Unicode types `Nl`, a leading space normalization MADE (NBSP, NUL) absorbed as if it were the raw head, and content that normalizes to nothing writing no frame `⟨bow⟩`. The Bamum grid moves in both directions, which is what says it is a boundary and not a piece | [§26](LIMITS.md) |
 
 The last held-out Rosetta document to fall was a Swift file of Unicode escapes where combining
 marks sit on U+25CC DOTTED CIRCLE — a stream-spelling question rather than a missing piece, and it
@@ -200,7 +205,10 @@ that corpus is 250/250.
 **Every under-counting text in the cache is now accounted for, and there is no residue**
 (LIMITS.md §15, §16). The whole cache — every text ever measured against either model, probe grids
 included — went from 152 tokens under in 112 texts on v3 and 359 in 306 on v4.7 to **zero on both
-sides**, over 505,886 and 1,009,746 texts. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
+sides**, over 505,886 and 1,009,746 texts. Read that denominator: the store has since grown to
+1.25M and 1.71M, and the wider scan found three more populations that the smaller one never held
+(LIMITS.md §26). "No residue" is a statement about a cache, and it is worth re-running rather than
+quoting. What that took: forty separator marks whose grids the cache already held; the Telugu visarga, which was
 never a killer (word material plus a `ః⟨eow⟩` piece the eow template witnesses at cost 1); a
 Unicode 15.0 Kannada mark our 14.0 tables call unassigned; a ⟨caps⟩ that `str.isupper` wrote onto
 caseless-letter spans (`ヲBUTTヲ`, `ロデオFUCK`, `அறிவியலNATIONAL`) — and, one Unicode category later,

@@ -2897,3 +2897,215 @@ now reproduce, with 0 tokens of over-charge in either. The eleven v3 texts in th
 under-count by a token are the whole-Unicode sweep strings a different campaign bought — they under
 count identically without this piece and none of them holds its surface, which is §14.5's check for
 telling a row this campaign broke from one it never touched.
+
+## 26. The store's whole under-count was three missing boundary glyphs, and none of them a piece
+
+**Measured 2026-08-12.** §15 claimed every under-counting text was accounted for and §16 put the
+number at zero, but both were read over a smaller cache. Scanned over the whole measurement store —
+every row of `data_*/mined/`, which is what the campaigns since have grown — the model still
+believed **194 tokens in 139 of 1,249,165 v3 texts** and **4 in 4 of 1,709,389 v4.7 ones** were
+cheaper than they are. It is a standing debt rather than anything the recent campaigns broke:
+§24.7 already listed exactly these shapes as its residue, checked that not one of them moved there,
+and filed them as "a recorded lead for a campaign on the bare-character templates". The totals drift
+a little with the store rather than with the model — §24.6 read 139 v3 texts after its change,
+§25.4 read 141 over a slightly different snapshot, and this scan reads 139 over 1,249,165 — which is
+the reason to re-run the scan rather than quote it.
+
+Both families now under-count **zero tokens in zero texts**, and over-count falls with it.
+
+§8 leaves two causes and no third: a false piece, or a missing boundary glyph. **All three
+populations are the second cause, and no piece was added or removed** — the vocabulary holds no
+Bamum, NUL or private-use key in either family, so there was never a piece to accuse.
+
+### 26.1 Three populations, and the scan says there are exactly three
+
+`scripts/under_scan.py` tiles every cached text against its recorded count. Grouped by what the
+text actually contains rather than by its first non-ASCII block — the block grouping splits one
+cause across eight headings, because a Unicode-ladder probe carries thirty scripts:
+
+| population | v3 texts / tokens | v4.7 | what is missing |
+|---|---:|---:|---|
+| a Bamum number-letter U+A6E6–U+A6EF | 102 / 157 | 0 / 0 | the word's ⟨bow⟩ and ⟨eow⟩ |
+| a leading space normalization MANUFACTURED | 36 / 36 | 3 / 3 | the space token itself |
+| content that normalizes to nothing | 1 / 1 | 1 / 1 | the frame's own ⟨bow⟩ |
+
+Every one of the 139 v3 texts and all 4 v4.7 ones is in exactly one row of that table. The
+apparent variety of §24.7's list is the probe shapes, not the causes: the C0/C1 control ladders all
+begin with NUL, the "Cyrillic pairs" are Bamum ladders whose first non-ASCII character happens to be
+U+A67E CYRILLIC KAVYKA, and the "CJK block ladders" are whole-Unicode sweep strings that also cross
+the Bamum block. Those read −2 rather than −1 for the same reason a bare `ꛦ` reads −1: at message
+start the HARD spelling already writes the frame's lone ⟨bow⟩, so only the ⟨eow⟩ is missing, while a
+Bamum run standing between non-letters is missing both of its markers.
+
+### 26.2 The Bamum number-letters are LETTERS, and the rival is a number run
+
+U+A6E6–U+A6EF are named BAMUM LETTER MO … KOGHOM and sit in the middle of a block that is otherwise
+`Lo`. Unicode gives those ten `Nl`, so `classify` — which admits `L` and `M` — dropped them to HARD,
+where a run takes no border marker at all. Bare `ꛦ` read 4 against the oracle's 5.
+
+Two spellings can supply the missing marker and they are not the same rule:
+
+* **wordy** — the ten join the letter class, exactly as `SYMBOL_LETTERS` already does for the Runic
+  golden numbers and the Roman numerals. A wordy run is flanked ⟨bow⟩…⟨eow⟩ wherever a word ends,
+  and it FUSES with adjacent letters into one word.
+* **border** — they stay HARD and take punctuation-style border markers like a `No` run (`½`),
+  which are written only against a single space or the message edge.
+
+Both supply the missing marker on the bare probe and on the single-space seam, so those cells
+separate the rivals from the shipped reading and not from each other. Three shapes separate the
+rivals, and each is a shape the border rule is *defined* by:
+
+```
+ours − oracle, v3 / v4.7 (identical), `mined/bamum_nl.jsonl.gz`
+
+                       oracle   HARD (shipped)   border   wordy
+x ꛦ x                     7          0             0        0     <- coincidence: the seam cancels
+x  ꛦ  x                   9         -2            -1        0     <- a space RUN kills a border marker
+文ꛦ文                      8         -2            -2        0     <- no space anywhere to border
+x ꚠꛦꚠ x                  13         +2            +2        0     <- OVER: the Lo letters close words
+```
+
+**The border spelling is refuted twice over**, and by its own defining property each time: it loses
+one marker before a run of two spaces, where the oracle writes both, and it writes neither against
+an ideograph, where the oracle writes both. The discriminating shapes repeat on a second letter
+(`ꛪ`) and on a doubled run (`ꛦꛦ`), and every cell of the 76-probe grid reads identically in the two
+families — 75 measured, since a whitespace-only message cannot be asked.
+
+`x ꚠꛦꚠ x` is the cell worth the campaign. It moves in the **OVER** direction: the shipped rule
+severs a Bamum word at its own numeral, so the `Lo` letters either side each pay a ⟨bow⟩ and an
+⟨eow⟩ the oracle never writes. A missing piece can only ever push one way; a boundary in the wrong
+place pushes both, which is §17.5's and §24.3's signature and it is here in one grid.
+
+**It is the block that predicts this, not the category.** The Hangzhou numerals are `Nl` too, and
+`x 〡 x` = 6, `x  〡  x` = 6, `x〡x` = 4 and `文〡文` = 5 are all exact with no marker written — the
+HARD reading, unmoved. They are not in the range. Controls that also do not move: the Bamum `Lo`
+letters themselves (`x ꚠ x`, `xꚠx`, `文ꚠ文`, `x ꚠꚠ x`), the Roman numeral `Ⅶ` and the Runic `ᛮ`
+already in `SYMBOL_LETTERS`, and the `½` cells the border spelling was modelled on.
+
+### 26.3 A space normalization MANUFACTURED is not the raw head
+
+`nfc` folds NBSP and the other space separators to U+0020 and folds NUL to U+0020 as well. The
+frame's leading-space absorption then fired on a space the raw message never had: `'\xa0a'` and
+`'\x00z'` were priced as `' a'`, which is priced as `'a'`.
+
+The rule was already known at the other end of the message. `engine.tile` strips the frame's
+trailing whitespace off the RAW text and says so in a comment — "`nfc` folds NBSP … and those do NOT
+come free at the end" — because stripping the folded text under-counted 363 Rosetta documents. The
+head predicate is the mirror of it and only had half: it asked whether `nfc` had STRIPPED the first
+character (a C1 control, a private-use codepoint) and not whether it had FOLDED it.
+
+```
+oracle 2, absorbed spelling 1, both families
+
+\xa0a   \xa0.   \xa0::        the three NBSP-led Rosetta prefixes are this shape
+\u2009a  \u202fa  \u2007a     the other folded space separators
+\x00a   \x00.                 NUL, which nfc folds to a space rather than stripping
+```
+
+Controls, unmoved: `' a'` = 1 and `'a'` = 1 (a real raw space still absorbs — the fold is what does
+not), `'  a'` = 2, `'\x95a'` = 1, `'\x95 a'` and `'\uf0d8 a'` = 2 (the 2026-08-09 rows the narrow
+predicate was built on, and they still read the same), `'\xa0 a'` and `'\xa0\xa0a'` = 2, `'a\xa0a'`
+`'a\xa0b'` `'x \xa0 x'` (a fold in mid-text never touches the head rule), `'\ta'` `'\na'` `'5 a'`
+`' 5'` `' .'`. The predicate is now `text.startswith(" ")` and nothing else.
+
+Two coincidence cells, recorded so a later grid does not read them as confirmation: `'\xa05'` and
+`'\x005'` are exact under both spellings, because a digit head writes no ⟨bow⟩ of its own for the
+absorbed space to stand in for.
+
+### 26.4 Content that normalizes to nothing still pays for the frame's ⟨bow⟩
+
+`stream_norm` returns the frame's ⟨bow⟩ as a token of its own whenever the first run supplies none.
+It never reached that line when there were no runs at all: `if not runs: return ""`, and a message
+of nothing but private-use or control characters priced at zero where the oracle charges one.
+
+```
+oracle 1, ours 0, both families:  U+F0B7   U+F0E8   U+E000   U+F0B7 U+F0B7
+                                  \x95     \x01     \x7f     \x95\x96
+```
+
+**This is not the strip being wrong**, which is the reading to rule out before writing anything:
+`'a\uf0b7a'` = 1, `'\uf0d8a'` = 1, `'\uf0b7a'` = 1 and `'\ue032Ургъун ц1але ц1и назму.\ue032'` = 16
+are all exact with the characters removed, and were before this change. The character still costs
+nothing. What costs one token is the frame's own ⟨bow⟩ with nothing left to attach to — the same
+glyph, in the same branch, that `'ꛦ'` and `'文'` already pay for at message start.
+
+A whitespace-only message cannot be asked at all: the API refuses it (`'\x0b'` was tried and
+returned 400), so this is measured on the strippable characters only.
+
+### 26.5 What it cost, over everything
+
+Only a text holding a Bamum number-letter, a leading space normalization made, or content that
+normalizes away can move at all — the three rules are gated on exactly those predicates — so that is
+the population, and it is tiled twice on one denominator:
+
+| reachable population | texts | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 537 | 370 | 6 in 3 rows | 224 in 164 rows |
+| v3, after | 537 | **537** | **0** | **0** |
+| v4.7, before | 1,202 | 1,165 | 20 in 6 rows | 36 in 31 rows |
+| v4.7, after | 1,202 | **1,199** | **14 in 3 rows** | **0** |
+
+**No row in either family got worse, and no exact row stopped being exact.** v3's reachable set is
+now exact to the last text. v4.7's three remaining rows are NBSP-led Rosetta documents of Agda and
+Lean source (`+1`, `+8`, `+5`) whose over-count is ordinary vocabulary somewhere else in the file;
+all three over-counted before this campaign as well, and the head rule took six tokens off the six
+rows it did reach.
+
+And the whole store, every text ever measured against either model:
+
+| | texts | exact | over | under |
+|---|---:|---:|---:|---:|
+| v3, before | 1,249,230 | 1,248,251 | 1,015 in 815 rows | 224 in 164 rows |
+| v3, after | 1,249,230 | **1,248,418** | **1,009 in 812 rows** | **0 in 0** |
+| v4.7, after | 1,709,449 | **1,707,166** | **2,591 in 2,283 rows** | **0 in 0** |
+
+The two v3 readings agree, which is the check that the reachable-population filter is not hiding a
+row: 1,248,418 − 1,248,251 = 167 = the 164 under rows plus the 3 over ones, and 1,015 − 1,009 = 6.
+
+The before column reads 224 tokens in 164 rows where this section's opening reads 194 in 139,
+because the probes this campaign bought are in the denominator — 65 rows on v3 and 60 on v4.7, in
+`mined/bamum_nl.jsonl.gz`. The difference is exactly right, and worth checking rather than waving
+at: re-priced against the OLD model, **25 of the 65 v3 rows under-count for 30 tokens** and **27 of
+the 60 v4.7 rows for 32**, so 139 + 25 = 164 with 194 + 30 = 224, and 4 + 27 = 31 with 4 + 32 = 36.
+Every probe this campaign bought under-counted by the old model too, which is §14.5's check
+separating "a probe we had not bought" from "a row we broke".
+
+Over-count falls with under-count — 6 tokens on v3 across 3 rows, 6 on v4.7 across 3 — and every one
+of them is a text where a Bamum word was being severed at its own numeral, the `x ꚠꛦꚠ x` shape.
+That is the second half of §26.2's both-directions argument, in the corpus rather than in the grid.
+
+The corpus gates, scored before and after and unmoved in both families, which is the null control
+this campaign expects — no Goldfish line and no gate document contains a Bamum letter, a
+manufactured head space or empty content:
+
+| | exact | over | under |
+|---|---|---:|---:|
+| Goldfish v3, 35,774 lines | 35,664 | 121 in 110 lines | 0 |
+| Goldfish v4.7, 35,774 lines | 35,749 | 26 in 25 lines | 0 |
+
+Held out and read once at the end, all unmoved: UDHR **395**/501 exact on v3 and **490**/501 on
+v4.7 and v5; Rosetta 1,741/1,741, the 250-document holdout 250/250, MultiPL-E 22/22; witness
+coverage 100% in both vocabularies with no piece added or removed, so no witness changed; 223 tests
+pass. v5 borrows v4.7's vocabulary under its own frame and has no frame ⟨bow⟩ to misplace: its
+16,243 cached texts under-count 0 before and after.
+
+### 26.6 What was refused, and what this does not close
+
+* **The false-piece half was never a candidate**, and that is a measurement rather than an
+  assumption: neither vocabulary holds a key containing a Bamum-block codepoint, a NUL or a
+  private-use codepoint, so there is no piece for the under-count to be false. Under §8 that leaves
+  the marked stream, and the marked stream is where all three were.
+* **The `Nl` generalization was refused.** Extending the rule from the Bamum block to the category
+  would take the Hangzhou numerals with it, and four cells say they are HARD. `SYMBOL_LETTERS` stays
+  an enumeration of blocks for the same reason it always was.
+* **The border spelling is refused for Bamum and remains right for `No`.** The `½` cells in the same
+  grid are exact under the shipped border rule, so this is not a claim that the number-run branch is
+  wrong — only that these ten characters are not in it.
+* Nothing is left open on the under side in either family, and that is now a reading of the whole
+  store rather than of a cache. The over-count that remains — 1,009 tokens in 812 of 1,249,230 v3
+  texts and 2,591 in 2,283 of 1,709,449 v4.7 ones — is ordinary vocabulary coverage, which is what
+  §0's ranking is for. Three of those rows are in this campaign's population and are named in §26.5.
+* **The lesson worth keeping is about the denominator, not about Bamum.** §15 and §16 both closed on
+  "the whole cache", and both were true of the cache they were read over; the store has since more
+  than doubled, and three populations that were never in it turned up the moment the scan was run
+  again. `scripts/under_scan.py` exists so the next campaign re-runs it rather than quoting a number.

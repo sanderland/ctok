@@ -13,7 +13,7 @@ tiles.
 from __future__ import annotations
 
 from .constants import EOW_G, MARKER_GLYPHS
-from .normalize import nfc, stream_norm, stripped_head
+from .normalize import nfc, raw_head_space, stream_norm
 
 
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
@@ -220,10 +220,11 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         # than after it: `nfc` folds NBSP and the other space separators to U+0020, and those do
         # NOT come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
         # same. Stripping the folded text would hand back that token and under-count 363 documents
-        # of the Rosetta corpus, which is how this was found.
+        # of the Rosetta corpus, which is how this was found. `normalize.raw_head_space` is the
+        # same fact at the message HEAD, and it was missing there until 2026-08-12.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
-    s = stream_norm(norm, model, head_stripped=stripped_head(text))
+    s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)

@@ -683,25 +683,35 @@ def stream(text: str, model) -> str:
     Punctuation-like, digit, killer, and stray-mark runs receive their measured boundary markers.
     """
     return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
-                       head_stripped=stripped_head(text))
+                       raw_head_space=raw_head_space(text))
 
 
-def stripped_head(text: str) -> bool:
-    """Did :func:`nfc` strip the very first character of the message?
+def raw_head_space(text: str) -> bool:
+    """Is the message's leading space one the RAW text supplies — the only one the frame absorbs?
 
     The frame's leading-space absorption is a fact about the RAW message head: the frame ends in
-    ⟨bow⟩ and that ⟨bow⟩ IS the space (' a' = 12 on v4.7, same as 'a'). A stripped C1 or
-    private-use character still stood between the frame and the space when the oracle read it, and
-    the oracle does not absorb across it. Measured 2026-08-09: '\\x95 a', '\\x8c a' and '\\uf0d8 a'
-    all read 13 where the absorbed spelling charges 12. Controls: 'a' and ' a' = 12, '  a' = 13,
-    '\\x95a' = 12 (the strip itself is right — the character costs nothing), and 'a \\x95 b' is
-    exact (mid-text strips never touch the head rule).
+    ⟨bow⟩ and that ⟨bow⟩ IS the space (' a' = 12 on v4.7, same as 'a'). Anything else standing
+    between the frame and the text was read by the oracle before the space was, and the oracle does
+    not absorb across it — whether :func:`nfc` then STRIPS that character or FOLDS it INTO the
+    space makes no difference to what the oracle saw.
+
+    This predicate used to ask the narrower question "did nfc strip the first character", and the
+    fold half was missing. Measured 2026-08-12, one token under without it in both families and
+    exact with it: '\\xa0a' '\\xa0.' '\\xa0::' (the three NBSP-led Rosetta prefixes in the store),
+    the other folded spaces '\\u2009a' '\\u202fa' '\\u2007a', and NUL, which ``nfc`` folds to a
+    space rather than stripping: '\\x00a' '\\x00.' — 8 shapes per family, all at oracle 2 where the
+    absorbed spelling charges 1.
+
+    Controls, unmoved by the widening: ' a' = 1 and 'a' = 1 (a real raw space still absorbs),
+    '  a' = 2, '\\x95a' = 1 (the strip itself is right — the character costs nothing), '\\x95 a'
+    and '\\uf0d8 a' = 2 (2026-08-09, the rows this predicate was built on), '\\xa0 a' and
+    '\\xa0\\xa0a' = 2 (a second space is not absorbed either way), 'a\\xa0a' 'a\\xa0b'
+    'x \\xa0 x' (mid-text folds never touch the head rule), '\\ta' '\\na' '5 a' ' 5' ' .'.
     """
-    t = SURROGATE.sub("�", unicodedata.normalize("NFC", text))
-    return bool(STRIP_CONTROL.match(t) or STRIP_PRIVATE.match(t))
+    return text.startswith(" ")
 
 
-def stream_norm(norm: str, model, *, head_stripped: bool = False) -> str:
+def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     """The marked stream over already-normalized text.
 
     This is :func:`stream` over text the caller has already folded. It is split out so a document
@@ -717,13 +727,22 @@ def stream_norm(norm: str, model, *, head_stripped: bool = False) -> str:
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
     # Where the frame does NOT end in a ⟨bow⟩ (v5), there is no space to stand in for: the leading
     # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
-    # A space the strip EXPOSED is not the raw head and is not absorbed either — the oracle read
-    # `[stripped char][space][text]` and kept the space (see :func:`stripped_head`).
-    if model.frame_bow and not head_stripped and norm[:1] == " " and norm[1:2] != " ":
+    # A space that normalization EXPOSED or MANUFACTURED is not the raw head and is not absorbed
+    # either — the oracle read `[stripped or folded char][space][text]` (see
+    # :func:`raw_head_space`).
+    if model.frame_bow and raw_head_space and norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
     runs = _runs(norm, model)
     if not runs:
-        return ""
+        # Content that normalizes away entirely still pays for the frame's ⟨bow⟩. It is the same
+        # ⟨bow⟩ the `out` list below writes when the first run supplies none: with nothing to
+        # attach to it tiles as itself, and returning "" dropped it. Measured 2026-08-12, oracle 1
+        # against our 0 in both families, on eight messages that strip to nothing — the private-use
+        # characters U+F0B7, U+F0E8, U+E000 and U+F0B7 doubled, and the controls U+0095, U+0001,
+        # U+007F and U+0095 U+0096. Controls, unmoved at 1, where the same ⟨bow⟩ is absorbed into
+        # the word that follows: 'a', '\x95a', '\uf0b7a'. A whitespace-only message cannot be
+        # asked at all — the API refuses U+000B.
+        return BOW_G if model.frame_bow else ""
     caps = model.allcaps_min
     n_runs = len(runs)
 
