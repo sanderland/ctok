@@ -48,9 +48,9 @@
     "glued": 1110,
     "mark_mid": 21,
     "mark_sep": 22,
-    "mid": 4736,
+    "mid": 4737,
     "prefix": 467,
-    "raw": 6476,
+    "raw": 6477,
     "special": 4,
     "word": 13250
    }
@@ -45690,7 +45690,9 @@
    "év⟨eow⟩": {"probe": ".ヲév.", "raw": 13, "kind": "eow"},
    "⟨bow⟩úmrtí⟨eow⟩": {"probe": "úmrtí", "raw": 8, "kind": "raw"},
    "⟨bow⟩orașe⟨eow⟩": {"probe": "orașe", "raw": 8, "kind": "raw"},
-   "րր": {"probe": ".ヲրրヲ.", "raw": 16, "kind": "mid"}
+   "րր": {"probe": ".ヲրրヲ.", "raw": 16, "kind": "mid"},
+   "⟨shift⟩⟨bow⟩storbritannien⟨eow⟩": {"probe": "Storbritannien", "raw": 8, "kind": "raw"},
+   "ostost": {"probe": ".ヲostostヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
