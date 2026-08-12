@@ -48,9 +48,9 @@
     "glued": 1110,
     "mark_mid": 21,
     "mark_sep": 22,
-    "mid": 4735,
+    "mid": 4736,
     "prefix": 467,
-    "raw": 6474,
+    "raw": 6476,
     "special": 4,
     "word": 13250
    }
@@ -45687,7 +45687,10 @@
    "⟨shift⟩⟨bow⟩taxa⟨eow⟩": {"probe": "Taxa", "raw": 8, "kind": "raw"},
    "intint": {"probe": ".ヲintintヲ.", "raw": 16, "kind": "mid"},
    "érér": {"probe": ".ヲérérヲ.", "raw": 16, "kind": "mid"},
-   "év⟨eow⟩": {"probe": ".ヲév.", "raw": 13, "kind": "eow"}
+   "év⟨eow⟩": {"probe": ".ヲév.", "raw": 13, "kind": "eow"},
+   "⟨bow⟩úmrtí⟨eow⟩": {"probe": "úmrtí", "raw": 8, "kind": "raw"},
+   "⟨bow⟩orașe⟨eow⟩": {"probe": "orașe", "raw": 8, "kind": "raw"},
+   "րր": {"probe": ".ヲրրヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
