@@ -12,7 +12,7 @@ tiles.
 
 from __future__ import annotations
 
-from .constants import EOW_G, MARKER_GLYPHS
+from .constants import EOW_G, ESCAPED_MARKER_LITERALS, MARKER_GLYPHS
 from .normalize import nfc, raw_head_space, stream_norm
 
 
@@ -172,6 +172,7 @@ def char_cost(model, ch: str) -> int:
     """The cost of one codepoint standing alone: 1 if the character is itself a token, else its
     byte-floor tiling. Every character has this fallback; HARD is merely where the vocabulary
     usually runs out. Memoized — a long CJK run asks the same question thousands of times."""
+    ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     cache = model._char_cost_cache
     hit = cache.get(ch)
     if hit is None:
@@ -249,7 +250,8 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         if seg in pieces or unit_floor(j) == 1:
             out.append(seg)
         else:
-            out.extend(model.bytes.chunks(seg.encode()))
+            literal = ESCAPED_MARKER_LITERALS.get(seg, seg)
+            out.extend(model.bytes.chunks(literal.encode()))
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out

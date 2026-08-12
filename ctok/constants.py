@@ -9,9 +9,7 @@ import re
 
 # ---- marker notation ----------------------------------------------------------------------------
 
-# The engine computes over marked strings in which each structural marker is ONE codepoint, so the
-# tiling DP can do per-position arithmetic. All are permanent Unicode noncharacters, which can never
-# appear in interchanged text, so a literal `^` or `↑` in the input is never mistaken for a marker.
+# The engine computes over marked strings in which each structural marker is one codepoint.
 BOW_G, EOW_G, PAD_G = "\ufdd0", "\ufdd1", "\ufdd2"
 SHIFT_G, CAPS_G = "\ufdd3", "\ufdd4"
 
@@ -26,6 +24,13 @@ PAD = f"{L}pad{R}"
 
 GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS}
 ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G}
+
+# Scraped text can contain the noncharacters used above. NFC strips BMP private-use input, so these
+# five private-use codepoints are safe internal escapes inserted after NFC. The byte floor and
+# renderer map them back to the original noncharacters.
+LITERAL_MARKER_ESCAPES = {glyph: chr(0xE000 + i) for i, glyph in enumerate(GLYPH_TO_ATOM)}
+ESCAPED_MARKER_LITERALS = {escape: glyph for glyph, escape in LITERAL_MARKER_ESCAPES.items()}
+LITERAL_MARKER_ESCAPE_TABLE = str.maketrans(LITERAL_MARKER_ESCAPES)
 
 # ---- character classes --------------------------------------------------------------------------
 
@@ -208,28 +213,6 @@ FUNNY_SPACE = re.compile("[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F]")
 # The four standard curly quotes fold to their ASCII forms (v3 only; NFC does not do this). The
 # low-9 mark U+201E is a different token and is deliberately not folded.
 QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201C": '"', "\u201D": '"'})
-
-# Thai SARA AM is COMPOSED before tokenizing, and NFC does not do it: U+0E33's decomposition is
-# tagged <compat>, so only NFKC would recompose U+0E4D U+0E32, and the tokenizer is demonstrably not
-# doing NFKC. Both halves of that are measured (2026-08-12, both families):
-#
-#   composes      `count_tokens` is EQUAL on the composed and decomposed spellings of 10 Thai words
-#                 (\u0E17\u0E33\u0E07\u0E32\u0E19 \u0E08\u0E33\u0E19\u0E27\u0E19 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A \u2026), while our NFC-only reading differed on 8 of them.
-#   not NFKC      the other compat folds do NOT collapse: the fi ligature, fullwidth `\uFF11`, roman
-#                 numeral `\u216B` and the square-era glyph all price apart from their expansions. `\u2460`
-#                 and `\u00B2` read EQUAL as single characters and look like folds \u2014 they are
-#                 coincidence cells (PITFALLS.md #10), and a repeated run separates them at once:
-#                 `\u2460\u2460\u2460\u2460\u2460\u2460` = 14 against `111111` = 10.
-#   Thai only     the sibling SEA compat pairs are NOT composed \u2014 Lao U+0EB3 (VOWEL SIGN AM, the
-#                 exact structural analogue) and U+0EDC HO NO both price apart from their
-#                 expansions. Myanmar U+1026 agrees only because its decomposition is CANONICAL,
-#                 so NFC already handled it and it is no evidence either way.
-#
-# Applied as a substring rewrite rather than a per-character map because it joins two codepoints.
-# A tone mark between them is left alone (`\u0E19` + `\u0E4D` + `\u0E49` + `\u0E32` never matches), and where a tone
-# mark precedes the pair (`\u0E19` + `\u0E49` + `\u0E4D` + `\u0E32`) the rewrite yields the composed `\u0E19\u0E49\u0E33`, which is the
-# spelling the oracle prices \u2014 all three orderings were probed and agree.
-THAI_SARA_AM = ("\u0E4D\u0E32", "\u0E33")
 
 # The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩ — the
 # standard English contraction set, lowercase and whole-word only. Measured per member against

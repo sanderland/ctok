@@ -8,11 +8,10 @@ keys of ``pieces.json``. The glyphs and atom names themselves live in ``constant
 
 import re
 
-from .constants import ATOM_TO_GLYPH, GLYPH_TO_ATOM, L, R
+from .constants import ATOM_TO_GLYPH, ESCAPED_MARKER_LITERALS, GLYPH_TO_ATOM, L, R
 
 _ATOM_RE = re.compile(f"{L}(?:bow|eow|shift|caps|pad|0x[0-9A-Fa-f]{{2}}){R}" "|.", re.DOTALL)
 _BYTE_ATOM_RE = re.compile(f"{L}0x([0-9A-Fa-f]{{2}}){R}")
-_MARKER_TRANSLATION = str.maketrans(GLYPH_TO_ATOM)
 
 
 def escape_bytes(bs: bytes) -> str:
@@ -38,7 +37,13 @@ def render_bytes(bs: bytes) -> str:
 
 def render_marked(marked: str) -> str:
     """An internal marked string → its public form: glyphs become named atoms, text is escaped."""
-    return escape_text(marked).translate(_MARKER_TRANSLATION)
+    out = []
+    for ch in marked:
+        if ch in ESCAPED_MARKER_LITERALS:
+            out.append(escape_bytes(ESCAPED_MARKER_LITERALS[ch].encode()))
+        else:
+            out.append(GLYPH_TO_ATOM.get(ch, escape_text(ch)))
+    return "".join(out)
 
 
 def atoms(public: str):

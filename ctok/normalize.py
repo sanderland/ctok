@@ -14,30 +14,48 @@ import unicodedata
 
 from .constants import (
     BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
+    ESCAPED_MARKER_LITERALS,
     EXTRA_KILLERS, FUNNY_SPACE,
+    LITERAL_MARKER_ESCAPE_TABLE,
     NON_KILLERS,
     HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, THAI_SARA_AM, VARIATION_SELECTORS, WORDY,
+    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
 _KILLER = "killer"
 _STRAY_MARK = "stray_mark"
 
+# Python 3.13 ships Unicode 15.1 data; the source models know these Unicode 16.0 case pairs.
+_NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
+_NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
+
+
+def _lower(text: str) -> str:
+    return "".join(_NEW_CASE_PAIRS.get(c, c.lower()) for c in text)
+
+
+def _is_upper(c: str) -> bool:
+    return c in _NEW_CASE_PAIRS or c.isupper()
+
+
+def _is_lower(c: str) -> bool:
+    return c in _NEW_CASE_PAIRS.values() or c.islower()
+
+
+def _span_is_upper(text: str) -> bool:
+    cased = [c for c in text if _is_upper(c) or _is_lower(c)]
+    return bool(cased) and all(_is_upper(c) for c in cased)
+
 
 def nfc(text: str, *, fold_quotes: bool = True) -> str:
-    """Normalize as Claude does before tokenizing: NFC, compose Thai SARA AM, strip the zero-cost
-    control and private-use characters, optionally fold the curly quotes, then fold
-    space-separator variants (and NUL) to U+0020.
-
-    ``fold_quotes`` is a per-family flag: v3 folds, v4.7 measured not to. The SARA AM composition is
-    NOT per-family — both families were measured to do it, and ``constants.THAI_SARA_AM`` records
-    both that reading and the negative controls that keep it from being read as NFKC.
-    """
+    """Apply the measured text normalization. v3 alone folds curly quotes."""
     text = SURROGATE.sub("�", text)
     text = STRIP_CONTROL.sub("", unicodedata.normalize("NFC", text)).replace("\x00", " ")
-    text = text.replace(*THAI_SARA_AM)
+    # Claude composes decomposed Thai SARA AM, whose compatibility decomposition NFC leaves alone.
+    # Lao SARA AM and unrelated compatibility characters do not fold.
+    text = text.replace("\u0E4D\u0E32", "\u0E33")
     text = STRIP_PRIVATE.sub("", text)
     if fold_quotes:
         text = text.translate(QUOTE_FOLD)
@@ -80,6 +98,8 @@ def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
     if is_killer(c):
         return _KILLER
+    if c in _NEW_CASED:
+        return WORDY
     o = ord(c)
     cat = unicodedata.category(c)
     if cat[0] == "Z" or c in "\t\n\r\f\v":
@@ -214,14 +234,14 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
         return span
     if "İ" in span:
         tail = span[1:]
-        if span[:1].isupper() and span[:1] != "İ" and \
-                not any(c.isupper() for c in tail if c != "İ"):
-            return SHIFT_G + span[0].lower() + "".join(c if c == "İ" else c.lower()
+        if _is_upper(span[:1]) and span[:1] != "İ" and \
+                not any(_is_upper(c) for c in tail if c != "İ"):
+            return SHIFT_G + _lower(span[0]) + "".join(c if c == "İ" else _lower(c)
                                                        for c in tail)
         return span
-    unlowerable = any(unicodedata.category(c)[0] in ("L", "M") and not c.islower()
-                      and (not c.isupper() or c.lower() == c) for c in span)
-    if allcaps_min is not None and span.isupper() and len(span) >= allcaps_min \
+    unlowerable = any((c in _NEW_CASED or unicodedata.category(c)[0] in ("L", "M"))
+                      and not _is_lower(c) and (not _is_upper(c) or _lower(c) == c) for c in span)
+    if allcaps_min is not None and _span_is_upper(span) and len(span) >= allcaps_min \
             and not unlowerable:
         # Python's str.lower() applies Unicode's Final_Sigma context rule — 'ΣΚΙΕΣ'.lower() is
         # 'σκιες' — and the oracle's ⟨caps⟩ body does not: it lowers Σ to σ everywhere. Measured
@@ -231,36 +251,29 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
         # sigma — `x ΣΚΙΕ x` `x ΑΓΟΡΑ x` `x ΕΠΙΤΡΟΠΗ x` `x ΜΟΣΧΑ x` `x ΤΕΣΤ x` — is exact under
         # both spellings. An input span that is isupper() contains no ς of its own, so the
         # replace only ever touches what lower() just produced.
-        return CAPS_G + span.lower().replace("ς", "σ")
-    if span[:1].lower() == span[:1]:
+        return CAPS_G + _lower(span).replace("ς", "σ")
+    if _lower(span[:1]) == span[:1]:
         return span
-    if span[:1].isupper() and not any(c.isupper() for c in span[1:]):
-        return SHIFT_G + span.lower()
+    if _is_upper(span[:1]) and not any(_is_upper(c) for c in span[1:]):
+        return SHIFT_G + _lower(span)
     return span
 
 
 # ---- the marked stream --------------------------------------------------------------------------
 
 
-def _is_borderable_text(body: str) -> bool:
-    """Does this HARD body take the punctuation border markers — every character punctuation,
-    symbol or format, judged PER CHARACTER by :func:`_marks_like_punct`?
+def _is_selector(ch: str) -> bool:
+    return VARIATION_SELECTORS[0] <= ord(ch) <= VARIATION_SELECTORS[1]
 
-    The test is per-character rather than per-run: a homogeneous-run test lets a MIXED body — a
-    format character against a BMP symbol — fall through and lose its markers. Measured on
-    `🎓 ‎⏰` (LRM + alarm clock, one under while glued markerless) and the grid around it:
-    `1 ‎⏰ 1` `1 ⏰‎ 1` `1 €‎ 1` `1 ‎€ 1` `x ‎⏰ 5`. Ideographic punctuation and astral characters
-    exclude their runs, exactly as they exclude themselves; a trailing variation selector rides
-    its base.
 
-    A body of ONLY selectors is borderable too — a lone selector is still the catch-all
-    alternative's material, whatever it failed to ride. Measured in both families: `5 ️ 5` reads
-    two under with no markers, `a️ 5` `1️ 5` `!️ 5` `Э️ 5` `x ️ 5` `️ 5` `x ️️ 5` and `5 ️`
-    one, while `a️ z` `x ️ x` (the seam cancels), `a️5` (no space), `a️` (message end) and the
-    space-run rows `x ️  5` `a️  5` are exact. The run is not a symbol, but it takes the markers
-    all the same."""
-    core = [c for c in body if not VARIATION_SELECTORS[0] <= ord(c) <= VARIATION_SELECTORS[1]]
-    return bool(body) and all(_marks_like_punct(c) for c in core)
+def _hard_bow(body: str) -> bool:
+    """Whether the first character of a hard run takes a left border marker."""
+    return bool(body) and (_is_selector(body[0]) or _marks_like_punct(body[0]))
+
+
+def _hard_eow(body: str) -> bool:
+    """Whether the last character of a hard run takes a right border marker."""
+    return bool(body) and (_is_selector(body[-1]) or _marks_like_punct(body[-1]))
 
 
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
@@ -276,7 +289,8 @@ def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
     Only a punct run that is EXACTLY ``'`` qualifies: in ``('`` or ``'''`` the boundary lands on a
     different character and those rows are exact as they stand (``a ('b`` = 4, ``a '''a`` = 4).
     """
-    return runs[i][1] == "'" and i + 1 < len(runs) and runs[i + 1][0] == WORDY
+    return (runs[i][1] == "'" and i + 1 < len(runs)
+            and runs[i + 1][0] in (WORDY, _STRAY_MARK))
 
 
 def _takes_right_border(cls: str, body: str) -> bool:
@@ -295,7 +309,7 @@ def _takes_right_border(cls: str, body: str) -> bool:
     """
     return (cls == PUNCT
             or (cls == _KILLER and _borders(body[-1]))
-            or _is_borderable_text(body)
+            or _hard_eow(body)
             or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
 
 
@@ -604,13 +618,14 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
             split.append((cls, body))
             continue
         cur = body[0]
+        cur_kind = _hard_kind(cur)
         for ch in body[1:]:
-            if (VARIATION_SELECTORS[0] <= ord(ch) <= VARIATION_SELECTORS[1]
-                    or _hard_kind(ch) == _hard_kind(cur[-1])):
+            if _is_selector(ch) or _hard_kind(ch) == cur_kind:
                 cur += ch
             else:
                 split.append((cls, cur))
                 cur = ch
+                cur_kind = _hard_kind(ch)
         split.append((cls, cur))
     return split
 
@@ -670,10 +685,11 @@ def _marks_like_punct(ch: str) -> bool:
     either way — the sub-run split at the letter/punct kind change is what keeps the LRM its own
     run against `文`, and this exclusion is what keeps it one against `📝`.
     """
+    ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     if ord(ch) >= 0x10000:
         return False
     cat = unicodedata.category(ch)
-    return (cat[0] in ("P", "S") or cat == "Cf") and not _ideographic_punct(ch)
+    return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not _ideographic_punct(ch)
 
 
 def stream(text: str, model) -> str:
@@ -717,6 +733,10 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     is NFC-folded once and the caller can read the content-final newline run — which ``rstrip``
     below drops — off the same string it streams (see ``engine.frame_tail``).
     """
+    # Protect literal occurrences of the codepoints used as internal markers. PUA input was removed
+    # by NFC, so the private-use escape values cannot collide with text.
+    norm = norm.translate(LITERAL_MARKER_ESCAPE_TABLE)
+
     # The frame's tail, for a family whose frame HAS one: `engine.tile` reads the run off the same
     # string before dropping it here. A "free" family is stripped on the raw text instead (see
     # `tile`), so there is nothing left to take off here and taking it would eat a folded NBSP.
@@ -780,7 +800,7 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     has_own_bow = not head_quote and (
                    first[0] in (WORDY, PUNCT, _STRAY_MARK)
                    or (first[0] == _KILLER and _borders(first[1][0]))
-                   or _is_borderable_text(first[1])
+                   or _hard_bow(first[1])
                    or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
@@ -841,13 +861,15 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             # digit branch is. All 30 of them read two markers too many with this unqualified.
             out.append((BOW_G if borders_space(i, -1) and _borders(body[0]) else "") + body
                        + (EOW_G if borders_space(i, +1) and _borders(body[-1]) else ""))
-        elif cls == PUNCT or _is_borderable_text(body):
+        elif cls == PUNCT or _hard_bow(body) or _hard_eow(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
             # whether a piece swallows it.
-            takes_bow = borders_space(i, -1) and not _opens_word(runs, i)
+            takes_bow = (borders_space(i, -1) and not _opens_word(runs, i)
+                         and (cls == PUNCT or _hard_bow(body)))
             out.append((BOW_G if takes_bow else "") + body
-                       + (EOW_G if borders_space(i, +1) else ""))
+                       + (EOW_G if borders_space(i, +1)
+                          and (cls == PUNCT or _hard_eow(body)) else ""))
         elif _digit_run(body) and cls in (DIGIT, HARD):
             # A digit run takes the same border markers punctuation does, on BOTH sides, and which
             # side is written is decided by the border character (`_digit_bow`, `_digit_eow`).
