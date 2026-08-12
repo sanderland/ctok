@@ -44,11 +44,11 @@
         "digit_word": 47,
         "eow": 2799,
         "glued": 1110,
-        "mark_mid": 19,
-        "mark_sep": 19,
-        "mid": 2353,
+        "mark_mid": 20,
+        "mark_sep": 20,
+        "mid": 2354,
         "prefix": 467,
-        "raw": 2100,
+        "raw": 2103,
         "special": 4,
         "word": 30
       }
@@ -13220,7 +13220,13 @@
       "ìì": {"probe": ".ヲììヲ.", "raw": 20, "kind": "mid"},
       "ââ": {"probe": ".ヲââヲ.", "raw": 20, "kind": "mid"},
       "emem": {"probe": ".ヲememヲ.", "raw": 20, "kind": "mid"},
-      "oror": {"probe": ".ヲororヲ.", "raw": 20, "kind": "mid"}
+      "oror": {"probe": ".ヲororヲ.", "raw": 20, "kind": "mid"},
+      "⟨shift⟩⟨bow⟩история⟨eow⟩": {"probe": "История", "raw": 12, "kind": "raw"},
+      "⟨shift⟩⟨bow⟩база⟨eow⟩": {"probe": "База", "raw": 12, "kind": "raw"},
+      "⟨shift⟩⟨bow⟩география⟨eow⟩": {"probe": "География", "raw": 12, "kind": "raw"},
+      "олол": {"probe": ".ヲололヲ.", "raw": 20, "kind": "mid"},
+      "िि": {"probe": ".ᛒििᛒ.", "raw": 22, "kind": "mark_mid"},
+      "््": {"probe": ".ᛒ््ᛒ.", "raw": 24, "kind": "mark_sep"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
