@@ -19,7 +19,7 @@ from .constants import (
     HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
+    SURROGATE, SYMBOL_LETTERS, THAI_SARA_AM, VARIATION_SELECTORS, WORDY,
 )
 
 _KILLER = "killer"
@@ -27,14 +27,17 @@ _STRAY_MARK = "stray_mark"
 
 
 def nfc(text: str, *, fold_quotes: bool = True) -> str:
-    """Normalize as Claude does before tokenizing: NFC, strip the zero-cost control and private-use
-    characters, optionally fold the curly quotes, then fold space-separator variants (and NUL) to
-    U+0020.
+    """Normalize as Claude does before tokenizing: NFC, compose Thai SARA AM, strip the zero-cost
+    control and private-use characters, optionally fold the curly quotes, then fold
+    space-separator variants (and NUL) to U+0020.
 
-    ``fold_quotes`` is a per-family flag: v3 folds, v4.7 measured not to.
+    ``fold_quotes`` is a per-family flag: v3 folds, v4.7 measured not to. The SARA AM composition is
+    NOT per-family — both families were measured to do it, and ``constants.THAI_SARA_AM`` records
+    both that reading and the negative controls that keep it from being read as NFKC.
     """
     text = SURROGATE.sub("�", text)
     text = STRIP_CONTROL.sub("", unicodedata.normalize("NFC", text)).replace("\x00", " ")
+    text = text.replace(*THAI_SARA_AM)
     text = STRIP_PRIVATE.sub("", text)
     if fold_quotes:
         text = text.translate(QUOTE_FOLD)

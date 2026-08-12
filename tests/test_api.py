@@ -211,6 +211,26 @@ def test_normalization_is_family_specific():
     assert normalize("don’t", version=4.7) == "don’t"
 
 
+@pytest.mark.parametrize("version", (3.0, 4.7))
+def test_thai_sara_am_composes_but_nfkc_does_not_apply(version):
+    """U+0E4D U+0E32 composes to U+0E33 SARA AM, which NFC does NOT do — that decomposition is
+    tagged <compat>. The composition is measured in both families; the other compat folds are
+    measured NOT to apply, which is what keeps this from being NFKC. See `constants.THAI_SARA_AM`.
+    """
+    assert normalize("ทํางาน", version=version) == "ทำงาน"
+    assert token_count("ทํางาน", version=version) == token_count("ทำงาน", version=version)
+    # A tone mark between the two halves is not a SARA AM and must survive untouched.
+    assert normalize("นํ้า", version=version) == "นํ้า"
+    # …but the pair still composes when the tone mark PRECEDES it, which is the spelling the
+    # oracle prices: `น` + `้` + `ํ` + `า` reads as `น้ำ`.
+    assert normalize("น้ํา", version=version) == "น้ำ"
+
+    # Negative controls: this is not NFKC. `①`/`²` price EQUAL to their expansions as single
+    # characters and would read as folds — PITFALLS.md #10 coincidence cells, separated by a run.
+    for text in ("ﬁ", "１", "Ⅻ", "①", "²"):
+        assert normalize(text, version=version) == text
+
+
 def test_dotted_capital_i_uses_the_ordinary_unit_piece():
     """İ is literal inside a cased span. It does not become a two-byte fallback after an uppercase
     vocabulary tile; that retired reading over-counted every short form where it still applied."""
