@@ -8,7 +8,6 @@ one encode (``normalize.py``) and one tiling (``engine.py``), over one vocabular
 import argparse
 import json
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 from functools import cache
 from importlib.resources import files
 
@@ -22,54 +21,60 @@ from .notation import parse_marked, render_bytes, render_marked
 class Family:
     """One reconstructed tokenizer generation."""
 
-    pieces: str | None         # its vocabulary file under data/; None = not reconstructed yet
-    source_model: str          # the count_tokens model this family reconstructs
-    min_version: Decimal       # lowest requested version this family serves
+    pieces: str | None                 # its vocabulary file under data/; None = not reconstructed
+    source_model: str                  # the count_tokens model this family was measured against
+    min_version: tuple[int, ...]       # lowest requested version this family serves
     meta: tuple[tuple[str, object], ...] = ()   # measured overrides on that file's ``meta``
-    also_serves: tuple[str, ...] = ()           # other model ids MEASURED to count identically
 
 
 FAMILIES: dict[str, Family] = {
-    "v3": Family("pieces_v3.json", "claude-opus-4-5", Decimal("3.0")),
-    "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", Decimal("4.7")),
+    "v3": Family("pieces_v3.json", "claude-opus-4-5", (3, 0)),
+    "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
     # v5 BORROWS v4.7's vocabulary: its message frame is measured (`count_tokens` on a one-character
     # message is 7 tokens, so the frame is 6 against 4.7's 11) but no piece has been mined against
     # opus-5 yet, so the honest model is "v4.7's token list read through v5's frame". The other two
     # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
     # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
     # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
-    # `claude-sonnet-5` is not assumed to share this family — it was measured: 80 texts drawn from
-    # the line corpora and the held-out Rosetta sample count identically to `claude-opus-5`, frame
-    # and all.
-    "v5": Family("pieces_v4_7.json", "claude-opus-5", Decimal("5.0"),
-                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free")),
-                 ("claude-sonnet-5",)),
+    # `claude-sonnet-5` counts identically to `claude-opus-5` — measured on 80 texts drawn from the
+    # line corpora and the held-out Rosetta sample, frame and all — but that is a fact about one
+    # model id, not a version a caller requests, so nothing here routes on it.
+    "v5": Family("pieces_v4_7.json", "claude-opus-5", (5, 0),
+                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
 }
 
-_MODEL_TO_FAMILY = {model: key for key, fam in FAMILIES.items()
-                    for model in (fam.source_model, *fam.also_serves)}
 # (base version, family key), highest first — derived from FAMILIES, so adding a family is one edit.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 
 
-def _parse_version(version: float | str) -> Decimal:
-    """Parse only. There is no floor check here: a version below every family's base matches no
-    entry in ``_FAMILY_BASES``, and :func:`_family` raises the same error on that fallthrough."""
+def _parse_version(version: str) -> tuple[int, ...]:
+    """A version is a dotted sequence of integers, compared component by component — "4.10" sorts
+    after "4.9", not below "4.2". ``str`` only: a ``float`` cannot make that distinction, since the
+    literal ``4.10`` is already the same value as ``4.1`` before any code here runs.
+
+    Parse only. There is no floor check here: a version below every family's base matches no entry
+    in ``_FAMILY_BASES``, and :func:`_family` raises the same error on that fallthrough."""
+    if not isinstance(version, str):
+        raise TypeError(f'version must be a string like "4.7", not {version!r}')
     try:
-        return Decimal(str(version))
-    except (InvalidOperation, ValueError):
+        return tuple(int(part) for part in version.split("."))
+    except ValueError:
         raise NotImplementedError(f"Unknown Claude tokenizer version: {version!r}") from None
 
 
-def _family(version: float | str) -> str:
+def _at_least(v: tuple[int, ...], base: tuple[int, ...]) -> bool:
+    """``v >= base``, treating a missing trailing component as zero so "5" compares equal to "5.0"
+    rather than less than it — plain tuple comparison treats the shorter tuple as smaller."""
+    n = max(len(v), len(base))
+    return v + (0,) * (n - len(v)) >= base + (0,) * (n - len(base))
+
+
+def _family(version: str) -> str:
     """Route a requested version to its family key: [3.0, 4.7) → v3, [4.7, 5.0) → v4.7,
-    [5.0, ∞) → v5. A source-model id (``"claude-opus-4-7"``) routes straight to its family."""
-    key = _MODEL_TO_FAMILY.get(str(version))
-    if key is not None:
-        return key
+    [5.0, ∞) → v5."""
     v = _parse_version(version)
     for base, key in _FAMILY_BASES:
-        if v >= base:
+        if _at_least(v, base):
             return key
     raise NotImplementedError(f"Unknown Claude tokenizer version: {version!r}")
 
@@ -109,7 +114,7 @@ def _vocabulary(family: str) -> dict:
     return _document(_pieces_file(family))
 
 
-def pieces(version: float | str = 3.0) -> dict[str, dict]:
+def pieces(version: str = "3.0") -> dict[str, dict]:
     """Every piece in the vocabulary, mapped to its witness — the evidence that it is one token.
 
     A token witness records a probe, its raw message count, and the fixed template used to isolate
@@ -122,7 +127,7 @@ def pieces(version: float | str = 3.0) -> dict[str, dict]:
     return {p: w for group, entries in doc["tokens"].items() for p, w in entries.items()}
 
 
-def witness(piece: str, version: float | str = 3.0) -> dict:
+def witness(piece: str, version: str = "3.0") -> dict:
     """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
     Raises ``KeyError`` for a string that is not a piece — which is itself the membership answer."""
     return pieces(version)[piece]
@@ -187,7 +192,7 @@ def _require_text(text) -> str:
     return text
 
 
-def tokenize(text: str, version: float | str = 3.0) -> list[str]:
+def tokenize(text: str, version: str = "3.0") -> list[str]:
     """``text`` as a token list — the model's primary object, of which ``token_count`` is the length.
 
     Every element is a string in the public notation: text tokens carry their structural markers
@@ -203,19 +208,19 @@ def tokenize(text: str, version: float | str = 3.0) -> list[str]:
     return [PAD] * model.message_overhead + rendered
 
 
-def token_count(text: str, version: float | str = 3.0) -> int:
+def token_count(text: str, version: str = "3.0") -> int:
     """Reconstructed token count for ``text`` as a single user message — by definition
     ``len(tokenize(text, version))``, which structurally precludes a negative or fractional count."""
     return len(tokenize(text, version))
 
 
-def normalize(text: str, version: float | str = 3.0) -> str:
+def normalize(text: str, version: str = "3.0") -> str:
     """The model's irreversible text normalization: NFC plus the family's quote folding (v3 folds
     curly quotes to ASCII; v4.7 keeps them literal)."""
     return nfc(_require_text(text), fold_quotes=_model(_family(version)).fold_quotes)
 
 
-def marked_stream(text: str, version: float | str = 3.0) -> str:
+def marked_stream(text: str, version: str = "3.0") -> str:
     """The marked stream the tiler tiles, in public notation — the single intermediate
     representation. Useful for understanding a count; not part of the stable API."""
     return render_marked(stream(_require_text(text), _model(_family(version))))
@@ -225,8 +230,8 @@ def main(argv=None) -> None:
     """The ``ctok`` command: count a string and show how it tiles."""
     ap = argparse.ArgumentParser(prog="ctok", description="Claude tokenizer count tool")
     ap.add_argument("text")
-    ap.add_argument("--version", default=3.0,
-                    help="tokenizer version (default 3.0; 4.7 and 5.0 also available)")
+    ap.add_argument("--version", default="3.0",
+                    help='tokenizer version (default "3.0"; "4.7" and "5.0" also available)')
     args = ap.parse_args(argv)
 
     overhead = _model(_family(args.version)).message_overhead

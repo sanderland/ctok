@@ -27,7 +27,7 @@ ADVERSARIAL = [
 ]
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 @pytest.mark.parametrize("text", ADVERSARIAL, ids=range(len(ADVERSARIAL)))
 def test_total_and_count_is_list_length(text: str, version: float):
     """The model is total — every ``str`` gets a finite count without raising — and the count is by
@@ -39,7 +39,7 @@ def test_total_and_count_is_list_length(text: str, version: float):
     assert count >= _model(_family(version)).message_overhead
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_token_list_starts_with_the_message_frame(version: float):
     """The list is the frame as ⟨pad⟩ tokens followed by the content tokens, which concatenate back
     to the marked stream. How many pieces the content takes is family-specific."""
@@ -62,7 +62,7 @@ def test_marked_stream_is_the_one_intermediate():
     assert marked_stream("hello, world") == "⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩"
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_terminal_marks_stand_outside_word_boundaries(version: float):
     """A terminal mark is an unmarked separator, not the last character of the left word."""
     assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
@@ -75,7 +75,7 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     assert marked_stream("्", version) == "⟨bow⟩्"
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_generic_combining_accents_stand_outside_the_word(version: float):
     """A Latin accent is an orthographic separator exactly as a virama is: the word closes BEFORE
     the mark, so an accented word is two words. See `constants.SEPARATOR_MARKS` — `x q̊5 x` = 14 is
@@ -87,7 +87,7 @@ def test_generic_combining_accents_stand_outside_the_word(version: float):
     assert marked_stream("h\u0363b", version) == "⟨bow⟩hͣb⟨eow⟩"
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_syriac_terminal_mark_runs(version: float):
     """U+0740–U+074A stand outside the words. A vowel point written after one is a word-forming
     LETTER: it opens a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see
@@ -110,7 +110,7 @@ def test_syriac_terminal_mark_runs(version: float):
         assert token_count(text, version) - overhead == content
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_an_accent_separates_a_syriac_word_like_any_other(version: float):
     """The accents were once read as closing the word AFTER themselves, and one host — Syriac —
     was excepted from that. Neither survives `x q̊5 x`: the word closes before the mark on every
@@ -140,13 +140,13 @@ def test_the_accent_spelling_does_not_depend_on_the_host():
     """`q̂q` = 15 and `ܒ̂ܒ` = 21 used to need a Latin mark PIECE plus a Syriac-host exception that
     byte-priced it. They need neither: no accent but U+0301 is a piece, the two rows differ only by
     what the host letters cost, and the mark spelling is one rule."""
-    assert marked_stream("ܒ̣ܒ", 4.7) == "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩"
-    assert marked_stream("q̣q", 4.7) == "⟨bow⟩q⟨eow⟩̣⟨bow⟩q⟨eow⟩"
-    assert token_count("q̂q", 4.7) == 15
-    assert token_count("ܒ̂ܒ", 4.7) == 21
+    assert marked_stream("ܒ̣ܒ", "4.7") == "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩"
+    assert marked_stream("q̣q", "4.7") == "⟨bow⟩q⟨eow⟩̣⟨bow⟩q⟨eow⟩"
+    assert token_count("q̂q", "4.7") == 15
+    assert token_count("ܒ̂ܒ", "4.7") == 21
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_a_stray_mark_run_is_a_word(version: float):
     """An unattached mark run is a WORD — ⟨bow⟩ on the left, ⟨eow⟩ on the right against everything
     except a LETTER, which is not a next word but the rest of THIS one: the run writes no ⟨eow⟩,
@@ -190,11 +190,11 @@ def test_a_stray_mark_run_is_a_word(version: float):
     # `x ͣHELLO x` = 17 reads two under with ⟨caps⟩.
     assert marked_stream("x \u0363The x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣThe⟨eow⟩⟨bow⟩x⟨eow⟩"
     assert marked_stream("x \u0363HELLO x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣHELLO⟨eow⟩⟨bow⟩x⟨eow⟩"
-    assert token_count("x \u0363The x", version) - overhead == (6 if version == 3.0 else 7)
-    assert token_count("x \u0363HELLO x", version) - overhead == (10 if version == 3.0 else 9)
+    assert token_count("x \u0363The x", version) - overhead == (6 if version == "3.0" else 7)
+    assert token_count("x \u0363HELLO x", version) - overhead == (10 if version == "3.0" else 9)
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7])
+@pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: float):
     """A non-killer stray mark opens its own run after punctuation. A killer shares the
     punctuation run's opening boundary."""
@@ -207,11 +207,11 @@ def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: flo
 
 def test_normalization_is_family_specific():
     # v3 folds the curly quotes to ASCII; v4.7 measured not to.
-    assert normalize("don’t", version=3.0) == "don't"
-    assert normalize("don’t", version=4.7) == "don’t"
+    assert normalize("don’t", version="3.0") == "don't"
+    assert normalize("don’t", version="4.7") == "don’t"
 
 
-@pytest.mark.parametrize("version", (3.0, 4.7))
+@pytest.mark.parametrize("version", ("3.0", "4.7"))
 def test_thai_sara_am_composes_but_nfkc_does_not_apply(version):
     """Claude composes Thai SARA AM without applying NFKC generally."""
     assert normalize("ทํางาน", version=version) == "ทำงาน"
@@ -223,7 +223,7 @@ def test_thai_sara_am_composes_but_nfkc_does_not_apply(version):
         assert normalize(text, version=version) == text
 
 
-@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 @pytest.mark.parametrize("literal", [chr(cp) for cp in range(0xFDD0, 0xFDD5)])
 def test_literal_internal_marker_codepoints_are_byte_priced(version, overhead, literal):
     """Input noncharacters must not become the engine's structural markers."""
@@ -234,7 +234,7 @@ def test_literal_internal_marker_codepoints_are_byte_priced(version, overhead, l
     assert "⟨0xEF⟩" in marked_stream(literal, version=version)
 
 
-@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 def test_apostrophe_opens_an_unattached_mark_word(version, overhead):
     assert token_count("'ً", version=version) == overhead + 4
     assert token_count("a 'ً x", version=version) == overhead + 6
@@ -246,7 +246,7 @@ def test_apostrophe_opens_an_unattached_mark_word(version, overhead):
     assert token_count("a '́ x", version=version) == overhead + 5
 
 
-@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 def test_variation_selector_keeps_its_base_kind_and_owns_the_right_edge(version, overhead):
     assert token_count("  ☀️夏", version=version) == overhead + 7
     assert token_count("🏻️ 5", version=version) == overhead + 8
@@ -254,7 +254,7 @@ def test_variation_selector_keeps_its_base_kind_and_owns_the_right_edge(version,
     assert token_count("☀️ 5", version=version) == overhead + 7
 
 
-@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 def test_bmp_unassigned_characters_take_space_border_markers(version, overhead):
     for literal, content_cost in (("\u0378", 9), ("\u083f", 10), ("\u0efb", 9), ("\ufdef", 10)):
         assert token_count(f"5 {literal} 5", version=version) == overhead + content_cost
@@ -263,7 +263,7 @@ def test_bmp_unassigned_characters_take_space_border_markers(version, overhead):
     assert token_count("5 \U0001000c 5", version=version) == overhead + 9
 
 
-@pytest.mark.parametrize("version, overhead", ((3.0, 7), (4.7, 11)))
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 def test_unicode_16_letters_use_the_word_and_case_model(version, overhead):
     """The source models know two cased letters newer than Python 3.13's Unicode table."""
     assert token_count("\u1c89", version=version) == overhead + 6
@@ -273,36 +273,39 @@ def test_unicode_16_letters_use_the_word_and_case_model(version, overhead):
     assert token_count("\u1c89abc", version=version) == overhead + 7
     assert token_count("\ua7cb\u0264\u0264\u0264", version=version) == overhead + 11
 
-    expected_caps = 11 if version == 3.0 else 14
+    expected_caps = 11 if version == "3.0" else 14
     assert token_count("\ua7cb" * 4, version=version) == overhead + expected_caps
 
 
 def test_dotted_capital_i_uses_the_ordinary_unit_piece():
     """İ is literal inside a cased span. It does not become a two-byte fallback after an uppercase
     vocabulary tile; that retired reading over-counted every short form where it still applied."""
-    assert token_count("RPİ", version=3.0) == 10
-    assert token_count("APİ", version=4.7) == 14
+    assert token_count("RPİ", version="3.0") == 10
+    assert token_count("APİ", version="4.7") == 14
 
 
 def test_version_routing():
-    assert _family(3.0) == _family("3.5") == _family(4.6) == "v3"
-    assert _family(4.7) == _family("4.8") == "v4.7"
-    assert _family(5.0) == "v5"
-    # A version is a decimal, not a dotted tuple: "4.10" is 4.1, which is below the v4.7 base.
-    assert _family("4.10") == "v3"
-    # A source-model id routes straight to the family that reconstructs it.
-    assert _family("claude-opus-4-5") == "v3"
-    assert _family("claude-opus-4-7") == "v4.7"
-    assert _family("claude-opus-5") == "v5"
-    # Measured, not assumed: sonnet-5 counts identically to opus-5 on 80 corpus texts.
-    assert _family("claude-sonnet-5") == "v5"
+    assert _family("3.0") == _family("3.5") == _family("4.6") == "v3"
+    assert _family("4.7") == _family("4.8") == _family("4.9") == "v4.7"
+    assert _family("5.0") == _family("5") == "v5"
+    # Dotted-integer comparison, not decimal: "4.10" sorts after "4.9", not below "4.2".
+    assert _family("4.10") == "v4.7"
+    assert _family("4.1") == "v3"
+
+
+def test_version_must_be_a_string():
+    """A float can't distinguish "4.1" from "4.10" -- the literal 4.10 IS 4.1 before any code here
+    runs -- so the type is enforced rather than coerced."""
+    for bad in (4.7, 5, None, ["4.7"]):
+        with pytest.raises(TypeError):
+            _family(bad)
 
 
 def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
     """v5 counts with v4.7's pieces and its own measured message frame — five tokens smaller. The
     family table's override is what makes that one file rather than a copy that can drift."""
     assert FAMILIES["v5"].pieces == FAMILIES["v4.7"].pieces
-    assert token_count("hello, world", 5.0) == token_count("hello, world", 4.7) - 5
+    assert token_count("hello, world", "5.0") == token_count("hello, world", "4.7") - 5
 
 
 def test_the_v5_frame_absorbs_any_trailing_whitespace():
@@ -311,10 +314,10 @@ def test_the_v5_frame_absorbs_any_trailing_whitespace():
     ASCII kind: a trailing NBSP folds to a space in normalization and still costs a token, which is
     why the strip runs on the raw text."""
     for tail in (" ", "   ", " " * 50, "\t", "\n", "\n" * 29, "\r\n", " \n\t \n"):
-        assert token_count("hello world" + tail, 5.0) == token_count("hello world", 5.0), repr(tail)
-    assert token_count("hello world\xa0", 5.0) == token_count("hello world", 5.0) + 1
+        assert token_count("hello world" + tail, "5.0") == token_count("hello world", "5.0"), repr(tail)
+    assert token_count("hello world\xa0", "5.0") == token_count("hello world", "5.0") + 1
     # v4.7 keeps its ladder: 29 trailing newlines cost it a token where v5 pays nothing.
-    assert token_count("hello world" + "\n" * 29, 4.7) == token_count("hello world", 4.7) + 1
+    assert token_count("hello world" + "\n" * 29, "4.7") == token_count("hello world", "4.7") + 1
 
 
 def test_the_v5_frame_ends_in_no_bow():
@@ -322,17 +325,17 @@ def test_the_v5_frame_ends_in_no_bow():
     single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v5 has
     no such token: the digit and the ideograph open for free, and the leading space is a character
     like any other."""
-    assert token_count("123", 5.0) == token_count("123", 4.7) - 6      # 4.7 pays for the ⟨bow⟩
-    assert token_count("日本", 5.0) == token_count("日本", 4.7) - 6
-    assert token_count(" a", 5.0) == token_count("a", 5.0) + 1
-    assert token_count(" a", 4.7) == token_count("a", 4.7)
+    assert token_count("123", "5.0") == token_count("123", "4.7") - 6      # 4.7 pays for the ⟨bow⟩
+    assert token_count("日本", "5.0") == token_count("日本", "4.7") - 6
+    assert token_count(" a", "5.0") == token_count("a", "5.0") + 1
+    assert token_count(" a", "4.7") == token_count("a", "4.7")
     # A word opens with its own ⟨bow⟩ in both families, so nothing moves there beyond the frame.
-    assert token_count("hello", 5.0) == token_count("hello", 4.7) - 5
+    assert token_count("hello", "5.0") == token_count("hello", "4.7") - 5
 
 
-@pytest.mark.parametrize("version", [2.9, 0, "banana"])
+@pytest.mark.parametrize("version", ["2.9", "banana"])
 def test_unavailable_versions_raise(version):
-    """Below 3.0 is not reconstructed, and neither is a nonsense version."""
+    """Below 3.0 is not reconstructed, and neither is a nonsense version string."""
     with pytest.raises(NotImplementedError):
         token_count("hello", version=version)
     with pytest.raises(NotImplementedError):
@@ -371,28 +374,28 @@ def test_trailing_newlines_are_absorbed_only_as_far_as_one_token_reaches():
 APOSTROPHE_ROWS = [
     # ⟨bow⟩' is a real piece: the boundary and the apostrophe price 1 together wherever no word
     # follows — at the message edge, before punctuation, before a space.
-    (4.7, "'", 1), (4.7, "'.", 2), (4.7, "', '", 3), (3.0, "'", 1), (3.0, "'.", 1),
+    ("4.7", "'", 1), ("4.7", "'.", 2), ("4.7", "', '", 3), ("3.0", "'", 1), ("3.0", "'.", 1),
     # ...and it is not what the oracle reaches for in front of a word. Each of these costs one more.
-    (4.7, "'d", 3), (4.7, "'m", 3), (4.7, "'F", 3), (4.7, "'First", 3),
-    (4.7, "a 'b", 4), (4.7, "a 'x b", 5), (3.0, "a 'b", 4),
+    ("4.7", "'d", 3), ("4.7", "'m", 3), ("4.7", "'F", 3), ("4.7", "'First", 3),
+    ("4.7", "a 'b", 4), ("4.7", "a 'x b", 5), ("3.0", "a 'b", 4),
     # A two-space run already priced this way, and the single space now matches it.
-    (4.7, "a  'b", 4),
+    ("4.7", "a  'b", 4),
     # Only `'` behaves so: the other word-opening punctuation absorbs the boundary normally.
-    (4.7, 'a "b', 3), (4.7, "a (b", 3), (4.7, "a -b", 3), (3.0, 'a "b', 3),
+    ("4.7", 'a "b', 3), ("4.7", "a (b", 3), ("4.7", "a -b", 3), ("3.0", 'a "b', 3),
     # And only a run that IS the apostrophe: in `('` or `'''` the boundary lands elsewhere.
-    (4.7, "a ('b", 4), (4.7, "a '''a", 4), (4.7, "z '''w", 4),
-    (3.0, "a '''a", 3), (3.0, "z '''w", 3),
+    ("4.7", "a ('b", 4), ("4.7", "a '''a", 4), ("4.7", "z '''w", 4),
+    ("3.0", "a '''a", 3), ("3.0", "z '''w", 3),
     # The contraction suffix is word-side: after a word or the boundary it is one token, after
     # other punctuation it is not.
-    (4.7, "f's", 2), (4.7, "x's", 2), (4.7, "x't", 2), (4.7, "'s", 2), (4.7, "'t", 2),
-    (4.7, "a 's b", 4), (3.0, "x's", 2), (3.0, "x't", 2),
-    (4.7, "}'s", 3), (4.7, ".'s.", 4), (4.7, ".'re.", 4), (4.7, ".'ve.", 5),
-    (3.0, ".'s.", 4), (3.0, ".'re.", 4), (3.0, ".'ve.", 4),
+    ("4.7", "f's", 2), ("4.7", "x's", 2), ("4.7", "x't", 2), ("4.7", "'s", 2), ("4.7", "'t", 2),
+    ("4.7", "a 's b", 4), ("3.0", "x's", 2), ("3.0", "x't", 2),
+    ("4.7", "}'s", 3), ("4.7", ".'s.", 4), ("4.7", ".'re.", 4), ("4.7", ".'ve.", 5),
+    ("3.0", ".'s.", 4), ("3.0", ".'re.", 4), ("3.0", ".'ve.", 4),
 ]
 
 # A punct piece spelled with a trailing space is the SEAM space, so it cannot open a run of two or
 # more. The space-run ladder is {1..16} parts for a punct lead exactly as it is for a letter.
-SPACE_RUN_ROWS = [(4.7, "]" + " " * 17 + "i", 5), (4.7, "a" + " " * 17 + "b", 4)]
+SPACE_RUN_ROWS = [("4.7", "]" + " " * 17 + "i", 5), ("4.7", "a" + " " * 17 + "b", 4)]
 
 
 @pytest.mark.parametrize("version,text,content", APOSTROPHE_ROWS + SPACE_RUN_ROWS,
@@ -411,7 +414,7 @@ def test_recorded_apostrophe_and_space_run_costs(version, text, content):
 # when `stream_norm` returned "" the frame's own boundary marker had nothing to attach to and tiled
 # as itself, so BOTH sides carried the same wrong value and both moved together when it was fixed.
 # The empty message cannot serve as the anchor either, since the oracle rejects it.
-FRAME_ONLY = {3.0: 8, 4.7: 12, 5.0: 6}
+FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
 
 
 @pytest.mark.parametrize("version, expected", sorted(FRAME_ONLY.items()))
@@ -421,7 +424,7 @@ def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected)
     assert token_count(text, version=version) == expected
 
 
-@pytest.mark.parametrize("version", [3.0, 4.7, 5.0])
+@pytest.mark.parametrize("version", ["3.0", "4.7", "5.0"])
 def test_private_use_characters_are_stripped(version: float):
     """A BMP private-use codepoint costs nothing AND joins its neighbours into one word \u2014 it is
     deleted, like the C0/C1 controls, not merely free.
@@ -440,34 +443,34 @@ def test_private_use_characters_are_stripped(version: float):
 # a recorded measurement; `x'll` is the one that discriminates, since `ll⟨eow⟩` is a piece where
 # `⟨bow⟩ll⟨eow⟩` is not.
 CONTRACTION_ROWS = [
-    (4.7, "x'll", 3), (4.7, "we'll", 3), (4.7, "a'll b", 4), (4.7, "a 'll b", 5), (4.7, "'ll", 3),
-    (4.7, "1'll", 4), (4.7, "a  'll b", 5), (4.7, "A'll", 3),
+    ("4.7", "x'll", 3), ("4.7", "we'll", 3), ("4.7", "a'll b", 4), ("4.7", "a 'll b", 5), ("4.7", "'ll", 3),
+    ("4.7", "1'll", 4), ("4.7", "a  'll b", 5), ("4.7", "A'll", 3),
     # ...blocked when the apostrophe is inside a punct run, exactly as the suffix pieces are.
-    (4.7, ".'ll.", 5), (4.7, "}'ll", 4), (4.7, "a)'ll b", 6),
+    ("4.7", ".'ll.", 5), ("4.7", "}'ll", 4), ("4.7", "a)'ll b", 6),
     # ...whole-word and lowercase only.
-    (4.7, "x'llo", 4), (4.7, "x'lls", 4), (4.7, "x'S", 3), (4.7, "x'LL", 4),
+    ("4.7", "x'llo", 4), ("4.7", "x'lls", 4), ("4.7", "x'S", 3), ("4.7", "x'LL", 4),
     # ...and not a general rule: these have bow-less pieces too and still pay for the boundary.
-    (4.7, "x'ji", 4), (4.7, "x'ka", 4), (4.7, "x'ing", 4), (4.7, "a ll b", 4), (4.7, "ll", 2),
+    ("4.7", "x'ji", 4), ("4.7", "x'ka", 4), ("4.7", "x'ing", 4), ("4.7", "a ll b", 4), ("4.7", "ll", 2),
 ]
 
 # Astral symbols take no boundary markers, where BMP ones do; variation selectors take no word
 # model. Digit anchors, as the boundary campaign used.
 # The thirteen pieces the 2026-08-01 bisect witnessed, each with the control that bounds it.
 PIECE_ROWS = [
-    (4.7, "△", 1), (4.7, "▽", 3), (4.7, "◇", 3),                       # ⟨bow⟩△, and its neighbours
-    (4.7, "║", 2), (4.7, "a║b", 3), (4.7, "╔", 3),                      # ║ is a whole character
-    (4.7, "a McN b", 4), (4.7, "a McQ b", 5), (4.7, "a MdN b", 5),      # ⟨bow⟩Mc, control MdN
-    (4.7, "a neither b", 4), (4.7, "a zither b", 4), (4.7, "a wather b", 4),   # ither⟨eow⟩
-    (4.7, "'./", 1), (4.7, "a './b", 3), (4.7, "'.", 2), (4.7, "./", 2),       # ⟨bow⟩'./
-    (4.7, "a КИ b", 5), (4.7, "a КЭ b", 6), (4.7, "a ЛИ b", 7),         # ⟨bow⟩К, control Л
-    (4.7, "a МИ b", 5), (4.7, "a СИ b", 5), (4.7, "a ПИ b", 6),         # ⟨bow⟩М ⟨bow⟩С, control П
+    ("4.7", "△", 1), ("4.7", "▽", 3), ("4.7", "◇", 3),                       # ⟨bow⟩△, and its neighbours
+    ("4.7", "║", 2), ("4.7", "a║b", 3), ("4.7", "╔", 3),                      # ║ is a whole character
+    ("4.7", "a McN b", 4), ("4.7", "a McQ b", 5), ("4.7", "a MdN b", 5),      # ⟨bow⟩Mc, control MdN
+    ("4.7", "a neither b", 4), ("4.7", "a zither b", 4), ("4.7", "a wather b", 4),   # ither⟨eow⟩
+    ("4.7", "'./", 1), ("4.7", "a './b", 3), ("4.7", "'.", 2), ("4.7", "./", 2),       # ⟨bow⟩'./
+    ("4.7", "a КИ b", 5), ("4.7", "a КЭ b", 6), ("4.7", "a ЛИ b", 7),         # ⟨bow⟩К, control Л
+    ("4.7", "a МИ b", 5), ("4.7", "a СИ b", 5), ("4.7", "a ПИ b", 6),         # ⟨bow⟩М ⟨bow⟩С, control П
 ]
 
 SYMBOL_ROWS = [
-    (4.7, "1🐫1", 6), (4.7, "1 🐫1", 7), (4.7, "1🐫 1", 7), (4.7, "1 🐫 1", 8),
-    (4.7, "1😀1", 5), (4.7, "1 😀1", 6), (4.7, "1 😀 1", 7),
-    (4.7, "1←1", 4), (4.7, "1 ←1", 6), (4.7, "1← 1", 5), (4.7, "1 ← 1", 7),
-    (4.7, "️", 2), (4.7, "⚖️", 5), (4.7, "⚖︎", 6), (4.7, "a️b", 3),
+    ("4.7", "1🐫1", 6), ("4.7", "1 🐫1", 7), ("4.7", "1🐫 1", 7), ("4.7", "1 🐫 1", 8),
+    ("4.7", "1😀1", 5), ("4.7", "1 😀1", 6), ("4.7", "1 😀 1", 7),
+    ("4.7", "1←1", 4), ("4.7", "1 ←1", 6), ("4.7", "1← 1", 5), ("4.7", "1 ← 1", 7),
+    ("4.7", "️", 2), ("4.7", "⚖️", 5), ("4.7", "⚖︎", 6), ("4.7", "a️b", 3),
 ]
 
 
@@ -502,5 +505,5 @@ def test_v5_tracks_v4_7_document_for_document(corpus_name):
     c47, c5 = recorded(corpus_name, "v4.7")["counts"], recorded(corpus_name, "v5")["counts"]
     for r in rows:
         text, k = r["text"], r[key]
-        assert token_count(text, 5.0) - c5[k] == token_count(text, 4.7) - c47[k], \
+        assert token_count(text, "5.0") - c5[k] == token_count(text, "4.7") - c47[k], \
             f"v5 stopped tracking v4.7 on {corpus_name}/{k} — it needs its own gate row again"
