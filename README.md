@@ -12,9 +12,9 @@ the model is described in [On the biology of Claude's tokenizer](https://tokenco
 ```python
 from ctok import token_count, tokenize
 
-token_count("hello, world")         # 10, using the v3 family
-token_count("hello, world", 4.7)    # 15
-token_count("hello, world", 5.0)    # 10
+token_count("hello, world")           # 10, using the v3 family
+token_count("hello, world", "4.7")    # 15
+token_count("hello, world", "5.0")    # 10
 
 tokens = tokenize("NASA likes tokenizers")
 assert len(tokens) == token_count("NASA likes tokenizers")
@@ -28,14 +28,15 @@ ctok "hello, world"
 
 ## Supported families
 
+`version` is always a string, e.g. `"4.7"`, compared component by component — `"4.10"` sorts after
+`"4.9"`, not below `"4.2"`. A `float` can't make that distinction (Python collapses the literal
+`4.10` to `4.1` before any code here sees it), so a non-`str` version raises `TypeError`.
+
 | requested version | family | model generation |
 |---|---|---|
-| `3.0 <= version < 4.7` | v3, the default | Claude 3 through Opus 4.6 |
-| `4.7 <= version < 5.0` | v4.7 | Opus 4.7 through 4.9 |
-| `version >= 5.0` | v5 | Opus 5 and Sonnet 5 |
-
-Model IDs such as `"claude-opus-4-7"` are accepted too. Versions are decimal values, so `4.10`
-means `4.1`.
+| `"3.0" <= version < "4.7"` | v3, the default | Claude 3 through Opus 4.6 |
+| `"4.7" <= version < "5.0"` | v4.7 | Opus 4.7 through 4.9 |
+| `version >= "5.0"` | v5 | Opus 5 and Sonnet 5 |
 
 v5 is v4.7 with a slightly different fixed overhead.
 
@@ -85,14 +86,14 @@ uv run python tests/gates.py --markdown
 
 ## Vocabulary evidence
 
-The two vocabulary files contain 48,632 v3 pieces and 15,237 v4.7 pieces. Every entry has a fixed
+The two vocabulary files contain 48,645 v3 pieces and 15,240 v4.7 pieces. Every entry has a fixed
 membership witness or is one of the structural marker atoms checked by the test suite.
 
 ```python
 from ctok import pieces, witness
 
-len(pieces(4.7))                         # 15237
-witness("⟨bow⟩the⟨eow⟩", 4.7)
+len(pieces("4.7"))                       # 15240
+witness("⟨bow⟩the⟨eow⟩", "4.7")
 # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 ```
 

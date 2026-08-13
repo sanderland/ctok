@@ -124,14 +124,14 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
 def test_the_witness_reader_serves_a_borrowing_family():
     """v5 borrows v4.7's file, so it borrows its witnesses — measured on v4.7's source model, which
     `meta.witness.measured_on` is what says. The accessor must not pretend otherwise."""
-    assert witness("⟨bow⟩the⟨eow⟩", 4.7) == witness("⟨bow⟩the⟨eow⟩", 5.0)
-    assert pieces(5.0) == pieces(4.7)
+    assert witness("⟨bow⟩the⟨eow⟩", "4.7") == witness("⟨bow⟩the⟨eow⟩", "5.0")
+    assert pieces("5.0") == pieces("4.7")
     for fam in FAMILIES.values():
         if fam.pieces:
             meta = _doc(fam.pieces)["meta"]
             assert meta["witness"]["measured_on"] == FAMILIES[_family_of(fam.pieces)].source_model
             assert meta["witness"]["base"] > meta["message_overhead"], "BASE is one token above it"
-    assert _family(5.0) == "v5"
+    assert _family("5.0") == "v5"
 
 
 @pytest.mark.parametrize("name", FILES)
@@ -181,17 +181,17 @@ def test_unknown_witness_kinds_do_not_count_as_evidence():
 
 def test_a_witness_is_readable_without_reading_the_file():
     """The published API answers the question the file exists to answer."""
-    assert witness("⟨bow⟩the⟨eow⟩", 4.7) == {"probe": "the", "raw": 12, "kind": "raw"}
-    assert witness("00", 4.7) == {"probe": "a00b", "raw": 14, "kind": "glued"}
-    assert witness("e0a4", 4.7)["kind"] == "prefix"
+    assert witness("⟨bow⟩the⟨eow⟩", "4.7") == {"probe": "the", "raw": 12, "kind": "raw"}
+    assert witness("00", "4.7") == {"probe": "a00b", "raw": 14, "kind": "glued"}
+    assert witness("e0a4", "4.7")["kind"] == "prefix"
     with pytest.raises(KeyError):
-        witness("this is not a piece", 4.7)
+        witness("this is not a piece", "4.7")
 
 
 def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
     """The terminal consonant is one measured suffix, not a family of count-equivalent patches."""
-    assert witness("ங⟨eow⟩", 4.7) == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
-    assert {piece for piece in pieces(4.7) if "ங" in piece} == {"ங⟨eow⟩"}
+    assert witness("ங⟨eow⟩", "4.7") == {"probe": ".ヲங.", "raw": 17, "kind": "eow"}
+    assert {piece for piece in pieces("4.7") if "ங" in piece} == {"ங⟨eow⟩"}
 
 
 @pytest.mark.parametrize("name", FILES)

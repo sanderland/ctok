@@ -79,8 +79,8 @@ GATES: dict[str, dict] = {
         # `pieces_*.json`, and the corpus court passed it (65 cached rows repaired, none broken,
         # none pushed below).
         "families": {
-            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
-            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
+            "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta": {
@@ -94,8 +94,8 @@ GATES: dict[str, dict] = {
         # `assert_gate` holds the gate up while it is repaired — the gate is never lowered to a
         # rate, which would silently permit the next regression as well.
         "families": {
-            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
-            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
+            "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
         },
     },
     "rosetta_holdout": {
@@ -108,8 +108,8 @@ GATES: dict[str, dict] = {
         # FINISHED, and gated at every document: `exact: 0.99` on 250 documents would silently
         # permit the next two regressions.
         "families": {
-            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
-            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
+            "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
         },
     },
     "multipl_e": {
@@ -120,8 +120,8 @@ GATES: dict[str, dict] = {
         "n": 22,
         # FINISHED: every family reproduces all 22 files, so the gate is every file.
         "families": {
-            "v3": {"version": 3.0, "mean": None, "within1": None, "exact": ALL},
-            "v4.7": {"version": 4.7, "mean": None, "within1": None, "exact": ALL},
+            "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
+            "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
         },
     },
 }
