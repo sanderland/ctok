@@ -5,9 +5,8 @@
     ByteFloor       byte tiling for characters no piece covers
     tile            marked-stream tiling for the count
 
-The marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs needs no rule:
-it tiles as itself. That is what a boundary "junction charge" always was. The count is the number of
-tiles.
+Marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs tiles as itself.
+The count is the number of tiles.
 """
 
 from __future__ import annotations
@@ -40,12 +39,8 @@ def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]
 
 
 class ReverseTrie:
-    """Vocabulary index for the stream DP.
-
-    The DP ends a tile at each stream position, so storing pieces backwards lets it stop as soon as
-    the preceding characters cease to match any piece. The DP traverses this mapping directly and
-    visits candidate starts from right to left.
-    """
+    """Vocabulary index for the stream DP: pieces stored backwards, since the DP ends a tile at
+    each position and scans candidate starts right to left."""
 
     _END = None
 
@@ -61,18 +56,16 @@ class ReverseTrie:
 def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[tuple[int, int]]]:
     """Min-cost tiling over a cost-1 vocabulary plus a guaranteed one-character floor.
 
-    This is the marked stream's specialized form of :func:`min_tile`. The generic DP asks about
-    every substring up to the longest vocabulary piece. One 128-newline piece therefore made every
-    v3 character pay for 128 dictionary probes. The trie visits only prefixes that can still become
-    a piece and creates no candidate substrings.
+    The specialized form of :func:`min_tile`: the trie visits only prefixes that can still become
+    a piece, instead of probing every substring up to the longest piece (128 for v3).
     """
     best = [0] * (len(text) + 1)
     par = [0] * (len(text) + 1)
     root = trie.root
     terminal = trie._END
     for end in range(1, len(text) + 1):
-        # Start with the guaranteed one-character edge. Prefer the vocabulary spelling when that
-        # character is a piece; otherwise use its byte floor.
+        # The guaranteed one-character edge: the vocabulary spelling if it is a piece, else the
+        # byte floor.
         start = end - 1
         node = root.get(text[start])
         best[end] = best[start] + (1 if node is not None and terminal in node
@@ -88,7 +81,7 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
             if terminal in node:
                 candidate = best[start] + 1
                 # Starts decrease through the traversal, so replacing on a tie retains min_tile's
-                # longest-final-piece tie order without collecting and reversing a match list.
+                # longest-final-piece tie order.
                 if candidate <= best[end]:
                     best[end] = candidate
                     par[end] = start
@@ -102,20 +95,18 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
 
 
 class ByteFloor:
-    """What a codepoint costs when no piece covers it: a min-cost tiling of its UTF-8 bytes over the
-    partial byte-prefix tokens, every single byte costing 1."""
+    """What a codepoint costs when no piece covers it: a min-cost tiling of its UTF-8 bytes over
+    the partial byte-prefix tokens, every single byte costing 1."""
 
     def __init__(self, byte_tokens, unit_chars=()) -> None:
-        # Membership is all that is needed, since every token costs 1. ``unit_chars`` are the cost-1
-        # WHOLE codepoints from the piece vocabulary, folded in so an uncovered char still prices 1.
+        # Membership is all that is needed, since every token costs 1. ``unit_chars`` are the
+        # cost-1 whole codepoints from the piece vocabulary.
         self.tokens = set(byte_tokens) | {c.encode().hex() for c in unit_chars}
         self.max_len = max((len(k) // 2 for k in self.tokens), default=1)
         self._chunks: dict[bytes, list[bytes]] = {}
 
     def chunks(self, bs: bytes) -> list[bytes]:
-        """The chosen byte segments, one per token — the floor's single result, from which the cost
-        is just the length. One tiling per distinct byte string: the same character recurs thousands
-        of times in a CJK run, and asking for its cost and its chunks must not tile it twice."""
+        """The chosen byte segments, one per token. Memoized per byte string."""
         hit = self._chunks.get(bs)
         if hit is None:
             def cost_fn(j: int, i: int) -> int | None:
@@ -126,8 +117,7 @@ class ByteFloor:
         return hit
 
     def cost_bytes(self, bs: bytes) -> int:
-        """One token per chunk, so the count IS the chunk count — structurally, not by two DPs
-        agreeing."""
+        """One token per chunk."""
         return len(self.chunks(bs))
 
     def cost_char(self, c: str) -> int:
@@ -139,39 +129,28 @@ class ByteFloor:
 
 
 def glued_contraction(cn: str) -> str:
-    """A contraction suffix in the spelling the marked stream uses: `'t` → `'t⟨eow⟩`.
+    """Add the closing marker used for a contraction suffix in the marked stream.
 
-    No ⟨bow⟩: the apostrophe IS the word's opening boundary, and `normalize._contraction_seam`
-    writes the stream that way."""
+    The apostrophe supplies the opening boundary, so there is no ⟨bow⟩.
+    """
     return cn + EOW_G
 
 
 def build_vocab(pieces, tokens: dict) -> frozenset[str]:
     """The tiling vocabulary: every parsed piece and the glued contraction spelling.
 
-    The structural markers are NOT added here: they live in the vocabulary file, in a `markers`
-    group of their own, so a reader of `pieces.json` sees the whole tiling vocabulary rather than
-    most of it and there is one place that decides a marker costs one token.
+    The structural markers are not added here: they live in the vocabulary file's `markers` group,
+    which is the one place that decides a marker costs one token.
     """
     vocab = set(pieces)
-    # The contraction suffix, in the spelling the stream uses. The file stores `'t` and the encoder
-    # writes `'t⟨eow⟩` — `⟨bow⟩don⟨eow⟩'t⟨eow⟩`, with no ⟨bow⟩ after the apostrophe, because the
-    # apostrophe IS that word's opening boundary (`normalize._contraction_seam`).
-    #
-    # That is measured, not a spelling convention. The increment a contraction adds over its left
-    # context alone is 1 after a letter, a digit or a space, and 2 after punctuation — uniformly
-    # across all four v4.7 suffixes, all seven v3 suffixes and `}` `.` `)` in both families.
-    # The step is the boundary token, appearing exactly where the apostrophe does not
-    # supply one. Marking every wordy span uniformly instead would have to reproduce that step out
-    # of the vocabulary, which moves the special case rather than removing it.
+    # The file stores `'t`, the encoder writes `'t⟨eow⟩` (see `glued_contraction`).
     vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
     return frozenset(vocab)
 
 
 def char_cost(model, ch: str) -> int:
-    """The cost of one codepoint standing alone: 1 if the character is itself a token, else its
-    byte-floor tiling. Every character has this fallback; HARD is merely where the vocabulary
-    usually runs out. Memoized — a long CJK run asks the same question thousands of times."""
+    """One codepoint standing alone: 1 if it is itself a token, else its byte-floor tiling.
+    The cache avoids repricing repeated characters in long runs."""
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     cache = model._char_cost_cache
     hit = cache.get(ch)
@@ -182,21 +161,12 @@ def char_cost(model, ch: str) -> int:
 
 def frame_tail(n: int, model) -> list[str]:
     """What a content-final run of ``n`` frame-absorbed characters costs beyond the frame's own
-    trailing token.
+    trailing token. Ladder families only; on v5 trailing whitespace is simply free.
 
-    Only where the family's frame ends in that ⏎⏎ tail (``frame_tail == "ladder"``). v5 measured
-    the other shape — trailing whitespace of every kind is free there, spaces and tabs included,
-    and a 29-newline run that costs v4.7 a token costs it nothing — so the run is simply gone.
-
-    The message frame appends ⏎⏎ after the content, and ONE token can span content into it. So the
-    run the tokenizer actually sees is ``n + 2`` newlines, tiled over the newline-run vocabulary,
-    of which the frame already pays for one token — ``stream`` is right to drop the run, but not to
-    call it free.
-
-    That is why the cost is not monotonic in ``n``: up to 28 trailing newlines cost nothing (30 is
-    a single token), 29 costs one, 30 and 31 are free again (32 and 33 are single tokens), and 38
-    is free (40 is). Live-exact on all 40 recorded ``a`` + ``n`` newline rows, n = 1…40. Beyond 40
-    the prediction rests on the vocabulary's sampled ladder (48, 64, 96, 128) being complete.
+    The frame appends ⏎⏎ after the content and one token can span into it, so the run the
+    tokenizer sees is ``n + 2`` newlines, of which the frame already pays for one token. The cost
+    is therefore not monotonic in ``n`` (28 trailing newlines are free, 29 cost one). Exact on all
+    40 recorded rows; beyond 40 it rests on the vocabulary's newline ladder being complete.
     """
     if n == 0 or model.frame_tail != "ladder":
         return []
@@ -209,18 +179,15 @@ def frame_tail(n: int, model) -> list[str]:
 def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
 
-    Tokens are internal-form: a ``str`` for a vocabulary piece or a marker, and ``bytes`` for a
-    sub-character chunk of a codepoint the vocabulary does not cover. ``len(tokens) == cost``.
+    Tokens are internal-form: ``str`` for a vocabulary piece or marker, ``bytes`` for a
+    sub-character chunk. ``len(tokens) == cost``.
     """
     if model.frame_tail == "ladder":
         norm = nfc(text, fold_quotes=model.fold_quotes)
         n_tail = len(norm) - len(norm.rstrip(model.frame_strip))
     else:
-        # The frame absorbs RAW ASCII whitespace, which is why this strip runs before NFC rather
-        # than after it: `nfc` folds NBSP and the other space separators to U+0020, and those do
-        # NOT come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
-        # same. Stripping the folded text hands back that token and under-counts 363 documents of
-        # the Rosetta corpus. `normalize.raw_head_space` is the same fact at the message HEAD.
+        # The frame absorbs raw ASCII whitespace, so strip before NFC: `nfc` folds NBSP etc. to
+        # U+0020, and those are not free at the end (`'a\xa0'` costs one more than `'a'`).
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
     s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
@@ -230,20 +197,16 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     pieces = model.vocab
 
     def unit_floor(j: int) -> int:
-        """What one character costs where no piece covers it — a marker is a token, anything else
-        falls to the byte floor. Wider uncovered spans are simply unavailable to the DP."""
+        """One character where no piece covers it: a marker is a token, anything else falls to the
+        byte floor."""
         ch = s[j]
-        # A marker the vocabulary somehow does not hold still costs one token — it is structure, not
-        # text, and the byte floor would price its three UTF-8 bytes. The `markers` group means this
-        # never fires in practice; it stays as the floor under a file that lost one.
         if ch in MARKER_GLYPHS:
             return 1
         return char_cost(model, ch)
 
     total, spans = min_vocab_tile(s, model.trie, unit_floor)
-    # A span the vocabulary covers is one token, but a span that fell to the byte floor may cost
-    # more than one — a 4-byte letter with no piece costs 4 — so it must expand into that many
-    # tokens, or len(tokenize(x)) stops being the count.
+    # A span that fell to the byte floor may cost more than one token (a 4-byte letter with no
+    # piece costs 4) and must expand into that many, or len(tokenize(x)) stops being the count.
     out: list[str | bytes] = []
     for j, i in spans:
         seg = s[j:i]

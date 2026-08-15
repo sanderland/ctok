@@ -1,8 +1,7 @@
-"""The marker vocabulary and the measured tables — data, not logic.
+"""The marker notation and the measured character tables.
 
-Everything here is either the notation the rest of the package shares, or a table of which codepoints
-behave which way. The tables were measured against ``count_tokens``; where a comment says a table
-must stay enumerated, that is load-bearing.
+The tables were measured against ``count_tokens``. Tables marked as enumerated must stay
+enumerated: no Unicode-category rule reproduces them.
 """
 
 import re
@@ -17,7 +16,7 @@ MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G})
 
 # The public form: named atoms in mathematical angle brackets, practically absent from real text.
 # Literal brackets in text are byte-escaped at render time, so a rendered token always parses back
-# unambiguously. Changing the bracket pair is a two-constant edit here.
+# unambiguously.
 L, R = "⟨", "⟩"
 BOW, EOW, SHIFT, CAPS = f"{L}bow{R}", f"{L}eow{R}", f"{L}shift{R}", f"{L}caps{R}"
 PAD = f"{L}pad{R}"
@@ -37,58 +36,36 @@ LITERAL_MARKER_ESCAPE_TABLE = str.maketrans(LITERAL_MARKER_ESCAPES)
 WORDY, HARD, DIGIT, PUNCT, SPACE = "wordy", "hard", "digit", "punct", "space"
 
 # Non-ASCII symbols/punctuation that tile over the punct vocabulary rather than standing alone.
-# This must stay an enumerated measured set, never a Unicode-category test: the behaviour splits
-# per codepoint with no categorical rule (`（` is punct but `）` is hard; `•` punct but `‧` hard).
-# Anything unlisted stays HARD, so adding a member only ever moves a confirmed character.
+# Enumerated: the behaviour splits per codepoint with no categorical rule (`（` is punct but `）`
+# is hard). Anything unlisted stays HARD.
 PUNCT_SYMS = frozenset("—»«•°„–−£§€…√→（№†└│།·─═█")
 
-# Symbol-letters measured to take the full word model — ⟨bow⟩…⟨eow⟩ flanks, seam absorption and the
-# case markers — exactly like Latin letters, with their cost supplied by the byte floor. Enumerated
-# blocks, not a category test: CJK Nl, circled digits, parenthesized letters and astral Lu all
-# measured plain, so category Nl/So/Lu splits both ways.
+# Symbol-letters measured to take the full word model (⟨bow⟩ and ⟨eow⟩ flanks, seam absorption, case
+# markers) exactly like Latin letters. Enumerated blocks: category Nl/So/Lu splits both ways, and
+# the Hangzhou numerals (also Nl) measured markerless, so it is the block that predicts, not the
+# category.
 SYMBOL_LETTERS = (
     (0x16EE, 0x16F0),   # Runic golden numbers (Nl, caseless)
     (0x2160, 0x2188),   # Roman numerals (Nl/Lu/Ll, cased pairs)
     (0x24B6, 0x24E9),   # circled letters (So, cased)
-    # The ten Bamum number-letters, gc=Nl in the middle of a block that is otherwise Lo. Left to
-    # the HARD class they take no markers at all: `文ꛦ文` and `x  ꛦ  x` then read two tokens
-    # UNDER, and a Bamum word written around one — `x ꚠꛦꚠ x` — reads two OVER, because the Lo
-    # letters on either side close words the oracle keeps open. The rival spelling, a
-    # border-marked number run like `½`, is refuted by those same two cells: it writes no marker
-    # against an ideograph and loses one before a space RUN, where the oracle writes both.
-    # 40 cells per family. It is the BLOCK that predicts this and not the category: the Hangzhou
-    # numerals `〡` (also Nl) are exact with no markers on the same four shapes, so they are not
-    # here.
     (0xA6E6, 0xA6EF),   # Bamum number-letters (Nl, caseless)
 )
 
-# Variation selectors are gc=Mn, which would put them in the WORDY class and give them the whole
-# word model. They do not take it: `️` alone costs 2 where ⟨bow⟩…⟨eow⟩ flanks read 3, and `⚖️` `⚖︎`
-# `✔️` each cost exactly one more than the base character, where the flanks read three more.
-# Probed on U+FE00, U+FE0E and U+FE0F — both ends of the block and the middle. The supplementary
-# selectors (U+E0100–U+E01EF) are astral and already HARD for that reason.
+# Variation selectors are gc=Mn but take no word model: each costs one more than its base
+# character, where ⟨bow⟩ and ⟨eow⟩ flanks would read three more. The supplementary selectors
+# (U+E0100 to U+E01EF) are astral and already HARD.
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
-# The one canonical-combining-class-9 character that does NOT separate word runs. `is_killer`
-# DEFINES the 65 viramas by ccc rather than listing them, which is honest about where the rule
-# comes from — and a defined population has no membership test, so each member is worth asking
-# directly. Asked ours-against-oracle on a consonant of its own script — the only
-# host that can answer, since a Thai mark on a Latin host is the ヲ hazard — the phinthu reads +2
-# over on `x กฺก x` and `กฺก` in both families where its script-mate `่` mai ek and the eight
-# other dissent candidates read 0, and it under-counts by 1 or 2 wherever it stands with no letter
-# in front of it. See :func:`normalize.is_killer` for the grid.
-NON_KILLERS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
+# The one canonical-combining-class-9 character that does not separate word runs: measured over
+# as a separator on its own script's consonants and under wherever no letter precedes it. See
+# :func:`normalize.is_separator` for the grid.
+NON_SEPARATORS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
 
-# Marks that separate word runs the way a virama does, but that Unicode does not give combining
-# class 9. MEASURED one character at a time, and the population MUST stay enumerated — the rule is
-# orthographic, not numeric, and the neighbouring codepoint is usually a vowel sign that does NOT
-# split. Test: `cost(H M H) == cost(H M) + cost(H)` at three cuts on three byte-floor CONSONANT
-# hosts per script. Consonant hosts are not a detail — measured against a script's independent
-# vowels the same test calls all 21 Gujarati marks splitters, which the corpus refutes at once.
-#
-# The U+0300 combining block is NOT here: it is a whole range and it is handled as one, by an
-# instrument this test does not have. See :data:`SEPARATOR_MARKS`.
-EXTRA_KILLERS = frozenset((
+# Marks that separate word runs the way a virama does, but without combining class 9. Measured
+# one character at a time on byte-floor consonant hosts; enumerated, because the rule is
+# orthographic (the neighbouring codepoint is usually a vowel sign that does not split). The
+# U+0300 block is handled as a range instead. See :data:`SEPARATOR_MARKS`.
+SEPARATOR_SIGNS = frozenset((
     "\u0740",  # SYRIAC FEMININE DOT
     "\u0741",  # SYRIAC QUSHSHAYA
     "\u0742",  # SYRIAC RUKKAKHA
@@ -114,16 +91,8 @@ EXTRA_KILLERS = frozenset((
     "\u0aff",  # GUJARATI SIGN TWO-CIRCLE NUKTA ABOVE
     "\u0b3c",  # ORIYA SIGN NUKTA
     "\u0b55",  # ORIYA SIGN OVERLINE
-    # U+0C03 TELUGU SIGN VISARGA is deliberately NOT here. It is a SPACING mark (Mc, ccc 0): the
-    # letter alternative claims it as word material, and word-final it closes the word with a
-    # `ః⟨eow⟩` piece that is one token in both families (witnessed on the eow template, `.ヲః.`).
-    # Read as a killer it is one UNDER on every baseless non-space shape (`!ః` `[ః]` `aaఃb` `◌ః`,
-    # 23 texts) and one OVER on every word-final space shape (`x కః x` `aః z` `x ః x`), in both
-    # families — wrong in both directions at once, which is a misplaced boundary rather than a
-    # missing piece. The word-material reading plus the piece is exact on all 178 cached rows and
-    # on 46 predictions, including in-script `x ఃక x` `క ఃక` `కఃః` `ఃః` `x కఃక5 x` and the fused
-    # `ఃꝛ`/`xఃꝛ` — the visarga fuses INTO a following letter's word, where an Mn stray mark leaves
-    # the letter its own ⟨bow⟩, and `ఃꝛ` = 13/18 separates the two spellings.
+    # U+0C03 TELUGU SIGN VISARGA is deliberately not here: it is a spacing mark (Mc, ccc 0) that
+    # measures as plain word material, closing a word with a `ః⟨eow⟩` piece rather than splitting it.
     "\u0c3c",  # TELUGU SIGN NUKTA
     "\u0cbc",  # KANNADA SIGN NUKTA
     "\u0e47",  # THAI CHARACTER MAITAIKHU
@@ -190,14 +159,9 @@ EXTRA_KILLERS = frozenset((
 # C0/C1 controls the API strips before tokenizing (cost 0), i.e. every gc=Cc except TAB, LF and NUL.
 STRIP_CONTROL = re.compile("[\x01-\x08\x0B-\x1F\x7F\x80-\x9F]")
 
-# The BMP private-use area is stripped the same way — the character costs nothing AND its two
-# neighbours join into one word: `a` + U+F0B7 + `b` prices exactly as `ab` (v4.7 and v3), and the
-# HyperTalk `put "` + U+F8FF + `pple" into x` ladder is exact at all four recorded prefixes only
-# with the character gone. Seven rows, two codepoints, both families, no row against.
-#
-# It is private use that is stripped, not "anything unusual": an UNASSIGNED codepoint survives and
-# pays its bytes (`a` + U+90095 + `a` costs 6, our byte-floor number, where stripping would read 1).
-# The two supplementary private-use planes are unprobed and deliberately left out of the class.
+# BMP private use is stripped the same way, and its two neighbours join into one word. Unassigned
+# codepoints survive and pay their bytes; the supplementary private-use planes are unprobed and
+# deliberately left out.
 STRIP_PRIVATE = re.compile("[-]")
 
 # Lone surrogates are valid in a str but not UTF-8-encodable, so they would crash the byte floor.
@@ -214,85 +178,39 @@ FUNNY_SPACE = re.compile("[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F]")
 # low-9 mark U+201E is a different token and is deliberately not folded.
 QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201C": '"', "\u201D": '"'})
 
-# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩ — the
-# standard English contraction set, lowercase and whole-word only. Measured per member against
-# `⟨bow⟩W⟨eow⟩` in the same position: `ll` absorbs (`x'll` = 3 where a paid boundary reads 4) and so
-# do `s` `t` `re` `ve` (each 1, via their own token); `d` and `m` price the same either way and are
-# carried as the class. Everything else pays: `ji` `ka` `ne` `ye` `ing` `lo` `tion` `zz` `abc` all
-# read `'` + a full boundary, and they are not a special population — `ji⟨eow⟩` `ka⟨eow⟩` `ne⟨eow⟩`
-# `ye⟨eow⟩` `ing⟨eow⟩` are pieces exactly as `ll⟨eow⟩` is, so a "bow-less piece exists" rule would
-# have absorbed them too. Case-sensitive: `x'S` = 3 and `x'LL` = 4 both pay. Whole-word: `x'llo`
-# = 4 and `x'lls` = 4 pay.
+# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩. This is the
+# standard English contraction set, lowercase and whole-word only. Measured per member; other
+# suffixes pay a full boundary even when their own piece exists, so no piece-based rule reproduces
+# this. Case-sensitive and whole-word (`x'S`, `x'LL`, `x'llo`, `x'lls` all pay).
 CONTRACTION_SUFFIXES = frozenset({"s", "t", "d", "m", "ll", "re", "ve"})
 
 # ---- the seam law -------------------------------------------------------------------------------
 
 # ⟨eow⟩ ' ' [case markers] ⟨bow⟩ -> ⟨eow⟩ [case markers] ⟨bow⟩: a single space between two marked
-# spans IS the seam and is not written as a character.
+# spans is the seam and is not written as a character.
 SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW_G)
 
 # ---- marks that stand outside the word -----------------------------------------------------------
 
-# Combining marks that close the word BEFORE themselves, exactly as a virama does; `normalize.
-# is_killer` folds this range into that population.
-#
-# Two ORACLE frames per mark decide it, and neither consults our own count:
-#
-#     m   = `x qM x` - `x q x` - 1     the mark's own cost — both spellings charge m + 1 here
-#     gap = `x qM5 x` - `x q5 x`       m if the word closes before the mark, m + 1 if it does not
-#
-# The host must be one whose whole word is a single token (`x q x` = 10 on v3), because that is the
-# only place the two spellings differ at all: on a byte-floored host `⟨bow⟩H⟨eow⟩` and
-# `⟨bow⟩H` + `⟨eow⟩` cost the same, both frames collapse, and every mark reads "splits" whatever it
-# does. The right neighbour has to be an ASCII digit for the same reason — against a letter the seam
-# deletes the difference, and against `5` nothing opens a word, so the marker survives to be counted.
-#
-# Swept over every codepoint of U+0300–U+036F on 21 one-token hosts spanning Latin, Greek, Cyrillic,
-# Armenian, Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Thai, Myanmar and Hiragana, both
-# families: U+0300–U+033F, U+0342 and U+0346–U+0362 read "closes before" on every host in both
-# families, with no host and no family dissenting on any mark, while U+0345 YPOGEGRAMMENI and the
-# combining Latin letters U+0363–U+036F read "inside the word" just as uniformly and so pin both
-# ends of the range from outside it. U+0340 0341 0343 0344 cannot be measured — NFC folds them to
-# 0300 0301 0313 0308+0301 — and are inside the range for that reason alone.
-#
-# `q́z` = `⟨bow⟩q⟨eow⟩` + the mark + `⟨bow⟩z⟨eow⟩`, so an accent makes TWO words out of one.
+# Combining marks that close the word before themselves, exactly as a virama does
+# (`normalize.is_separator` folds this range in): `q́z` = `⟨bow⟩q⟨eow⟩` + mark + `⟨bow⟩z⟨eow⟩`, so an
+# accent makes two words out of one. Two oracle frames on one-token hosts distinguish the
+# spellings. A sweep covered U+0300 to U+036F on 21 hosts across 13 scripts and both families, with
+# no dissent. U+0345 and the combining Latin letters U+0363 to U+036F pin both ends of the range
+# from outside by reading "inside the word". U+0340, U+0341, U+0343, and U+0344 are NFC-folded away
+# and inside the range for that reason alone.
 SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
 
-# The same question asked of every other combining block of the BMP, on the same two frames and on
-# in-script one-token hosts where the script has any (Cyrillic бвдзйэя, Hebrew אי, Arabic دسم,
-# Devanagari कतनम) as well as on `q`. 418 marks swept, both families, no host and no family
-# dissenting on any one of them, and the answer is orthographic rather than numeric — the same
-# distinction `is_killer` already draws for Thai:
+# The same question asked of every other combining block of the BMP: 418 marks swept on the same
+# two frames, both families, no dissent. The split is orthographic, as for Thai:
 #
-#   OUTSIDE the word   accents, tone marks, cantillation and annotation — Cyrillic titlo and its
-#                      relatives, the Hebrew te'amim, Vedic tone, Ethiopic gemination, the Arabic
-#                      tone marks and empty-centre stops, and the four cross-script combining
-#                      supplements (U+1AB0, U+1DC0, U+20D0, U+FE20)
-#   INSIDE the word    vowel points and combining LETTERS — Hebrew niqqud, Arabic harakat, the
-#                      Syriac vowels and superscript alaph, Thaana, Samaritan vowels, and every
-#                      block of combining Latin/Cyrillic letters (U+0363, U+1ABF, U+1ACC, U+1DD3,
-#                      U+2DE0, U+A674)
+#   OUTSIDE the word   accents, tone marks, cantillation and annotation
+#   INSIDE the word    vowel points and combining letters (niqqud, harakat, the Syriac vowels,
+#                      Thaana, Samaritan, the combining Latin/Cyrillic letter blocks)
 #
-# Most of these ranges are pinned on BOTH sides by an inside-the-word neighbour in the same block,
-# which is the strongest form this evidence takes: 0658 between 064B–0657 and 0659–065F, 06DF–06E0
-# between 06D6–06DC and 06E1–06E8, 08EA–08EF between 08E3–08E9 and 08F0–08FF, 0818–0819 and 082D
-# among the Samaritan vowels, 1AB0–1ABE / 1AC1–1ACB around 1ABF–1AC0, 1DC0–1DD2 and 1DF5–1DFF
-# around 1DD3–1DF4, A66F–A672 and A67C–A67D around A674–A67B, and the Hebrew accents 0591–05AF
-# against the niqqud 05B0–05C7. Where a range abuts unassigned codepoints or non-marks instead
-# (0483–0489, 135D–135F, 20D0–20F0, FE20–FE2F, the Vedic tones) the block edge is all there is,
-# and the range is written to the assigned marks that were actually probed.
-#
-# Two ranges have no in-script confirmation and say so: the N'Ko tone marks U+07EB–U+07F3 with
-# dantayalan U+07FD, and the three Mandaic marks U+0859–U+085B, read "closes before" on `q` and `б`
-# only, because neither script has a letter whose whole word is one token. The Arabic Extended-B
-# annotations U+0898–U+089F, U+08CA–U+08D3 and U+08E0–U+08E1 do have one, on `د`, and the last two
-# ranges are pinned on both sides by U+08D4–U+08DF — twelve Quranic word-abbreviations in the middle
-# of the same block that read "inside the word" on all three hosts.
-#
-# Limbu is the cleanest split in the sweep: its six VOWEL SIGNs and its anusvara read "inside the
-# word" and its three tone and annotation signs (U+1939–U+193B) read "closes before", on `q`, `б`
-# and the in-script `ᠠ`, in both families. The four Mongolian free variation selectors
-# U+180B–U+180D and U+180F are the same answer.
+# Most ranges are pinned on both sides by an inside-the-word neighbour in the same block; where a
+# range abuts unassigned codepoints, it is written to the marks actually probed. The N'Ko and
+# Mandaic marks have no in-script one-token host and rest on `q` and `б` alone.
 SEPARATOR_ANNOTATIONS = re.compile(
     "[\u0483-\u0489\u0591-\u05af\u0658\u06df-\u06e0\u06ea-\u06ec"
     "\u07eb-\u07f3\u07fd\u0859-\u085b\u0898-\u089f\u08ca-\u08d3\u08e0-\u08e1"

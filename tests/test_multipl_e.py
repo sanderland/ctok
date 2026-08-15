@@ -1,6 +1,7 @@
-"""MultiPL-E reproduction gate — the same 25 HumanEval problems in 22 programming languages, scored
-against recorded ``count_tokens`` values. The code-domain twin of the UDHR gate: natural-language
-validation alone misses punctuation, indentation, operators and string literals."""
+"""MultiPL-E reproduction gate for the same 25 HumanEval problems in 22 programming languages,
+scored against recorded ``count_tokens`` values. The code-domain twin of the UDHR gate:
+natural-language validation alone misses punctuation, indentation, operators and string literals.
+"""
 
 import pytest
 

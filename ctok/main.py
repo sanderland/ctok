@@ -1,8 +1,7 @@
-"""The entry points: the public API, version routing, and the ``ctok`` command.
+"""Public API, version routing, and the ``ctok`` command.
 
-A requested version selects a *family* — one reconstructed tokenizer generation — and from it a data
-directory holding that family's ``pieces.json``. Everything below this module is version-agnostic:
-one encode (``normalize.py``) and one tiling (``engine.py``), over one vocabulary.
+A requested version selects a tokenizer family and its vocabulary file under ``data/``. The
+encoder and tiler are shared by every family.
 """
 
 import argparse
@@ -30,30 +29,17 @@ class Family:
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", (3, 0)),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
-    # v5 BORROWS v4.7's vocabulary: its message frame is measured (`count_tokens` on a one-character
-    # message is 7 tokens, so the frame is 6 against 4.7's 11) but no piece has been mined against
-    # opus-5 yet, so the honest model is "v4.7's token list read through v5's frame". The other two
-    # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
-    # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
-    # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
-    # `claude-sonnet-5` counts identically to `claude-opus-5` — measured on 80 texts drawn from the
-    # line corpora and the held-out Rosetta sample, frame and all — but that is a fact about one
-    # model id, not a version a caller requests, so nothing here routes on it.
+    # v5 reuses v4.7's vocabulary; only the message frame differs. Sonnet 5 counts like Opus 5.
     "v5": Family("pieces_v4_7.json", "claude-opus-5", (5, 0),
                  (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
 }
 
-# (base version, family key), highest first — derived from FAMILIES, so adding a family is one edit.
+# (base version, family key), highest first.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 
 
 def _parse_version(version: str) -> tuple[int, ...]:
-    """A version is a dotted sequence of integers, compared component by component — "4.10" sorts
-    after "4.9", not below "4.2". ``str`` only: a ``float`` cannot make that distinction, since the
-    literal ``4.10`` is already the same value as ``4.1`` before any code here runs.
-
-    Parse only. There is no floor check here: a version below every family's base matches no entry
-    in ``_FAMILY_BASES``, and :func:`_family` raises the same error on that fallthrough."""
+    """Parse "4.7" to (4, 7). ``str`` only: the float literal ``4.10`` is ``4.1``."""
     if not isinstance(version, str):
         raise TypeError(f'version must be a string like "4.7", not {version!r}')
     try:
@@ -63,8 +49,7 @@ def _parse_version(version: str) -> tuple[int, ...]:
 
 
 def _at_least(v: tuple[int, ...], base: tuple[int, ...]) -> bool:
-    """``v >= base``, treating a missing trailing component as zero so "5" compares equal to "5.0"
-    rather than less than it — plain tuple comparison treats the shorter tuple as smaller."""
+    """``v >= base`` with missing trailing components read as zero, so "5" equals "5.0"."""
     n = max(len(v), len(base))
     return v + (0,) * (n - len(v)) >= base + (0,) * (n - len(base))
 
@@ -81,13 +66,13 @@ def _family(version: str) -> str:
 
 @cache
 def _document(filename: str) -> dict:
-    """Load one vocabulary document once, shared by counting and witness inspection."""
+    """Load one vocabulary document once."""
     path = files("ctok").joinpath("data", filename)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _pieces_file(family: str) -> str:
-    """The vocabulary file for a reconstructed family, with one consistent failure path."""
+    """The vocabulary file for a family."""
     try:
         filename = FAMILIES[family].pieces
     except KeyError:
@@ -103,8 +88,8 @@ def _pieces_file(family: str) -> str:
 @cache
 def _model(family: str) -> "TokenizerModel":
     doc = _document(_pieces_file(family))
-    # A family may borrow another's vocabulary file and carry its own measured scalars over it (see
-    # v5 above). Replace the metadata mapping rather than mutating the cached document.
+    # A family may borrow another's vocabulary file with its own measured scalars (v5 above).
+    # Replace the metadata mapping rather than mutating the cached document.
     family_doc = {**doc, "meta": {**doc["meta"], **dict(FAMILIES[family].meta)}}
     return TokenizerModel(family_doc)
 
@@ -115,65 +100,50 @@ def _vocabulary(family: str) -> dict:
 
 
 def pieces(version: str = "3.0") -> dict[str, dict]:
-    """Every piece in the vocabulary, mapped to its witness — the evidence that it is one token.
+    """Every piece in the vocabulary, mapped to the evidence that it is one token.
 
     A token witness records a probe, its raw message count, and the fixed template used to isolate
     the piece, for example ``{"probe": "the", "raw": 12, "kind": "raw"}``. Byte prefixes use
-    ``kind="prefix"`` because they predict a character's fallback cost rather than representing a
-    token. Unmeasured, unreachable, and refuted pieces carry an explicit gap kind; structural marker
-    atoms carry ``kind="special"``.
+    ``kind="prefix"`` and structural marker atoms use ``kind="special"``.
     """
     doc = _vocabulary(_family(version))
-    return {p: w for group, entries in doc["tokens"].items() for p, w in entries.items()}
+    return {p: w.copy() for entries in doc["tokens"].values() for p, w in entries.items()}
 
 
 def witness(piece: str, version: str = "3.0") -> dict:
     """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
-    Raises ``KeyError`` for a string that is not a piece — which is itself the membership answer."""
-    return pieces(version)[piece]
+    Raises ``KeyError`` for a string that is not a piece."""
+    doc = _vocabulary(_family(version))
+    for entries in doc["tokens"].values():
+        if piece in entries:
+            return entries[piece].copy()
+    raise KeyError(piece)
 
 
 class TokenizerModel:
-    """The loaded vocabulary plus the family scalars the encoder and tiler read from it.
-
-    Everything the tiler needs is derived here, once: the tiling vocabulary with its reverse trie,
-    and the byte floor — what a codepoint costs when no piece covers it. ``doc`` is consumed rather
-    than kept, so there is no second, lazier copy of the vocabulary question.
-    """
+    """The loaded vocabulary plus the family scalars the encoder and tiler read from it."""
 
     def __init__(self, doc: dict) -> None:
         meta = doc["meta"]
-        # What a SINGLE user message costs before its content. Measured, and decomposed: a request
-        # costs a fixed prefix P, each turn costs a role marker plus its content, and a request that
-        # ends on the user is followed by the frame's own assistant prompt T. An assistant marker
-        # costs exactly T, and adjacent same-role messages merge into one turn joined by a 1-token
-        # separator — so the marker total is (number of user turns) x (H + T), and for one message
-        # that is P + H + T: 1 + 6 on v3, 1 + 10 on v4.7, 2 + 4 on v5. Only the sum H + T is
-        # measurable, since every request opens on a user turn.
+        # Measured fixed cost of a single user message before its content.
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
-        # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
-        # measured different at BOTH edges, which is why these are family scalars and not constants.
-        #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is
-        #                an interior word boundary: it absorbs one leading space, and a run that
-        #                cannot own that ⟨bow⟩ pays for it as a token of its own.
-        #   frame_tail — "ladder": the frame's own ⏎⏎ tail, which one token can span into, so a
-        #                trailing newline run is nearly free but not quite (`engine.frame_tail`).
-        #                "free": trailing whitespace of every kind costs nothing at all.
+        # v3 and v4.7 share the defaults. v5 differs at both frame edges.
+        # frame_bow says whether the frame ends in a ⟨bow⟩ that absorbs one leading space.
+        # frame_tail is "ladder" for the measured newline ladder and "free" when the frame absorbs
+        # all trailing ASCII whitespace.
         self.frame_bow = meta.get("frame_bow", True)
         self.frame_tail = meta.get("frame_tail", "ladder")
         # The characters the frame absorbs off the end of the content, per that rule.
         self.frame_strip = "\n" if self.frame_tail == "ladder" else " \t\n\r\f\v"
 
         tokens = doc["tokens"]
-        # Every group is cost-1 pieces except the byte fallback, which is prefix costs rather than
-        # tokens. Grouping is for provenance — which campaign measured a piece — so the loader takes
-        # them all and stays correct when a group is added or split.
+        # Every group is cost-1 pieces except the byte fallback, which holds prefix costs.
+        # Grouping is provenance only, so take all groups.
         pieces = [p for group, ps in tokens.items() if group != "bytes_fallback" for p in ps]
-        # Cost-1 whole single-codepoint characters live in ``pieces`` (a whole character is a
-        # length-1 token, not a byte prefix). The byte floor folds them back into its membership set
-        # so an uncovered character still prices at 1. The structural markers are not text.
+        # Fold single-codepoint pieces into the byte floor's membership set, so an uncovered
+        # character still prices at 1.
         parsed_pieces = [parse_marked(p) for p in pieces]
         self.unit_pieces = {c for c in parsed_pieces
                             if len(c) == 1 and c not in MARKER_GLYPHS}
@@ -185,15 +155,14 @@ class TokenizerModel:
 
 
 def _require_text(text) -> str:
-    """The public text API is ``str``-only: reject anything else with an error naming the contract
-    instead of letting a deep ``TypeError`` surface from inside NFC."""
+    """The public text API is ``str``-only."""
     if not isinstance(text, str):
         raise TypeError(f"text must be str, not {type(text).__name__}")
     return text
 
 
 def tokenize(text: str, version: str = "3.0") -> list[str]:
-    """``text`` as a token list — the model's primary object, of which ``token_count`` is the length.
+    """``text`` as a token list; ``token_count`` is its length.
 
     Every element is a string in the public notation: text tokens carry their structural markers
     in-line (``'⟨shift⟩⟨bow⟩token⟨eow⟩'``), sub-character byte chunks render as ``⟨0xNN⟩`` atoms, and
@@ -209,8 +178,7 @@ def tokenize(text: str, version: str = "3.0") -> list[str]:
 
 
 def token_count(text: str, version: str = "3.0") -> int:
-    """Reconstructed token count for ``text`` as a single user message — by definition
-    ``len(tokenize(text, version))``, which structurally precludes a negative or fractional count."""
+    """Reconstructed token count for ``text`` as a single user message."""
     return len(tokenize(text, version))
 
 
@@ -221,8 +189,8 @@ def normalize(text: str, version: str = "3.0") -> str:
 
 
 def marked_stream(text: str, version: str = "3.0") -> str:
-    """The marked stream the tiler tiles, in public notation — the single intermediate
-    representation. Useful for understanding a count; not part of the stable API."""
+    """The marked stream the tiler tiles, in public notation. Useful for understanding a count;
+    not part of the stable API."""
     return render_marked(stream(_require_text(text), _model(_family(version))))
 
 

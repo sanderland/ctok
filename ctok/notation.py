@@ -1,5 +1,6 @@
-"""Codecs for the public marker notation — the one encoding shared by ``tokenize()`` output and the
-keys of ``pieces.json``. The glyphs and atom names themselves live in ``constants.py``.
+"""Codecs for the marker notation shared by ``tokenize()`` and ``pieces.json``.
+
+The glyphs and atom names live in ``constants.py``.
 
     ⟨bow⟩ ⟨eow⟩ ⟨shift⟩ ⟨caps⟩   structural markers, fused in-string or standalone
     ⟨pad⟩                        a message-frame token
