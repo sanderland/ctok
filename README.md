@@ -34,9 +34,9 @@ ctok "hello, world"
 
 ## Supported families
 
-`version` is always a string, e.g. `"4.7"`, compared component by component — `"4.10"` sorts after
-`"4.9"`, not below `"4.2"`. A `float` can't make that distinction (Python collapses the literal
-`4.10` to `4.1` before any code here sees it), so a non-`str` version raises `TypeError`.
+`version` is a string such as `"4.7"`. Components are compared as integers, so `"4.10"` sorts
+after `"4.9"`. Python reads the float literal `4.10` as `4.1`, so passing a non-string version
+raises `TypeError`.
 
 | requested version | family | model generation |
 |---|---|---|
@@ -44,7 +44,7 @@ ctok "hello, world"
 | `"4.7" <= version < "5.0"` | v4.7 | Opus 4.7 through 4.9 |
 | `version >= "5.0"` | v5 | Opus 5 and Sonnet 5 |
 
-v5 is v4.7 with a slightly different fixed overhead.
+v5 uses the v4.7 vocabulary with a different message frame.
 
 ## How it works
 
@@ -73,21 +73,21 @@ These results compare `ctok` with recorded `count_tokens` responses:
 | Goldfish, 350 languages and 350,000 rows | mining | 350,000 | 350,000 |
 | MultiPL-E, 22 programming languages | held out | 22 | 22 |
 | Rosetta Code, 1,741 documents | mining | 1,741 | 1,741 |
-| Rosetta Code, separate 250 documents | mining | 250 | 250 |
+| Rosetta Code, separate 250 documents | held out | 250 | 250 |
 | UDHR, 501 languages | mining (in-sample since 2026-08-12) | 501 | 501 |
 
-v5 has the same content result as v4.7 because it uses the same vocabulary.
+v5 is omitted from the table because its deviation from recorded counts matches v4.7's on every
+gated document. Separate API tests cover its message-frame rules.
 
 The stored measurement sets contain no under-counts: 0 of 1,664,940 v3 texts and 0 of 1,722,961
-v4.7 texts. This is an empirical result, not a guarantee for arbitrary input. Goldfish, Rosetta and
-(since its final six pieces were selected by bisecting it) UDHR may select candidates; MultiPL-E
-never does, and is the one remaining held-out corpus in this table.
+v4.7 texts. This does not guarantee the result for arbitrary input. Goldfish, the main Rosetta
+sample, and UDHR informed piece selection. MultiPL-E and the separate Rosetta sample did not.
 
 Run the public gates with:
 
 ```bash
 uv run pytest
-uv run python tests/gates.py --markdown
+uv run python tests/gates.py
 ```
 
 ## Vocabulary evidence

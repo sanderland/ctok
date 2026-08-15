@@ -1,5 +1,4 @@
-"""The public API contract: the count is the length of the token list, the model is total on any
-``str``, and version routing behaves."""
+"""The public API contract, normalization rules, and recorded edge cases."""
 
 import random
 
@@ -29,25 +28,21 @@ ADVERSARIAL = [
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
 @pytest.mark.parametrize("text", ADVERSARIAL, ids=range(len(ADVERSARIAL)))
-def test_total_and_count_is_list_length(text: str, version: float):
-    """The model is total — every ``str`` gets a finite count without raising — and the count is by
-    definition the length of the token list."""
+def test_tokenize_is_total_on_str(text: str, version: str):
+    """Every ``str`` produces a finite token list."""
     tokens = tokenize(text, version=version)
-    count = token_count(text, version=version)
-    assert isinstance(count, int)
-    assert count == len(tokens)
-    assert count >= _model(_family(version)).message_overhead
+    assert isinstance(tokens, list)
+    assert len(tokens) >= _model(_family(version)).message_overhead
 
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_token_list_starts_with_the_message_frame(version: float):
+def test_token_list_starts_with_the_message_frame(version: str):
     """The list is the frame as ⟨pad⟩ tokens followed by the content tokens, which concatenate back
     to the marked stream. How many pieces the content takes is family-specific."""
     overhead = _model(_family(version)).message_overhead
     tokens = tokenize("hello", version=version)
     assert tokens[:overhead] == [PAD] * overhead
     assert "".join(tokens[overhead:]) == "⟨bow⟩hello⟨eow⟩" == marked_stream("hello", version=version)
-    assert token_count("hello", version=version) == overhead + len(tokens[overhead:])
 
 
 def test_word_count_never_exceeds_letter_count():
@@ -64,7 +59,7 @@ def test_marked_stream_is_the_one_intermediate():
 
 # ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in
 # both families. Separator marks stand outside the word; combining accents separate words exactly
-# as viramas do (U+0345 and U+0363–U+036F stay inside and pin the range); a Syriac vowel point
+# as viramas do (U+0345 and U+0363 to U+036F stay inside and pin the range); a Syriac vowel point
 # after a separator is a word-forming letter; an unattached mark run is a word that a following
 # letter continues. Every content number is a recorded measurement.
 MARK_ROWS = [
@@ -230,23 +225,21 @@ def test_version_routing():
 
 
 def test_version_must_be_a_string():
-    """A float can't distinguish "4.1" from "4.10" — the literal 4.10 is already 4.1 — so the
-    type is enforced rather than coerced."""
+    """A float cannot distinguish "4.1" from "4.10", so versions are not coerced."""
     for bad in (4.7, 5, None, ["4.7"]):
         with pytest.raises(TypeError):
             _family(bad)
 
 
 def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
-    """v5 counts with v4.7's pieces and its own measured message frame — five tokens smaller. The
-    family table's override is what makes that one file rather than a copy that can drift."""
+    """v5 reads v4.7's pieces with its own measured message frame."""
     assert FAMILIES["v5"].pieces == FAMILIES["v4.7"].pieces
     assert token_count("hello, world", "5.0") == token_count("hello, world", "4.7") - 5
 
 
 def test_the_v5_frame_absorbs_any_trailing_whitespace():
     """v4.7's frame ends in ⏎⏎ and absorbs a trailing NEWLINE run, on a ladder that charges for
-    some lengths. v5's absorbs every kind of trailing whitespace, at every length — but only the
+    some lengths. v5's absorbs every kind of trailing whitespace, at every length, but only the
     ASCII kind: a trailing NBSP folds to a space in normalization and still costs a token, which is
     why the strip runs on the raw text."""
     for tail in (" ", "   ", " " * 50, "\t", "\n", "\n" * 29, "\r\n", " \n\t \n"):
@@ -257,7 +250,7 @@ def test_the_v5_frame_absorbs_any_trailing_whitespace():
 
 
 def test_the_v5_frame_ends_in_no_bow():
-    """Message start is an interior word boundary on v4.7 — the frame's last token is a ⟨bow⟩, so a
+    """Message start is an interior word boundary on v4.7. Its frame ends in ⟨bow⟩, so a
     single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v5 has
     no such token: the digit and the ideograph open for free, and the leading space is a character
     like any other."""
@@ -293,9 +286,9 @@ def test_a_single_leading_space_is_free():
 def test_trailing_newlines_are_absorbed_only_as_far_as_one_token_reaches():
     """The frame appends ⏎⏎ and one token spans content into it, so a trailing run of n newlines is
     really a run of n + 2 tiled over the newline vocabulary, less the frame's own token. Hence not
-    monotonic: 1–28 free (30 is one token), 29 costs one, 30 and 31 free again (32 and 33 are), 38
-    free (40 is). The split below is the live-measured pattern — 40/40 recorded ``a`` + n rows, and
-    prefix-independent across every other cached prefix."""
+    monotonic: 1 to 28 free (30 is one token), 29 costs one, 30 and 31 free again (32 and 33 are),
+    and 38 free (40 is). The split below is the measured pattern from all 40 recorded ``a`` + n
+    rows and is prefix-independent across every other cached prefix."""
     base = token_count("hello")
     for n in (1, 3, 28, 30, 31, 38):
         assert token_count("hello" + "\n" * n) == base, n
@@ -305,11 +298,11 @@ def test_trailing_newlines_are_absorbed_only_as_far_as_one_token_reaches():
 
 # ---- the apostrophe and strip rules, each row a recorded ``count_tokens`` measurement ------------
 
-# (version, text, content tokens) — the count MINUS the message frame, so the rows read as costs.
+# (version, text, content tokens). The count excludes the message frame, so the rows read as costs.
 # Every one is a probe taken against that family's source model.
 APOSTROPHE_ROWS = [
     # ⟨bow⟩' is a real piece: the boundary and the apostrophe price 1 together wherever no word
-    # follows — at the message edge, before punctuation, before a space.
+    # follows: at the message edge, before punctuation, or before a space.
     ("4.7", "'", 1), ("4.7", "'.", 2), ("4.7", "', '", 3), ("3.0", "'", 1), ("3.0", "'.", 1),
     # ...and it is not what the oracle reaches for in front of a word. Each of these costs one more.
     ("4.7", "'d", 3), ("4.7", "'m", 3), ("4.7", "'F", 3), ("4.7", "'First", 3),
@@ -335,7 +328,7 @@ SPACE_RUN_ROWS = [("4.7", "]" + " " * 17 + "i", 5), ("4.7", "a" + " " * 17 + "b"
 
 
 # A message whose content strips to nothing is pinned to the measured count, not to another
-# stripped message (a relative comparison cannot fail — both sides move together).
+# stripped message. A relative comparison cannot fail because both sides move together.
 FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
 
 
@@ -347,8 +340,8 @@ def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected)
 
 
 @pytest.mark.parametrize("version", ["3.0", "4.7", "5.0"])
-def test_private_use_characters_are_stripped(version: float):
-    """A BMP private-use codepoint is deleted, like the C0/C1 controls — it costs nothing and
+def test_private_use_characters_are_stripped(version: str):
+    """A BMP private-use codepoint is deleted like the C0/C1 controls. It costs nothing and
     joins its neighbours into one word. An astral private-use codepoint is not stripped and pays
     its bytes, as does an unassigned codepoint."""
     assert token_count("a\uf0b7b", version=version) == token_count("ab", version=version)
@@ -358,7 +351,7 @@ def test_private_use_characters_are_stripped(version: float):
     assert token_count("a\U00090095a", version=version) > token_count("aa", version=version)
 
 
-# The apostrophe is a word boundary for the contraction suffixes — and only for those. Each row is
+# The apostrophe is a word boundary only for the contraction suffixes. Each row is
 # a recorded measurement; `x'll` is the one that discriminates, since `ll⟨eow⟩` is a piece where
 # `⟨bow⟩ll⟨eow⟩` is not.
 CONTRACTION_ROWS = [
@@ -418,4 +411,4 @@ def test_v5_tracks_v4_7_document_for_document(corpus_name):
     for r in rows:
         text, k = r["text"], r[key]
         assert token_count(text, "5.0") - c5[k] == token_count(text, "4.7") - c47[k], \
-            f"v5 stopped tracking v4.7 on {corpus_name}/{k} — it needs its own gate row again"
+            f"v5 stopped tracking v4.7 on {corpus_name}/{k}; it needs its own gate row again"

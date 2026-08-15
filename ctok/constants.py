@@ -40,7 +40,7 @@ WORDY, HARD, DIGIT, PUNCT, SPACE = "wordy", "hard", "digit", "punct", "space"
 # is hard). Anything unlisted stays HARD.
 PUNCT_SYMS = frozenset("—»«•°„–−£§€…√→（№†└│།·─═█")
 
-# Symbol-letters measured to take the full word model (⟨bow⟩…⟨eow⟩ flanks, seam absorption, case
+# Symbol-letters measured to take the full word model (⟨bow⟩ and ⟨eow⟩ flanks, seam absorption, case
 # markers) exactly like Latin letters. Enumerated blocks: category Nl/So/Lu splits both ways, and
 # the Hangzhou numerals (also Nl) measured markerless, so it is the block that predicts, not the
 # category.
@@ -52,8 +52,8 @@ SYMBOL_LETTERS = (
 )
 
 # Variation selectors are gc=Mn but take no word model: each costs one more than its base
-# character, where ⟨bow⟩…⟨eow⟩ flanks would read three more. The supplementary selectors
-# (U+E0100–U+E01EF) are astral and already HARD.
+# character, where ⟨bow⟩ and ⟨eow⟩ flanks would read three more. The supplementary selectors
+# (U+E0100 to U+E01EF) are astral and already HARD.
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
 # The one canonical-combining-class-9 character that does not separate word runs: measured over
@@ -64,7 +64,7 @@ NON_SEPARATORS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
 # Marks that separate word runs the way a virama does, but without combining class 9. Measured
 # one character at a time on byte-floor consonant hosts; enumerated, because the rule is
 # orthographic (the neighbouring codepoint is usually a vowel sign that does not split). The
-# U+0300 block is handled as a range instead — see :data:`SEPARATOR_MARKS`.
+# U+0300 block is handled as a range instead. See :data:`SEPARATOR_MARKS`.
 SEPARATOR_SIGNS = frozenset((
     "\u0740",  # SYRIAC FEMININE DOT
     "\u0741",  # SYRIAC QUSHSHAYA
@@ -178,7 +178,7 @@ FUNNY_SPACE = re.compile("[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F]")
 # low-9 mark U+201E is a different token and is deliberately not folded.
 QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201C": '"', "\u201D": '"'})
 
-# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩ — the
+# The suffixes an apostrophe binds into the word ahead of it, deleting that word's ⟨bow⟩. This is the
 # standard English contraction set, lowercase and whole-word only. Measured per member; other
 # suffixes pay a full boundary even when their own piece exists, so no piece-based rule reproduces
 # this. Case-sensitive and whole-word (`x'S`, `x'LL`, `x'llo`, `x'lls` all pay).
@@ -194,11 +194,11 @@ SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW
 
 # Combining marks that close the word before themselves, exactly as a virama does
 # (`normalize.is_separator` folds this range in): `q́z` = `⟨bow⟩q⟨eow⟩` + mark + `⟨bow⟩z⟨eow⟩`, so an
-# accent makes two words out of one. Decided per mark by two oracle frames on one-token hosts —
-# the only place the two spellings differ — swept over U+0300–U+036F on 21 hosts across 13
-# scripts, both families, no dissent. Both ends of the range are pinned from outside by U+0345 and
-# the combining Latin letters U+0363–6F, which read "inside the word". U+0340 0341 0343 0344 are
-# NFC-folded away and inside the range for that reason alone.
+# accent makes two words out of one. Two oracle frames on one-token hosts distinguish the
+# spellings. A sweep covered U+0300 to U+036F on 21 hosts across 13 scripts and both families, with
+# no dissent. U+0345 and the combining Latin letters U+0363 to U+036F pin both ends of the range
+# from outside by reading "inside the word". U+0340, U+0341, U+0343, and U+0344 are NFC-folded away
+# and inside the range for that reason alone.
 SEPARATOR_MARKS = re.compile("[\u0300-\u0344\u0346-\u0362]")
 
 # The same question asked of every other combining block of the BMP: 418 marks swept on the same

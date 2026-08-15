@@ -1,6 +1,6 @@
 """Checking witnesses: the probe that pins a piece at exactly one token.
 
-Every piece in ``data/pieces_*.json`` carries a witness — the probe text, the raw ``count_tokens``
+Every piece in ``data/pieces_*.json`` carries a witness: the probe text, the raw ``count_tokens``
 value it returned, and which template it is. The arithmetic ships with the data (``meta.witness``):
 
     cost = raw − BASE + 1 − overhead        is_token ⟺ cost == 1
@@ -35,7 +35,7 @@ FIELDS = ("probe", "raw", "kind")
 
 
 def surface(key: str) -> str:
-    """The literal text a probe puts around ``key`` — markers dropped, case markers re-applied."""
+    """The literal probe text for ``key``, without markers and with case reapplied."""
     body = "".join(c for c in key if c not in MARKER_GLYPHS)
     if SHIFT_G in key:
         return body[:1].upper() + body[1:]
@@ -61,10 +61,9 @@ def cost(raw: int, base: int, overhead: int) -> int:
 def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     """``None`` if the witness holds, else why it does not.
 
-    Three questions, and the third is the one a stale file fails: does the probe text match the
-    template it names, does the arithmetic come out at exactly one token, and — when a ``model`` is
-    given — does the encoder still write the piece into that probe's stream where the template says
-    it stands? A template whose text no longer places the piece is measuring something else.
+    It checks the named template, the one-token arithmetic, and, when given a model, the piece's
+    position in the encoded probe. A template that no longer places the piece measures something
+    else.
     """
     if set(FIELDS) - set(witness):
         return f"missing {sorted(set(FIELDS) - set(witness))}"
@@ -78,7 +77,7 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
         return f"probe is not {witness['kind']} of this piece"
     got = cost(witness["raw"], meta["witness"]["base"], overhead)
     if got != 1:
-        return f"cost {got}, not 1 — the probe refutes the piece"
+        return f"cost {got}, not 1; the probe refutes the piece"
     # A contraction's stored spelling is not its tiling spelling: the file says `'s` and the encoder
     # writes `'s⟨eow⟩`, so the placement check has to ask about the glued form.
     if witness["kind"] == "contraction":
@@ -109,7 +108,7 @@ def _verify_prefix(prefix: str, witness: dict, meta: dict, model) -> str | None:
                 f"the probe measured {want}")
     without = ByteFloor(set(model.bytes.tokens) - {prefix}, ())
     if without.cost_bytes(body.encode()) == want:
-        return f"the floor reaches {body!r} without this prefix — it earns nothing"
+        return f"the floor reaches {body!r} without this prefix; it earns nothing"
     return None
 
 

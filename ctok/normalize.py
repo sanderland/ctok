@@ -62,7 +62,7 @@ def nfc(text: str, *, fold_quotes: bool = True) -> str:
 
 
 def is_hard_cp(o: int) -> bool:
-    """Han / Hangul syllables / astral — the isolated, character-based letter scripts."""
+    """Whether a codepoint uses the isolated character path for letters."""
     return (
         o >= 0x10000                  # all astral (CJK ext, astral scripts, emoji)
         or 0x4E00 <= o <= 0x9FFF      # CJK Unified
@@ -121,7 +121,7 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
 
     A case marker fires only on a whole span: a pure all-caps span of length >= ``allcaps_min``
     becomes ⟨caps⟩ + lowercase, a pure title-case span becomes ⟨shift⟩ + lowercase. Everything
-    else — internal, final or mixed capitals, and short all-caps runs — stays literal, so
+    else stays literal, including internal or final capitals and short all-caps runs. Thus
     ``GaN``/``WiFi``/``QQ`` keep their bytes. ``allcaps_min=None`` disables ⟨caps⟩ (v4.7).
 
     Measured blocks, each leaving the span literal:
@@ -133,7 +133,7 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
       marker in front of an unchanged body over-counts). İ is the one exception: transparent to
       the title-case test and literal in the lowered body, blocking only at the span head; ẞ
       blocks everywhere.
-    * ``head_mark`` — the span is the tail of a word an unattached mark run opened, so its head is
+    * ``head_mark`` means an unattached mark opened the word, so its head is
       that mark and neither marker can assert its lowered first letter.
     """
     if head_mark:
@@ -151,7 +151,7 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
                       and not _is_lower(c) and (not _is_upper(c) or _lower(c) == c) for c in span)
     if allcaps_min is not None and _span_is_upper(span) and len(span) >= allcaps_min \
             and not unlowerable:
-        # str.lower() applies Unicode's Final_Sigma rule; the oracle's ⟨caps⟩ body does not — it
+        # str.lower() applies Unicode's Final_Sigma rule; the oracle's ⟨caps⟩ body instead
         # lowers Σ to σ everywhere. An isupper() span contains no ς of its own, so the replace
         # only touches what lower() just produced.
         return CAPS_G + _lower(span).replace("ς", "σ")
@@ -180,7 +180,9 @@ def _hard_eow(body: str) -> bool:
 
 
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
-    """Is run ``i`` a lone ``'`` that opens the word after it — ``a 'b``, ``'First``, ``x 'REXX``?
+    """Whether run ``i`` is a lone ``'`` that opens the word after it.
+
+    Examples are ``a 'b``, ``'First``, and ``x 'REXX``.
 
     The boundary before such an apostrophe is not absorbed into it (measured on the letter sweep,
     the message-start ladder, and the head-seam probe). Only a punct run that is exactly ``'``
@@ -194,7 +196,7 @@ def _takes_right_border(cls: str, body: str) -> bool:
     """Does this run write a boundary marker of its own on its right edge?
 
     Three populations do: punctuation/symbols/format characters, a terminal separator run, and a
-    digit run whose last character is a border digit — the runs the pretokenizer's catch-all
+    digit run whose last character is a border digit. These are the runs the pretokenizer's catch-all
     alternative owns. An unattached mark run is not one of them: it writes an ⟨eow⟩, but as a word
     (the ``_STRAY_MARK`` branch of :func:`stream_norm`), and a word lets the contraction seam
     through.
@@ -227,48 +229,27 @@ def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
     return i < 2 or not _takes_right_border(*runs[i - 2])
 
 
-def _is_nd_run(body: str) -> bool:
-    """A run of decimal digits (Nd), in either the DIGIT or the Nd-HARD class."""
-    return all(unicodedata.category(c) == "Nd" for c in body)
-
-
-def _is_no_run(body: str) -> bool:
-    """A run of Unicode *other* numbers (No): vulgar fractions, super/subscripts, circled and
-    parenthesized digits, and the script-specific fraction and numeral signs.
-
-    These classify HARD but take border markers: swept over every assigned No codepoint below
-    U+3000, 228 of 232 take the ⟨bow⟩, with no split by script or block (the four that differ are
-    pieces in their own right).
-    """
-    return bool(body) and all(unicodedata.category(c) == "No" for c in body)
-
-
-def _borders(ch: str) -> bool:
-    """Is this character one that can carry a border marker at all?
-
-    An astral character cannot — the same exclusion :func:`_marks_like_punct` carries for
-    punctuation, symbols and emoji, shared by the digit and terminal-separator branches. Swept
-    exhaustively: all 30 astral terminal separators and 72 astral border digits read exact with no
-    marker written, with BMP controls unmoved. Per border character, as everywhere in this module:
-    a mixed run keeps the marker on the side whose own character is BMP.
-    """
-    return ord(ch) < 0x10000
-
-
 def _digit_border(ch: str) -> bool:
-    """Is this the kind of digit for which the border markers are written — a non-ASCII decimal
-    digit, or any of the Unicode *other* numbers?
+    """Whether a digit receives a border marker.
 
     The split is ASCII vs not, uniform across scripts: ASCII digits take no border marker of
-    their own, everything else does. Astral digits take none either (:func:`_borders`).
+    their own, everything else does. Astral digits take none either.
     """
     cat = unicodedata.category(ch)
-    return (cat == "No" or (cat == "Nd" and not ch.isascii())) and _borders(ch)
+    return (cat == "No" or (cat == "Nd" and not ch.isascii())) and ord(ch) < 0x10000
 
 
 def _digit_run(body: str) -> bool:
-    """A run the digit-border branch owns: all decimal digits, or all *other* numbers."""
-    return _is_nd_run(body) or _is_no_run(body)
+    """A uniform run of decimal digits (Nd) or other numbers (No).
+
+    No covers fractions, super/subscripts, circled digits, and script-specific numeral signs.
+    These classify HARD but take border markers below U+10000.
+    """
+    if not body:
+        return False
+    category = unicodedata.category(body[0])
+    return category in ("Nd", "No") and all(
+        unicodedata.category(ch) == category for ch in body[1:])
 
 
 def _digit_bow(body: str) -> bool:
@@ -284,7 +265,7 @@ def _digit_eow(body: str) -> bool:
     character decides, the mirror of :func:`_digit_bow`.
 
     The seam hides this marker almost everywhere; it shows only before a run that writes no ⟨bow⟩
-    of its own — a CJK or Hangul letter, or ideographic punctuation — where it costs one token.
+    of its own, such as a CJK or Hangul letter or ideographic punctuation. There it costs one token.
     """
     return _digit_run(body) and _digit_border(body[-1])
 
@@ -294,7 +275,7 @@ def is_separator(c: str) -> bool:
 
     Three populations: viramas (defined by canonical combining class 9, not listed), the measured
     ranges of the combining blocks (:data:`SEPARATOR_MARKS`, :data:`SEPARATOR_ANNOTATIONS`), and
-    the enumerated ``SEPARATOR_SIGNS`` — Thai and Lao tone marks, nukta, the Khmer consonant
+    the enumerated ``SEPARATOR_SIGNS``. These include Thai and Lao tone marks, nukta, the Khmer consonant
     shifters and their kin, which no combining-class rule picks out. What they share is
     orthographic: written after the syllable, like a virama, where the vowel signs that do not
     split are written inside it.
@@ -312,8 +293,8 @@ def is_separator(c: str) -> bool:
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
-    The letter alternative in a pretokenizer regex is conventionally ``\p{L}\p{M}*`` — a letter
-    and the marks that hang off it — not ``\p{L}+``. Read literally, that alternative cannot match
+    The letter alternative in a pretokenizer regex is conventionally ``\p{L}\p{M}*``: a letter
+    and the marks that hang off it, not ``\p{L}+``. Read literally, that alternative cannot match
     a mark with no letter in front of it, so such a mark is left to the catch-all class along with
     the punctuation and symbols. This fires only where a mark's base is not a letter: after a
     symbol, a digit, punctuation, an ideograph, an emoji, or at the start of the text. Measured
@@ -329,7 +310,7 @@ def _stray_mark(c: str) -> bool:
 
 
 def _syriac_vowel(c: str) -> bool:
-    """A Syriac vowel point (or superscript alaph) — a mark that acts as a word-forming letter
+    """A Syriac vowel point or superscript alaph that acts as a word-forming letter
     wherever no base can hold it, rather than as a stray mark or a separator-run rider: it takes
     the full word model riding a separator or standing baseless, and fuses into a following letter's
     word. A based vowel stays an ordinary in-word mark.
@@ -338,7 +319,7 @@ def _syriac_vowel(c: str) -> bool:
     return o == 0x0711 or 0x0730 <= o <= 0x073F
 
 
-def _runs(norm: str, model) -> list[tuple[str, str]]:
+def _runs(norm: str) -> list[tuple[str, str]]:
     """The text split into maximal same-class runs, with terminal marks as unmarked separators.
 
     A separator does not close a word *after itself*. It stands outside the word: the preceding
@@ -391,16 +372,6 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     return split
 
 
-def _ideographic_punct(ch: str) -> bool:
-    """Punctuation of the CJK Symbols and Punctuation block, which takes no border marker.
-
-    Measured over every P-category character of U+3001–U+303F. The block predicts this, not the
-    category, the width, or sentence-terminal function (fullwidth `？！～`, halfwidth `｡｢｣･` and
-    `・` U+30FB all take markers; `。` does not).
-    """
-    return 0x3001 <= ord(ch) <= 0x303F and unicodedata.category(ch).startswith("P")
-
-
 def _hard_kind(ch: str) -> str:
     """Which pretoken alternative a character of a HARD run belongs to.
 
@@ -418,9 +389,9 @@ def _hard_kind(ch: str) -> str:
 
 
 def _marks_like_punct(ch: str) -> bool:
-    """Is this character one the border-marker branch can claim — punctuation, symbol, format
-    character, or a separator mark (which measures the same border markers
-    punctuation takes)?
+    """Whether the border-marker branch can claim this character.
+
+    It accepts punctuation, symbols, format characters, and separator marks.
 
     Ideographic punctuation is excluded, so it stays in the ideograph run it sits in and takes no
     markers. That is per border character rather than per run: `1。？ 1` and `1 ？。1` are exact
@@ -428,7 +399,7 @@ def _marks_like_punct(ch: str) -> bool:
     is judged as a whole.
 
     Astral characters are excluded too: an emoji takes no border marker, so it must not be the
-    punct kind either — a format character in front of one would otherwise be glued into a single
+    punct kind either. A format character in front of one would otherwise be glued into a single
     markerless sub-run and lose the ⟨bow⟩ it is entitled to.
     """
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
@@ -437,14 +408,15 @@ def _marks_like_punct(ch: str) -> bool:
     if is_separator(ch):
         return True
     cat = unicodedata.category(ch)
-    return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not _ideographic_punct(ch)
+    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and cat.startswith("P")
+    return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not ideographic_punct
 
 
 def stream(text: str, model) -> str:
     """Text → the marked stream, in the internal glyph form ``pieces.json`` keys parse to.
 
-    A WORDY run is bracketed ⟨bow⟩…⟨eow⟩ and case-normalized. A single space between two such runs
-    is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal.
+    A WORDY run is bracketed by ⟨bow⟩ and ⟨eow⟩ and case-normalized. The ⟨eow⟩⟨bow⟩ seam
+    encodes a single space between two such runs. Every other space stays literal.
     Punctuation-like, digit, separator, and stray-mark runs receive their measured boundary markers.
     """
     return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
@@ -452,10 +424,10 @@ def stream(text: str, model) -> str:
 
 
 def raw_head_space(text: str) -> bool:
-    """Is the message's leading space one the raw text supplies — the only one the frame absorbs?
+    """Whether raw text supplies the leading space that the frame absorbs.
 
     Anything else standing between the frame and the text was read by the oracle before the space
-    was, and the oracle does not absorb across it — whether :func:`nfc` then strips that character
+    was, and the oracle does not absorb across it. Whether :func:`nfc` then strips that character
     or folds it into a space makes no difference to what the oracle saw. So a space a fold
     produced or exposed is not absorbed.
     """
@@ -466,8 +438,8 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     """The marked stream over already-normalized text.
 
     This is :func:`stream` over text the caller has already folded. It is split out so a document
-    is NFC-folded once and the caller can read the content-final newline run — which ``rstrip``
-    below drops — off the same string it streams (see ``engine.frame_tail``).
+    is NFC-folded once, and the caller can read the content-final newline run before ``rstrip``
+    drops it. See ``engine.frame_tail``.
     """
     # Protect literal occurrences of the codepoints used as internal markers. PUA input was removed
     # by NFC, so the private-use escape values cannot collide with text.
@@ -483,13 +455,13 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     # Where the frame does not end in a ⟨bow⟩ (v5), there is no space to stand in for: the leading
     # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
     # A space that normalization exposed or manufactured is not the raw head and is not absorbed
-    # either — the oracle read `[stripped or folded char][space][text]` (see
+    # either. The oracle read `[stripped or folded char][space][text]` (see
     # :func:`raw_head_space`).
     if model.frame_bow and raw_head_space and norm[:1] == " " and norm[1:2] != " ":
         norm = norm[1:]
-    runs = _runs(norm, model)
+    runs = _runs(norm)
     if not runs:
-        # Content that normalizes away entirely still pays for the frame's ⟨bow⟩ — the same
+        # Content that normalizes away entirely still pays for the frame's ⟨bow⟩. This is the same
         # ⟨bow⟩ the `out` list below writes when the first run supplies none; with nothing to
         # attach to it, it tiles as itself.
         return BOW_G if model.frame_bow else ""
@@ -497,7 +469,7 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     n_runs = len(runs)
 
     def borders_space(i: int, side: int) -> bool:
-        """Does this side of run ``i`` touch a space? Only a space counts — the marker represents an
+        """Does this side of run ``i`` touch a space? Only a space counts. The marker represents an
         absorbed space, so nothing else can stand in for one.
 
         Message start counts (the frame ends in ⟨bow⟩, which is a space); message end does not (the
@@ -550,11 +522,11 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
         elif cls == _STRAY_MARK:
             # A stray-mark pretoken is a word: ⟨bow⟩ on the left even when it is adjacent to a
             # symbol, digit or punctuation run, and ⟨eow⟩ on the right against everything except
-            # a letter, which is the rest of the same word — the mark run writes no ⟨eow⟩ and the
+            # a letter, which is the rest of the same word. The mark run writes no ⟨eow⟩ and the
             # letter writes no ⟨bow⟩ of its own: `⟨bow⟩M abc⟨eow⟩`, one word, exactly as
             # `_syriac_vowel` and U+0CF3 fuse. Measured over 22 marks on frames that cancel the
             # mark's own price: only the fused spelling's error is constant across right-hand
-            # words. The run head does not byte-price — the mark reaches its own unit piece.
+            # words. The run head does not byte-price because the mark reaches its own unit piece.
             letter_follows = i + 1 < n_runs and runs[i + 1][0] == WORDY
             out.append(BOW_G + body + ("" if letter_follows else EOW_G))
         elif cls == PUNCT or _hard_bow(body) or _hard_eow(body):

@@ -129,8 +129,10 @@ class ByteFloor:
 
 
 def glued_contraction(cn: str) -> str:
-    """A contraction suffix in the spelling the marked stream uses: `'t` → `'t⟨eow⟩`. No ⟨bow⟩ —
-    the apostrophe is the word's opening boundary (`normalize._contraction_seam`)."""
+    """Add the closing marker used for a contraction suffix in the marked stream.
+
+    The apostrophe supplies the opening boundary, so there is no ⟨bow⟩.
+    """
     return cn + EOW_G
 
 
@@ -148,7 +150,7 @@ def build_vocab(pieces, tokens: dict) -> frozenset[str]:
 
 def char_cost(model, ch: str) -> int:
     """One codepoint standing alone: 1 if it is itself a token, else its byte-floor tiling.
-    Memoized — a long CJK run asks the same question thousands of times."""
+    The cache avoids repricing repeated characters in long runs."""
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     cache = model._char_cost_cache
     hit = cache.get(ch)

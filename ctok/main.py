@@ -1,8 +1,7 @@
 """Public API, version routing, and the ``ctok`` command.
 
-A requested version selects a *family* — one reconstructed tokenizer generation — and from it a
-vocabulary file under ``data/``. Everything below this module is version-agnostic: one encode
-(``normalize.py``) and one tiling (``engine.py``), over one vocabulary.
+A requested version selects a tokenizer family and its vocabulary file under ``data/``. The
+encoder and tiler are shared by every family.
 """
 
 import argparse
@@ -101,21 +100,24 @@ def _vocabulary(family: str) -> dict:
 
 
 def pieces(version: str = "3.0") -> dict[str, dict]:
-    """Every piece in the vocabulary, mapped to its witness — the evidence that it is one token.
+    """Every piece in the vocabulary, mapped to the evidence that it is one token.
 
     A token witness records a probe, its raw message count, and the fixed template used to isolate
     the piece, for example ``{"probe": "the", "raw": 12, "kind": "raw"}``. Byte prefixes use
-    ``kind="prefix"``; unmeasured, unreachable, and refuted pieces carry an explicit gap kind;
-    structural marker atoms carry ``kind="special"``.
+    ``kind="prefix"`` and structural marker atoms use ``kind="special"``.
     """
     doc = _vocabulary(_family(version))
-    return {p: w for group, entries in doc["tokens"].items() for p, w in entries.items()}
+    return {p: w.copy() for entries in doc["tokens"].values() for p, w in entries.items()}
 
 
 def witness(piece: str, version: str = "3.0") -> dict:
     """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
     Raises ``KeyError`` for a string that is not a piece."""
-    return pieces(version)[piece]
+    doc = _vocabulary(_family(version))
+    for entries in doc["tokens"].values():
+        if piece in entries:
+            return entries[piece].copy()
+    raise KeyError(piece)
 
 
 class TokenizerModel:
@@ -127,10 +129,10 @@ class TokenizerModel:
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
-        # What the frame does at each edge (v3/v4.7 share the defaults, v5 differs at both):
-        #   frame_bow  — the frame ends in a ⟨bow⟩, which absorbs one leading space.
-        #   frame_tail — "ladder": the frame's own ⏎⏎ tail, which a trailing newline run can
-        #                tile into (`engine.frame_tail`); "free": all trailing whitespace is free.
+        # v3 and v4.7 share the defaults. v5 differs at both frame edges.
+        # frame_bow says whether the frame ends in a ⟨bow⟩ that absorbs one leading space.
+        # frame_tail is "ladder" for the measured newline ladder and "free" when the frame absorbs
+        # all trailing ASCII whitespace.
         self.frame_bow = meta.get("frame_bow", True)
         self.frame_tail = meta.get("frame_tail", "ladder")
         # The characters the frame absorbs off the end of the content, per that rule.

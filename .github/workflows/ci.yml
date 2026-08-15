@@ -35,7 +35,7 @@ jobs:
       - name: Report gates, vocabulary and witness coverage
         if: matrix.python-version == '3.12'
         run: |
-          uv run --python ${{ matrix.python-version }} python tests/gates.py --markdown \
+          uv run --python ${{ matrix.python-version }} python tests/gates.py \
             | tee gates.md >> "$GITHUB_STEP_SUMMARY"
           cat gates.md
 

@@ -1,4 +1,4 @@
-"""UDHR reproduction gate — the Universal Declaration of Human Rights in 501 natural languages,
+"""UDHR reproduction gate for the Universal Declaration of Human Rights in 501 natural languages,
 scored against recorded ``count_tokens`` values. See ``tests/gates.py`` for the thresholds."""
 
 import pytest

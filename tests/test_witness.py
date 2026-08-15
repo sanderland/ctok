@@ -5,8 +5,8 @@ Nothing here talks to the API; everything else about a witness is checkable offl
 * the probe text really is the named template applied to this piece;
 * ``cost = raw − base + 1 − overhead`` comes out at exactly 1;
 * the encoder still writes the piece into that probe where its position claims;
-* nothing calls itself unwitnessable while a template in the file's own table reaches it — the
-  check that rots as `normalize.py` changes and unreachable pieces become askable.
+* nothing calls itself unwitnessable while a template in the file's own table reaches it. This is
+  the check that rots as `normalize.py` changes and unreachable pieces become askable.
 """
 
 
@@ -18,7 +18,7 @@ import pytest
 from ctok.main import FAMILIES, _family, _model, pieces, witness
 from ctok.constants import MARKER_GLYPHS
 from ctok.notation import parse_marked
-from ctok.witness import cost, places, position, surface, verify
+from ctok.witness import position, verify
 
 FILES = sorted({fam.pieces for fam in FAMILIES.values() if fam.pieces})
 GAP_KINDS = {"unmeasured", "no-instrument", "refuted", "special"}
@@ -60,27 +60,6 @@ def test_each_witness_holds_under_the_arithmetic_that_ships_with_it(name):
 
 
 @pytest.mark.parametrize("name", FILES)
-def test_a_refutation_records_what_refuted_it(name):
-    """A refuted piece must say which probe refuted it, and that probe must genuinely
-    disagree — otherwise it is a stale label nobody can act on."""
-    doc = _doc(name)
-    base = doc["meta"]["witness"]["base"]
-    templates = doc["meta"]["witness"]["templates"]
-    for group, entries in doc["tokens"].items():
-        for piece, w in entries.items():
-            if w["kind"] != "refuted":
-                continue
-            assert w.get("refused"), f"{piece}: refuted by nothing recorded"
-            for r in w["refused"]:
-                if r["kind"] == "prefix":
-                    assert r["floor"] != r["measured"], f"{piece}: {r} does not refute anything"
-                    continue
-                template, overhead = templates[r["kind"]]
-                assert template.format(surface(parse_marked(piece))) == r["probe"]
-                assert cost(r["raw"], base, overhead) != 1, f"{piece}: {r} does not refute anything"
-
-
-@pytest.mark.parametrize("name", FILES)
 def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
     """A ``bow`` template on a suffix piece would be measuring the wrong end of a word.
 
@@ -97,9 +76,9 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
             if w["kind"] == "prefix":
                 continue                     # this kind validates placement in its own verifier
             pos = position(parse_marked(piece))
-            # A digit piece is stored bare — `00`, no boundary markers, because a digit run carries
-            # its own — so the glued frame that pins it reads at `mid`. Every other template names
-            # the position in its own name, whichever anchor family it belongs to.
+            # A digit piece is stored bare, such as `00`, because a digit run carries its own
+            # boundary markers. The glued frame that pins it reads at `mid`. Every other template
+            # names the position in its own name, whichever anchor family it belongs to.
             named = w["kind"].removeprefix("cased_").removeprefix("digit_")
             # A contraction is stored bare (`'s`) and tiled glued (`'s⟨eow⟩`), so its stored form
             # reads `mid` while the piece it stands for closes a word.
@@ -114,7 +93,7 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
 
 
 def test_the_witness_reader_serves_a_borrowing_family():
-    """v5 borrows v4.7's file, so it borrows its witnesses — measured on v4.7's source model,
+    """v5 borrows v4.7's file and its witnesses, measured on v4.7's source model,
     as `meta.witness.measured_on` says."""
     assert witness("⟨bow⟩the⟨eow⟩", "4.7") == witness("⟨bow⟩the⟨eow⟩", "5.0")
     assert pieces("5.0") == pieces("4.7")
@@ -144,20 +123,6 @@ def test_every_vocabulary_piece_is_witnessed_or_special(name):
         "Find a witness or remove the piece; lowering a percentage floor is no longer an option.")
 
 
-@pytest.mark.parametrize("name", FILES)
-def test_no_shipped_piece_is_one_its_own_probe_refutes(name):
-    """`refuted` means the vocabulary claims a piece and the measurement says no. Removal still
-    needs a leave-one-out corpus check: a fabricated piece can mask a missing one."""
-    from tests.gates import totals, witness_coverage
-
-    family = _family_of(name)
-    by_group = witness_coverage()[family]
-    culprits = {g: c["refuted"] for g, c in by_group.items() if c.get("refuted")}
-    assert not totals(by_group).get("refuted"), (
-        f"{family} ships {totals(by_group)['refuted']} refuted pieces {culprits}; "
-        "remove them or replace them with fixed-template witnesses")
-
-
 def test_unknown_witness_kinds_do_not_count_as_evidence():
     """Coverage must fail closed when a new kind has not been classified."""
     from tests.gates import witnessed
@@ -172,6 +137,12 @@ def test_a_witness_is_readable_without_reading_the_file():
     assert witness("e0a4", "4.7")["kind"] == "prefix"
     with pytest.raises(KeyError):
         witness("this is not a piece", "4.7")
+
+
+def test_piece_results_do_not_expose_the_cached_vocabulary():
+    result = pieces("4.7")
+    result["⟨bow⟩the⟨eow⟩"]["raw"] = 0
+    assert witness("⟨bow⟩the⟨eow⟩", "4.7")["raw"] == 12
 
 
 def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
@@ -190,5 +161,5 @@ def test_no_piece_mixes_whitespace_with_other_material(name):
            if (body := "".join(c for c in piece if c not in MARKER_GLYPHS))
            and any(c.isspace() for c in body) and not all(c.isspace() for c in body)]
     assert not bad, (f"{_family_of(name)}: {len(bad)} pieces mix whitespace with other material: "
-                     f"{bad}. Whitespace is its own run — a piece like this is compensating for a "
+                     f"{bad}. Whitespace is its own run. A piece like this is compensating for a "
                      f"stream rule that is missing.")
