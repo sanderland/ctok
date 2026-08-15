@@ -30,30 +30,28 @@ class Family:
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", (3, 0)),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
-    # v5 BORROWS v4.7's vocabulary: its message frame is measured (`count_tokens` on a one-character
-    # message is 7 tokens, so the frame is 6 against 4.7's 11) but no piece has been mined against
-    # opus-5 yet, so the honest model is "v4.7's token list read through v5's frame". The other two
-    # family scalars were checked rather than assumed: v5 folds no quotes and has no all-caps marker,
-    # exactly like v4.7. Sharing the file rather than copying it means the two cannot drift while
-    # that holds; the day a v5 piece is measured, v5 gets `pieces_v5.json` and this note goes away.
-    # `claude-sonnet-5` counts identically to `claude-opus-5` — measured on 80 texts drawn from the
-    # line corpora and the held-out Rosetta sample, frame and all — but that is a fact about one
-    # model id, not a version a caller requests, so nothing here routes on it.
+    # v5 borrows v4.7's vocabulary. Its message frame is measured (`count_tokens` on a one-character
+    # message is 7 tokens, so the frame is 6 against 4.7's 11), but no piece has been mined against
+    # opus-5 yet, so the model is v4.7's token list read through v5's frame. The other two family
+    # scalars were checked: v5 folds no quotes and has no all-caps marker, like v4.7. Sharing the
+    # file keeps the two from drifting; once a v5 piece is measured, v5 gets `pieces_v5.json`.
+    # `claude-sonnet-5` counts identically to `claude-opus-5` (measured on 80 texts drawn from the
+    # line corpora and the held-out Rosetta sample, frame included), so nothing routes on model id.
     "v5": Family("pieces_v4_7.json", "claude-opus-5", (5, 0),
                  (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
 }
 
-# (base version, family key), highest first — derived from FAMILIES, so adding a family is one edit.
+# (base version, family key), highest first.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 
 
 def _parse_version(version: str) -> tuple[int, ...]:
-    """A version is a dotted sequence of integers, compared component by component — "4.10" sorts
-    after "4.9", not below "4.2". ``str`` only: a ``float`` cannot make that distinction, since the
-    literal ``4.10`` is already the same value as ``4.1`` before any code here runs.
+    """A version is a dotted sequence of integers, compared component by component: "4.10" sorts
+    after "4.9". ``str`` only, since the float literal ``4.10`` is already ``4.1`` before any code
+    here runs.
 
-    Parse only. There is no floor check here: a version below every family's base matches no entry
-    in ``_FAMILY_BASES``, and :func:`_family` raises the same error on that fallthrough."""
+    No floor check: a version below every family's base matches no entry in ``_FAMILY_BASES``, and
+    :func:`_family` raises the same error on that fallthrough."""
     if not isinstance(version, str):
         raise TypeError(f'version must be a string like "4.7", not {version!r}')
     try:
@@ -63,8 +61,8 @@ def _parse_version(version: str) -> tuple[int, ...]:
 
 
 def _at_least(v: tuple[int, ...], base: tuple[int, ...]) -> bool:
-    """``v >= base``, treating a missing trailing component as zero so "5" compares equal to "5.0"
-    rather than less than it — plain tuple comparison treats the shorter tuple as smaller."""
+    """``v >= base``, treating a missing trailing component as zero so "5" compares equal to "5.0";
+    plain tuple comparison would treat the shorter tuple as smaller."""
     n = max(len(v), len(base))
     return v + (0,) * (n - len(v)) >= base + (0,) * (n - len(base))
 
@@ -129,7 +127,7 @@ def pieces(version: str = "3.0") -> dict[str, dict]:
 
 def witness(piece: str, version: str = "3.0") -> dict:
     """The witness for one piece, in the notation the vocabulary file uses (``⟨bow⟩the⟨eow⟩``).
-    Raises ``KeyError`` for a string that is not a piece — which is itself the membership answer."""
+    Raises ``KeyError`` for a string that is not a piece."""
     return pieces(version)[piece]
 
 
@@ -137,13 +135,12 @@ class TokenizerModel:
     """The loaded vocabulary plus the family scalars the encoder and tiler read from it.
 
     Everything the tiler needs is derived here, once: the tiling vocabulary with its reverse trie,
-    and the byte floor — what a codepoint costs when no piece covers it. ``doc`` is consumed rather
-    than kept, so there is no second, lazier copy of the vocabulary question.
+    and the byte floor — what a codepoint costs when no piece covers it.
     """
 
     def __init__(self, doc: dict) -> None:
         meta = doc["meta"]
-        # What a SINGLE user message costs before its content. Measured, and decomposed: a request
+        # What a single user message costs before its content. Measured, and decomposed: a request
         # costs a fixed prefix P, each turn costs a role marker plus its content, and a request that
         # ends on the user is followed by the frame's own assistant prompt T. An assistant marker
         # costs exactly T, and adjacent same-role messages merge into one turn joined by a 1-token
@@ -154,7 +151,7 @@ class TokenizerModel:
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
         # What the frame does at each edge. v3 and v4.7 share one shape and are the defaults; v5
-        # measured different at BOTH edges, which is why these are family scalars and not constants.
+        # measured different at both edges, which is why these are family scalars and not constants.
         #   frame_bow  — the frame's last token before the content is a ⟨bow⟩, so message start is
         #                an interior word boundary: it absorbs one leading space, and a run that
         #                cannot own that ⟨bow⟩ pays for it as a token of its own.
@@ -209,8 +206,8 @@ def tokenize(text: str, version: str = "3.0") -> list[str]:
 
 
 def token_count(text: str, version: str = "3.0") -> int:
-    """Reconstructed token count for ``text`` as a single user message — by definition
-    ``len(tokenize(text, version))``, which structurally precludes a negative or fractional count."""
+    """Reconstructed token count for ``text`` as a single user message; by definition
+    ``len(tokenize(text, version))``."""
     return len(tokenize(text, version))
 
 

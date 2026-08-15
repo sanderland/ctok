@@ -7,6 +7,12 @@ The reconstruction targets counts. Claude does not expose token boundaries, so `
 one valid minimum-cost tiling, not a claim about Anthropic's exact segmentation. The research behind
 the model is described in [On the biology of Claude's tokenizer](https://tokencontributions.substack.com/p/on-the-biology-of-claudes-tokenizer).
 
+## Install
+
+```bash
+pip install ctok
+```
+
 ## Quick start
 
 ```python

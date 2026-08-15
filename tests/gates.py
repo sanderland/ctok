@@ -18,7 +18,7 @@ unedited source in hundreds of languages, so it exercises the whole model rather
     anything the 1,741 chose, which makes them the sharper accuracy reading; the in-sample gate is
     the sharper regression detector, and both are asserted.
 
-**MultiPL-E is the held-out gate and Rosetta is not.** Mining may bisect Rosetta freely; nothing may
+MultiPL-E is the held-out gate and Rosetta is not. Mining may bisect Rosetta freely; nothing may
 select, accept or reject a piece because of MultiPL-E. UDHR was held out until 2026-08-12, when its
 last nine non-exact readings were closed by bisecting the documents themselves — six pieces selected
 off the gate, each accepted on its own fixed-template membership witness. Its rate is in-sample from
@@ -49,15 +49,13 @@ FIXTURES = Path(__file__).parent / "fixtures"
 # Thresholds carry margin so ordinary per-piece churn passes but a real regression trips. ``None``
 # means the metric is reported but not asserted.
 #
-# ``"exact": ALL`` is not a threshold at all — it asserts that EVERY document reproduces, and it is
-# the right gate once a corpus is finished. A fraction, however tight, has to sit strictly below the
-# real rate to leave room for churn, which means it silently permits the first regression it was
-# meant to catch. Nothing to spare is the whole point: a corpus at 100% has one failure mode, and it
-# is any document at all. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
+# ``"exact": ALL`` asserts that every document reproduces, the right gate once a corpus is
+# finished. A fraction, however tight, has to sit strictly below the real rate to leave room for
+# churn, which means it silently permits the first regression it was meant to catch. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
 # error has nothing left for them to measure.
 ALL = "all"
 
-# **v5 is not gated here, and that is a claim rather than an omission.** It reads v4.7's vocabulary
+# v5 is deliberately not gated here. It reads v4.7's vocabulary
 # and differs only in its message frame, so on every corpus below it lands on exactly the same
 # documents with exactly the same errors — scoring it doubled the gate's cost to re-derive numbers
 # that were equal by construction. What actually guards it is cheaper and more direct: the frame
@@ -72,9 +70,9 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # FINISHED 2026-08-12: both families reproduce all 501 documents, so the gate is every
+        # Finished 2026-08-12: both families reproduce all 501 documents, so the gate is every
         # document. The final six pieces were selected by bisecting the gate's own documents —
-        # UDHR is IN-SAMPLE from that date (see the module docstring) — but selection is not
+        # UDHR is in-sample from that date (see the module docstring) — but selection is not
         # acceptance: each piece carries its own fixed-template membership witness in
         # `pieces_*.json`, and the corpus court passed it (65 cached rows repaired, none broken,
         # none pushed below).
@@ -89,7 +87,7 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # FINISHED: all three families reproduce all 1,741 documents, so the gate is every document
+        # Finished: all three families reproduce all 1,741 documents, so the gate is every document
         # rather than a rate. When a deliberate change does break a file, the `known` allowlist in
         # `assert_gate` holds the gate up while it is repaired — the gate is never lowered to a
         # rate, which would silently permit the next regression as well.
@@ -105,7 +103,7 @@ GATES: dict[str, dict] = {
         "weight": "chars",
         "n": 250,
         # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # FINISHED, and gated at every document: `exact: 0.99` on 250 documents would silently
+        # Finished, and gated at every document: `exact: 0.99` on 250 documents would silently
         # permit the next two regressions.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
@@ -118,7 +116,7 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # FINISHED: every family reproduces all 22 files, so the gate is every file.
+        # Finished: every family reproduces all 22 files, so the gate is every file.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
@@ -208,9 +206,9 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
 
 
 def vocabulary_owners() -> dict[str, str]:
-    """family -> the family whose vocabulary FILE it counts with (itself, unless it borrows one).
+    """family -> the family whose vocabulary file it counts with (itself, unless it borrows one).
 
-    Two families sharing a file is what borrowing IS, so this is derived rather than declared. The
+    Derived rather than declared: two families borrow when they share a file. The
     first family listed for a file owns it; v5 reads v4.7's."""
     owner: dict[str, str] = {}
     for key, fam in FAMILIES.items():
@@ -228,7 +226,7 @@ def _owned_vocabularies():
 
 
 def vocabulary_sizes() -> dict[str, dict[str, int]]:
-    """Piece counts per group, per vocabulary FILE — keyed by the family that owns it.
+    """Piece counts per group, per vocabulary file — keyed by the family that owns it.
 
     A borrowing family is deliberately absent rather than listed with a copy of the lender's row:
     repeating the numbers reads as two vocabularies that happen to agree, when there is one file
@@ -238,8 +236,8 @@ def vocabulary_sizes() -> dict[str, dict[str, int]]:
 
 
 def _borrowers() -> list[str]:
-    """One line per family that counts with someone else's file — so the report says so out loud
-    rather than leaving a family it never mentioned to look like an omission."""
+    """One line per family that counts with someone else's file, so the report says so
+    rather than leaving that family to look like an omission."""
     return [f"{key} counts with {owner}'s vocabulary ({FAMILIES[key].pieces})"
             for key, owner in vocabulary_owners().items() if owner != key]
 
@@ -353,7 +351,7 @@ def report_vocabulary(markdown: bool = False) -> None:
 
 
 def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
-    """family -> group -> {witness kind: pieces}, per vocabulary FILE.
+    """family -> group -> {witness kind: pieces}, per vocabulary file.
 
     Keyed like ``vocabulary_sizes``: one row per file, so a borrowing family is absent rather than
     listed with a copy of the lender's numbers it did not measure. Broken down by GROUP because that
@@ -372,7 +370,7 @@ def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
     return out
 
 
-# The kinds that are NOT a witness, in two groups that mean different things to a reader.
+# The kinds that are not a witness, in two groups that mean different things to a reader.
 #
 # MISSING is an absence of evidence: nobody has bought the measurement (`unmeasured`) or no template
 # in the inventory reaches the piece (`no-instrument`). Both are work.
@@ -388,12 +386,12 @@ GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
 
 def known_kinds() -> frozenset[str]:
-    """Every kind a witness record may carry, DERIVED from the files rather than listed here.
+    """Every kind a witness record may carry, derived from the files rather than listed here.
 
     `witnessed` subtracts the known non-witness kinds from the total, so a kind it has never heard
     of lands silently on the witnessed side — the one direction a coverage number must never round.
-    The guard is only as good as its list, and a hand-written list is exactly the thing that goes
-    stale. Writing one by hand missed `digit_bow` — a shipped template carrying 28 v3 punctuation
+    The guard is only as good as its list, and a hand-written list goes stale: one missed
+    `digit_bow` — a shipped template carrying 28 v3 punctuation
     pieces — so the template names now come from each vocabulary's own `meta.witness.templates`,
     the same place `verify` reads them. `prefix` is added on top because `verify` dispatches it
     before that lookup: 467 byte-fallback pieces per file rest on it and no template declares it.
@@ -429,7 +427,7 @@ def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go.
 
-    **A corpus every family reproduces document for document gets one cell, not a table.** Three of
+    A corpus every family reproduces document for document gets one cell, not a table. Three of
     the four are finished, and a finished corpus has exactly one thing to say — a per-document error
     breakdown of a corpus with no error is nine columns of zeroes, and the one line that still
     carries information (UDHR's) was buried under them. So the finished corpora collapse into a

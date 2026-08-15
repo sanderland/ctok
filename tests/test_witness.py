@@ -196,7 +196,7 @@ def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
 
 @pytest.mark.parametrize("name", FILES)
 def test_no_piece_mixes_whitespace_with_other_material(name):
-    """A space, tab or newline is either the WHOLE piece or not in it.
+    """A space, tab or newline is either the whole piece or not in it.
 
     Whitespace does not sit inside a token here: the stream absorbs a seam space into the following
     ``⟨bow⟩`` and spells anything it cannot absorb as its own run, which is why there is a

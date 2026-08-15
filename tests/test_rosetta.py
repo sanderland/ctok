@@ -9,7 +9,7 @@ together. Two samples, and the distinction between them is the point:
     probed, so this rate is IN SAMPLE. It is the sharpest regression detector there is (v4.7
     reproduces all 1,741), which is what it is kept for.
   * ``rosetta_holdout`` — 250 documents drawn from blocks the first sample never touched. Nothing
-    in the vocabulary was probed because of them, so this is the honest accuracy number.
+    in the vocabulary was probed because of them, so this accuracy number is unbiased.
 """
 
 import pytest

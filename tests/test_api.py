@@ -157,7 +157,7 @@ def test_a_stray_mark_run_is_a_word(version: float):
     `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run.
 
     The fusion is measured on the frame that cancels the mark's own price, where the two spellings
-    differ ONLY by the word's ⟨bow⟩: over 22 marks and six right-hand words the
+    differ only by the word's ⟨bow⟩: over 22 marks and six right-hand words the
     severed spelling's error moves with the word — `x ͣabc x` = 14 one under on v3, `x ͣก x` = 13
     one over — and the fused spelling's does not move at all. The mark's head is ordinary
     vocabulary here, not a forced byte floor; that floor was standing in for the missing ⟨bow⟩.
@@ -294,7 +294,7 @@ def test_version_routing():
 
 
 def test_version_must_be_a_string():
-    """A float can't distinguish "4.1" from "4.10" -- the literal 4.10 IS 4.1 before any code here
+    """A float can't distinguish "4.1" from "4.10" -- the literal 4.10 is already 4.1 before any code here
     runs -- so the type is enforced rather than coerced."""
     for bad in (4.7, 5, None, ["4.7"]):
         with pytest.raises(TypeError):
@@ -321,7 +321,7 @@ def test_the_v5_frame_absorbs_any_trailing_whitespace():
 
 
 def test_the_v5_frame_ends_in_no_bow():
-    """Message start is an interior word boundary on v4.7 — the frame's last token IS a ⟨bow⟩, so a
+    """Message start is an interior word boundary on v4.7 — the frame's last token is a ⟨bow⟩, so a
     single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v5 has
     no such token: the digit and the ideograph open for free, and the leading space is a character
     like any other."""
@@ -349,7 +349,7 @@ def test_non_str_input_rejected(bad):
 
 
 def test_a_single_leading_space_is_free():
-    """The frame's final ⟨bow⟩ IS a single leading space; two or more are a whitespace-run token."""
+    """The frame's final ⟨bow⟩ is a single leading space; two or more are a whitespace-run token."""
     assert token_count(" hello") == token_count("hello")
     assert token_count("  hello") == token_count("hello") + 1
 
@@ -382,7 +382,7 @@ APOSTROPHE_ROWS = [
     ("4.7", "a  'b", 4),
     # Only `'` behaves so: the other word-opening punctuation absorbs the boundary normally.
     ("4.7", 'a "b', 3), ("4.7", "a (b", 3), ("4.7", "a -b", 3), ("3.0", 'a "b', 3),
-    # And only a run that IS the apostrophe: in `('` or `'''` the boundary lands elsewhere.
+    # And only a run that is exactly the apostrophe: in `('` or `'''` the boundary lands elsewhere.
     ("4.7", "a ('b", 4), ("4.7", "a '''a", 4), ("4.7", "z '''w", 4),
     ("3.0", "a '''a", 3), ("3.0", "z '''w", 3),
     # The contraction suffix is word-side: after a word or the boundary it is one token, after
@@ -406,13 +406,13 @@ def test_recorded_apostrophe_and_space_run_costs(version, text, content):
 
 
 # A message whose content strips to nothing is pinned to the count the ORACLE gives it, not to
-# another stripped message. The frame is all that survives, so the reading IS the family's base —
+# another stripped message. The frame is all that survives, so the reading is the family's base —
 # measured 2026-08-11, one call each, over a BMP private-use codepoint, a C0 control, and the two
 # together: 8 on v3, 12 on v4.7, 6 on v5.
 #
 # The comparison this replaced was `token_count("<PUA>") == token_count("")`, which cannot fail:
 # when `stream_norm` returned "" the frame's own boundary marker had nothing to attach to and tiled
-# as itself, so BOTH sides carried the same wrong value and both moved together when it was fixed.
+# as itself, so both sides carried the same wrong value and both moved together when it was fixed.
 # The empty message cannot serve as the anchor either, since the oracle rejects it.
 FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
 
@@ -430,7 +430,7 @@ def test_private_use_characters_are_stripped(version: float):
     deleted, like the C0/C1 controls, not merely free.
 
     Two controls, because "costs nothing" is also true of a character that is merely free: an
-    ASTRAL private-use codepoint is NOT stripped and pays its four bytes (frame + 4 for one, + 8
+    astral private-use codepoint is not stripped and pays its four bytes (frame + 4 for one, + 8
     for two), and an UNASSIGNED codepoint survives and pays its bytes as well."""
     assert token_count("a\uf0b7b", version=version) == token_count("ab", version=version)
     assert normalize("a\ue000\uf8ffb", version=version) == "ab"
@@ -491,7 +491,7 @@ def test_v5_tracks_v4_7_document_for_document(corpus_name):
     deviation from ITS recorded count equals v4.7's deviation from ITS OWN. Both fixtures are real
     `count_tokens` readings against different models, so the two sides are measured independently.
 
-    Note what this deliberately does NOT assert: that the two counts differ by a constant. They do
+    Note what this deliberately does not assert: that the two counts differ by a constant. They do
     not — the offset is 5 on most documents and 6 where one opens with punctuation, because v5's
     frame ends in no ⟨bow⟩ and the opening run has nothing to absorb. Predicting which is which
     would mean restating `normalize.stream_norm`'s head rule inside a test, and a test that

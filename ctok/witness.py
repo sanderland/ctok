@@ -2,20 +2,20 @@
 
 Every piece in ``data/pieces_*.json`` carries a witness — the probe text, the raw ``count_tokens``
 value it returned, and which template it is — and this module is how a reader checks one. The
-arithmetic ships WITH the data (``meta.witness``) rather than being restated here, so the file is
-self-describing and a reader never has to know what the mining rig believed:
+arithmetic ships with the data (``meta.witness``) rather than being restated here, so the file is
+self-describing:
 
     cost = raw − BASE + 1 − overhead        is_token ⟺ cost == 1
 
 ``BASE`` is ``count_tokens`` on the one-character message ``"a"`` for that family — 8 on v3, 12 on
-v4.7, 7 on v5 — so it is a known single token measured through the same frame, and every template's
-``overhead`` is calibrated against it. That is the whole reason the surrounding material never has to
-be measured on its own: the anchors are not summed, they are subtracted as a template constant.
+v4.7, 7 on v5 — a known single token measured through the same frame, and every template's
+``overhead`` is calibrated against it. The surrounding material never has to be measured on its
+own: the anchors are subtracted as a template constant.
 
 The vocabulary file's ``meta.witness.templates`` table is the inventory; README.md explains the
 public contract:
 
-    raw         X                               the span IS the message
+    raw         X                               the span is the message
     word        .X.                             a wordy span between Latin anchors
     bow/eow/mid .Xヲ. / .ヲX. / .ヲXヲ.            the ヲ separator grid, by position
     cased_*     XController / československX    CamelCase scaffolds, for material with a capital
@@ -72,8 +72,7 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
     Three questions, and the third is the one a stale file fails: does the probe text match the
     template it names, does the arithmetic come out at exactly one token, and — when a ``model`` is
     given — does the encoder still write the piece into that probe's stream where the template says
-    it stands? A template whose text no longer places the piece is measuring something else, and no
-    amount of correct arithmetic on it means anything.
+    it stands? A template whose text no longer places the piece is measuring something else.
     """
     if set(FIELDS) - set(witness):
         return f"missing {sorted(set(FIELDS) - set(witness))}"
@@ -99,10 +98,9 @@ def verify(key: str, witness: dict, meta: dict, model=None) -> str | None:
 
 
 def _verify_prefix(prefix: str, witness: dict, meta: dict, model) -> str | None:
-    """A byte prefix is not a token, so ``cost == 1`` is the wrong question. It makes a PREDICTION.
-
-    The byte floor tiles a codepoint's UTF-8 over the prefixes, so carrying `e0a4` says every
-    character opening with those bytes costs one token less than it otherwise would. The witness
+    """A byte prefix is not a token, so ``cost == 1`` is the wrong question; a prefix makes a
+    prediction. The byte floor tiles a codepoint's UTF-8 over the prefixes, so carrying `e0a4` says
+    every character opening with those bytes costs one token less than it otherwise would. The witness
     names a character and the count its probe returned; the prefix holds when the shipped floor
     reproduces that count, and earns its place when a floor without it does not.
     """
@@ -127,24 +125,24 @@ def _verify_prefix(prefix: str, witness: dict, meta: dict, model) -> str | None:
 def places(key: str, probe: str, model) -> bool:
     """Does the encoder write ``key`` into ``probe``'s marked stream, in its own position?
 
-    A ``raw`` probe must stream to the piece and nothing else — the piece IS the message. Any other
-    template surrounds it, so the piece must appear with its boundaries intact and material on the
-    side its position claims. Computed from the encoder, never assumed: the message edges are
-    family-scoped (v5 absorbs trailing whitespace and opens on no ⟨bow⟩ where v4.7 does neither),
-    and a probe verified against the wrong family's frame is verified against nothing.
+    A ``raw`` probe must stream to the piece and nothing else — the piece is the whole message. Any
+    other template surrounds it, so the piece must appear with its boundaries intact and material on
+    the side its position claims. Computed from the encoder rather than assumed: the message edges
+    are family-scoped (v5 absorbs trailing whitespace and opens on no ⟨bow⟩ where v4.7 does
+    neither), so a probe must be checked against its own family's frame.
     """
     s = stream_norm(nfc(probe, fold_quotes=model.fold_quotes), model)
     if s == key:
-        return True                     # the piece IS the whole content, markers and all
+        return True                     # the piece is the whole content, markers and all
     at = s.find(key)
     if at < 0:
         return False
     pos, left, right = position(key), s[:at], s[at + len(key):]
     if pos == "word":
         return True                     # a whole word inside a longer stream is still a whole word
-    # A prefix piece carries the word's opening and NOT its close, so a ⟨eow⟩ immediately after it
+    # A prefix piece carries the word's opening but not its close, so a ⟨eow⟩ immediately after it
     # means the probe wrote the whole word — `⟨bow⟩ab` is not what `ab` alone measures, and reading
-    # it as such refutes 2,317 perfectly good v4.7 prefixes. The mirror holds for a suffix piece.
+    # it as such refutes 2,317 valid v4.7 prefixes. The mirror holds for a suffix piece.
     if pos in ("bow", "mid") and (not right or right.startswith(EOW_G)):
         return False
     if pos in ("eow", "mid") and (not left or left.endswith(BOW_G)):

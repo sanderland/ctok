@@ -6,8 +6,7 @@
     tile            marked-stream tiling for the count
 
 The marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs needs no rule:
-it tiles as itself. That is what a boundary "junction charge" always was. The count is the number of
-tiles.
+it tiles as itself. The count is the number of tiles.
 """
 
 from __future__ import annotations
@@ -62,9 +61,8 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
     """Min-cost tiling over a cost-1 vocabulary plus a guaranteed one-character floor.
 
     This is the marked stream's specialized form of :func:`min_tile`. The generic DP asks about
-    every substring up to the longest vocabulary piece. One 128-newline piece therefore made every
-    v3 character pay for 128 dictionary probes. The trie visits only prefixes that can still become
-    a piece and creates no candidate substrings.
+    every substring up to the longest vocabulary piece (128, for v3's longest newline run); the
+    trie visits only prefixes that can still become a piece and creates no candidate substrings.
     """
     best = [0] * (len(text) + 1)
     par = [0] * (len(text) + 1)
@@ -107,7 +105,7 @@ class ByteFloor:
 
     def __init__(self, byte_tokens, unit_chars=()) -> None:
         # Membership is all that is needed, since every token costs 1. ``unit_chars`` are the cost-1
-        # WHOLE codepoints from the piece vocabulary, folded in so an uncovered char still prices 1.
+        # whole codepoints from the piece vocabulary, folded in so an uncovered char still prices 1.
         self.tokens = set(byte_tokens) | {c.encode().hex() for c in unit_chars}
         self.max_len = max((len(k) // 2 for k in self.tokens), default=1)
         self._chunks: dict[bytes, list[bytes]] = {}
@@ -126,8 +124,7 @@ class ByteFloor:
         return hit
 
     def cost_bytes(self, bs: bytes) -> int:
-        """One token per chunk, so the count IS the chunk count — structurally, not by two DPs
-        agreeing."""
+        """One token per chunk, so the cost is the chunk count."""
         return len(self.chunks(bs))
 
     def cost_char(self, c: str) -> int:
@@ -141,7 +138,7 @@ class ByteFloor:
 def glued_contraction(cn: str) -> str:
     """A contraction suffix in the spelling the marked stream uses: `'t` → `'t⟨eow⟩`.
 
-    No ⟨bow⟩: the apostrophe IS the word's opening boundary, and `normalize._contraction_seam`
+    No ⟨bow⟩: the apostrophe is the word's opening boundary, and `normalize._contraction_seam`
     writes the stream that way."""
     return cn + EOW_G
 
@@ -149,21 +146,18 @@ def glued_contraction(cn: str) -> str:
 def build_vocab(pieces, tokens: dict) -> frozenset[str]:
     """The tiling vocabulary: every parsed piece and the glued contraction spelling.
 
-    The structural markers are NOT added here: they live in the vocabulary file, in a `markers`
-    group of their own, so a reader of `pieces.json` sees the whole tiling vocabulary rather than
-    most of it and there is one place that decides a marker costs one token.
+    The structural markers are not added here: they live in the vocabulary file, in a `markers`
+    group of their own, so `pieces.json` holds the whole tiling vocabulary and is the one place
+    that decides a marker costs one token.
     """
     vocab = set(pieces)
     # The contraction suffix, in the spelling the stream uses. The file stores `'t` and the encoder
     # writes `'t⟨eow⟩` — `⟨bow⟩don⟨eow⟩'t⟨eow⟩`, with no ⟨bow⟩ after the apostrophe, because the
-    # apostrophe IS that word's opening boundary (`normalize._contraction_seam`).
-    #
-    # That is measured, not a spelling convention. The increment a contraction adds over its left
-    # context alone is 1 after a letter, a digit or a space, and 2 after punctuation — uniformly
-    # across all four v4.7 suffixes, all seven v3 suffixes and `}` `.` `)` in both families.
-    # The step is the boundary token, appearing exactly where the apostrophe does not
-    # supply one. Marking every wordy span uniformly instead would have to reproduce that step out
-    # of the vocabulary, which moves the special case rather than removing it.
+    # apostrophe is that word's opening boundary (`normalize._contraction_seam`). Measured: the
+    # increment a contraction adds over its left context alone is 1 after a letter, a digit or a
+    # space, and 2 after punctuation, uniformly across all four v4.7 suffixes, all seven v3
+    # suffixes and `}` `.` `)` in both families. The step is the boundary token, appearing exactly
+    # where the apostrophe does not supply one.
     vocab.update(glued_contraction(cn) for cn in tokens["contractions"])
     return frozenset(vocab)
 
@@ -185,13 +179,12 @@ def frame_tail(n: int, model) -> list[str]:
     trailing token.
 
     Only where the family's frame ends in that ⏎⏎ tail (``frame_tail == "ladder"``). v5 measured
-    the other shape — trailing whitespace of every kind is free there, spaces and tabs included,
-    and a 29-newline run that costs v4.7 a token costs it nothing — so the run is simply gone.
+    the other shape: trailing whitespace of every kind is free there, spaces and tabs included,
+    and a 29-newline run that costs v4.7 a token costs it nothing.
 
-    The message frame appends ⏎⏎ after the content, and ONE token can span content into it. So the
+    The message frame appends ⏎⏎ after the content, and one token can span content into it. So the
     run the tokenizer actually sees is ``n + 2`` newlines, tiled over the newline-run vocabulary,
-    of which the frame already pays for one token — ``stream`` is right to drop the run, but not to
-    call it free.
+    of which the frame already pays for one token — ``stream`` drops the run, but it is not free.
 
     That is why the cost is not monotonic in ``n``: up to 28 trailing newlines cost nothing (30 is
     a single token), 29 costs one, 30 and 31 are free again (32 and 33 are single tokens), and 38
@@ -216,11 +209,11 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         norm = nfc(text, fold_quotes=model.fold_quotes)
         n_tail = len(norm) - len(norm.rstrip(model.frame_strip))
     else:
-        # The frame absorbs RAW ASCII whitespace, which is why this strip runs before NFC rather
+        # The frame absorbs raw ASCII whitespace, which is why this strip runs before NFC rather
         # than after it: `nfc` folds NBSP and the other space separators to U+0020, and those do
-        # NOT come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
+        # not come free at the end — `'a\xa0'` costs one token more than `'a'`, `'a '` costs the
         # same. Stripping the folded text hands back that token and under-counts 363 documents of
-        # the Rosetta corpus. `normalize.raw_head_space` is the same fact at the message HEAD.
+        # the Rosetta corpus. `normalize.raw_head_space` is the same fact at the message head.
         norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
         n_tail = 0
     s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
@@ -233,9 +226,8 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
         """What one character costs where no piece covers it — a marker is a token, anything else
         falls to the byte floor. Wider uncovered spans are simply unavailable to the DP."""
         ch = s[j]
-        # A marker the vocabulary somehow does not hold still costs one token — it is structure, not
-        # text, and the byte floor would price its three UTF-8 bytes. The `markers` group means this
-        # never fires in practice; it stays as the floor under a file that lost one.
+        # A marker the vocabulary somehow does not hold still costs one token; the byte floor would
+        # price its three UTF-8 bytes. The `markers` group means this never fires in practice.
         if ch in MARKER_GLYPHS:
             return 1
         return char_cost(model, ch)
