@@ -57,15 +57,15 @@ SYMBOL_LETTERS = (
 VARIATION_SELECTORS = (0xFE00, 0xFE0F)
 
 # The one canonical-combining-class-9 character that does not separate word runs: measured over
-# as a killer on its own script's consonants and under wherever no letter precedes it. See
-# :func:`normalize.is_killer` for the grid.
-NON_KILLERS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
+# as a separator on its own script's consonants and under wherever no letter precedes it. See
+# :func:`normalize.is_separator` for the grid.
+NON_SEPARATORS = frozenset("ฺ")   # THAI CHARACTER PHINTHU
 
 # Marks that separate word runs the way a virama does, but without combining class 9. Measured
 # one character at a time on byte-floor consonant hosts; enumerated, because the rule is
 # orthographic (the neighbouring codepoint is usually a vowel sign that does not split). The
 # U+0300 block is handled as a range instead — see :data:`SEPARATOR_MARKS`.
-EXTRA_KILLERS = frozenset((
+SEPARATOR_SIGNS = frozenset((
     "\u0740",  # SYRIAC FEMININE DOT
     "\u0741",  # SYRIAC QUSHSHAYA
     "\u0742",  # SYRIAC RUKKAKHA
@@ -92,7 +92,7 @@ EXTRA_KILLERS = frozenset((
     "\u0b3c",  # ORIYA SIGN NUKTA
     "\u0b55",  # ORIYA SIGN OVERLINE
     # U+0C03 TELUGU SIGN VISARGA is deliberately not here: it is a spacing mark (Mc, ccc 0) that
-    # measures as plain word material, closing a word with a `ః⟨eow⟩` piece rather than killing it.
+    # measures as plain word material, closing a word with a `ః⟨eow⟩` piece rather than splitting it.
     "\u0c3c",  # TELUGU SIGN NUKTA
     "\u0cbc",  # KANNADA SIGN NUKTA
     "\u0e47",  # THAI CHARACTER MAITAIKHU
@@ -193,7 +193,7 @@ SEAM_RE = re.compile("(.)" + EOW_G + " " + "([" + SHIFT_G + CAPS_G + "]*)" + BOW
 # ---- marks that stand outside the word -----------------------------------------------------------
 
 # Combining marks that close the word before themselves, exactly as a virama does
-# (`normalize.is_killer` folds this range in): `q́z` = `⟨bow⟩q⟨eow⟩` + mark + `⟨bow⟩z⟨eow⟩`, so an
+# (`normalize.is_separator` folds this range in): `q́z` = `⟨bow⟩q⟨eow⟩` + mark + `⟨bow⟩z⟨eow⟩`, so an
 # accent makes two words out of one. Decided per mark by two oracle frames on one-token hosts —
 # the only place the two spellings differ — swept over U+0300–U+036F on 21 hosts across 13
 # scripts, both families, no dissent. Both ends of the range are pinned from outside by U+0345 and

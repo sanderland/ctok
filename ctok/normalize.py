@@ -15,9 +15,9 @@ import unicodedata
 from .constants import (
     BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     ESCAPED_MARKER_LITERALS,
-    EXTRA_KILLERS, FUNNY_SPACE,
+    SEPARATOR_SIGNS, FUNNY_SPACE,
     LITERAL_MARKER_ESCAPE_TABLE,
-    NON_KILLERS,
+    NON_SEPARATORS,
     HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
@@ -84,8 +84,8 @@ def is_hard_cp(o: int) -> bool:
 @cache
 def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
-    if is_killer(c):
-        return HARD          # a killer separates word runs; `_marks_like_punct` claims its borders
+    if is_separator(c):
+        return HARD          # separates word runs; `_marks_like_punct` claims its borders
     if c in _NEW_CASED:
         return WORDY
     o = ord(c)
@@ -289,22 +289,22 @@ def _digit_eow(body: str) -> bool:
     return _digit_run(body) and _digit_border(body[-1])
 
 
-def is_killer(c: str) -> bool:
+def is_separator(c: str) -> bool:
     """A mark that terminates the orthographic syllable, and so separates word runs.
 
     Three populations: viramas (defined by canonical combining class 9, not listed), the measured
     ranges of the combining blocks (:data:`SEPARATOR_MARKS`, :data:`SEPARATOR_ANNOTATIONS`), and
-    the enumerated ``EXTRA_KILLERS`` — Thai and Lao tone marks, nukta, the Khmer consonant
+    the enumerated ``SEPARATOR_SIGNS`` — Thai and Lao tone marks, nukta, the Khmer consonant
     shifters and their kin, which no combining-class rule picks out. What they share is
     orthographic: written after the syllable, like a virama, where the vowel signs that do not
     split are written inside it.
 
-    Every killer stands outside the word: `⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩`. One ccc-9 character
-    dissents (:data:`NON_KILLERS`, U+0E3A THAI PHINTHU): measured over as a killer on its own
+    Every separator stands outside the word: `⟨bow⟩C⟨eow⟩ sep ⟨bow⟩X⟨eow⟩`. One ccc-9 character
+    dissents (:data:`NON_SEPARATORS`, U+0E3A THAI PHINTHU): measured over as a separator on its own
     script's consonants and under wherever no letter precedes it, so it is an ordinary mark.
     """
-    return (unicodedata.combining(c) == 9 and c not in NON_KILLERS
-            or c in EXTRA_KILLERS
+    return (unicodedata.combining(c) == 9 and c not in NON_SEPARATORS
+            or c in SEPARATOR_SIGNS
             or bool(SEPARATOR_MARKS.fullmatch(c))
             or bool(SEPARATOR_ANNOTATIONS.fullmatch(c)))
 
@@ -321,17 +321,17 @@ def _stray_mark(c: str) -> bool:
     are letters when they follow one; treating them as punctuation shatters every accented word).
 
     Only a BMP mark reaches this branch: an astral one is HARD and takes no word model at all
-    (:func:`is_hard_cp`), and a separator is a killer.
+    (:func:`is_hard_cp`), and a syllable-terminating mark is a separator (:func:`is_separator`).
     """
     if _syriac_vowel(c):
         return False                   # a baseless Syriac vowel is a word-forming letter instead
-    return unicodedata.combining(c) != 0 and not is_killer(c)
+    return unicodedata.combining(c) != 0 and not is_separator(c)
 
 
 def _syriac_vowel(c: str) -> bool:
     """A Syriac vowel point (or superscript alaph) — a mark that acts as a word-forming letter
-    wherever no base can hold it, rather than as a stray mark or a killer-run rider: it takes the
-    full word model riding a killer or standing baseless, and fuses into a following letter's
+    wherever no base can hold it, rather than as a stray mark or a separator-run rider: it takes
+    the full word model riding a separator or standing baseless, and fuses into a following letter's
     word. A based vowel stays an ordinary in-word mark.
     """
     o = ord(c)
@@ -341,10 +341,10 @@ def _syriac_vowel(c: str) -> bool:
 def _runs(norm: str, model) -> list[tuple[str, str]]:
     """The text split into maximal same-class runs, with terminal marks as unmarked separators.
 
-    A killer does not close a word *after itself*. It stands outside the word: the preceding WORDY
-    run closes before the mark and a following WORDY run opens after it. Thus ``C killer X`` is
-    written ``⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩``. This factorization explains word-final and
-    standalone marks without ``killer⟨eow⟩`` pieces or a stacked-killer exception. Killers are
+    A separator does not close a word *after itself*. It stands outside the word: the preceding
+    WORDY run closes before the mark and a following WORDY run opens after it. Thus ``C sep X``
+    is written ``⟨bow⟩C⟨eow⟩ sep ⟨bow⟩X⟨eow⟩``. This factorization explains word-final and
+    standalone marks without ``sep⟨eow⟩`` pieces or a stacked-separator exception. Separators are
     HARD, punct-kind characters: they take punctuation's border markers at space borders.
     """
     if not norm:
@@ -354,8 +354,8 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
         cur_cls = _STRAY_MARK          # nothing in front of it, so no letter can be its base
     for ch in norm[1:]:
         c = classify(ch)
-        # A combining mark riding a killer run opens a stray word like any other: an accent
-        # after a Syriac dot is a killer in its own right and joins the run, and every other
+        # A combining mark riding a separator run opens a stray word like any other: an accent
+        # after a Syriac dot is a separator in its own right and joins the run, and every other
         # rider measured one token under if made to ride.
         if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
             cur += ch                  # consecutive unattached marks are one regex-style run
@@ -419,7 +419,7 @@ def _hard_kind(ch: str) -> str:
 
 def _marks_like_punct(ch: str) -> bool:
     """Is this character one the border-marker branch can claim — punctuation, symbol, format
-    character, or a killer (a terminal separator measures the same border markers
+    character, or a separator mark (which measures the same border markers
     punctuation takes)?
 
     Ideographic punctuation is excluded, so it stays in the ideograph run it sits in and takes no
@@ -434,7 +434,7 @@ def _marks_like_punct(ch: str) -> bool:
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     if ord(ch) >= 0x10000:
         return False
-    if is_killer(ch):
+    if is_separator(ch):
         return True
     cat = unicodedata.category(ch)
     return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not _ideographic_punct(ch)
@@ -445,7 +445,7 @@ def stream(text: str, model) -> str:
 
     A WORDY run is bracketed ⟨bow⟩…⟨eow⟩ and case-normalized. A single space between two such runs
     is dropped — the ⟨eow⟩⟨bow⟩ seam is what encodes it. Every other space stays literal.
-    Punctuation-like, digit, killer, and stray-mark runs receive their measured boundary markers.
+    Punctuation-like, digit, separator, and stray-mark runs receive their measured boundary markers.
     """
     return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
                        raw_head_space=raw_head_space(text))

@@ -63,12 +63,12 @@ def test_marked_stream_is_the_one_intermediate():
 
 
 # ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in
-# both families. Killers stand outside the word; generic combining accents separate words exactly
+# both families. Separator marks stand outside the word; combining accents separate words exactly
 # as viramas do (U+0345 and U+0363–U+036F stay inside and pin the range); a Syriac vowel point
-# after a killer is a word-forming letter; an unattached mark run is a word that a following
+# after a separator is a word-forming letter; an unattached mark run is a word that a following
 # letter continues. Every content number is a recorded measurement.
 MARK_ROWS = [
-    # terminal marks (killers) stand outside word boundaries; at a single-space border the killer
+    # separator marks stand outside word boundaries; at a single-space border the separator
     # takes punctuation's right-hand ⟨eow⟩ and the seam then deletes the space
     ("क्", "⟨bow⟩क⟨eow⟩्", None),
     ("क्ष", "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩", None),
@@ -79,10 +79,10 @@ MARK_ROWS = [
     ("h\u030ab", "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩", None),
     ("h\u0345b", "⟨bow⟩hͅb⟨eow⟩", None),
     ("h\u0363b", "⟨bow⟩hͣb⟨eow⟩", None),
-    # Syriac killer runs: a vowel point after one is a word-forming letter (`_syriac_vowel`);
+    # Syriac separator runs: a vowel point after one is a word-forming letter (`_syriac_vowel`);
     # vowel points on a real base stay inside one word
     ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
-    # Same count as the older `݂ ⟨bow⟩` spelling: the killer's ⟨eow⟩ lets the seam eat the space.
+    # Same count as the older `݂ ⟨bow⟩` spelling: the separator's ⟨eow⟩ lets the seam eat the space.
     ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
     ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨bow⟩ܶܒ⟨eow⟩", 12),
     ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
@@ -111,13 +111,13 @@ MARK_ROWS = [
     ("\u0363\ua75b", "⟨bow⟩ͣꝛ⟨eow⟩", 7),
     # The span head is the mark, so neither case marker can assert what it asserts: literal.
     ("x \u0363\u0e01 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣก⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-    # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
+    # A separator mark is not a stray one, and writes no ⟨eow⟩ at message end.
     ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
     ("\u0302", "⟨bow⟩̂", 3),
     ("\u0302\u0302", "⟨bow⟩̂̂", 5),
     ("\u0363\u0302", "⟨bow⟩ͣ⟨eow⟩̂", 6),
     ("\u0302\u0363", "⟨bow⟩̂⟨bow⟩ͣ⟨eow⟩", 7),
-    # a non-killer stray mark opens its own run after punctuation; a killer shares the
+    # a non-separator stray mark opens its own run after punctuation; a separator shares the
     # punctuation run's opening boundary
     ("!\u0302", "⟨bow⟩!̂", 3),
     ("!\u0363", "⟨bow⟩!⟨bow⟩ͣ⟨eow⟩", 5),
