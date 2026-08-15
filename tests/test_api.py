@@ -68,7 +68,7 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
     assert marked_stream("क्ष", version) == "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩"
     # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam
-    # then deletes the space. See the `_KILLER` branch of `stream_norm`.
+    # then deletes the space (killers are punct-kind in `_marks_like_punct`).
     assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩"
     assert marked_stream("्", version) == "⟨bow⟩्"
 

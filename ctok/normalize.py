@@ -24,7 +24,6 @@ from .constants import (
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
 
-_KILLER = "killer"
 _STRAY_MARK = "stray_mark"
 
 # Python 3.13 ships Unicode 15.1 data; the source models know these Unicode 16.0 case pairs.
@@ -86,7 +85,7 @@ def is_hard_cp(o: int) -> bool:
 def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
     if is_killer(c):
-        return _KILLER
+        return HARD          # a killer separates word runs; `_marks_like_punct` claims its borders
     if c in _NEW_CASED:
         return WORDY
     o = ord(c)
@@ -201,7 +200,6 @@ def _takes_right_border(cls: str, body: str) -> bool:
     through.
     """
     return (cls == PUNCT
-            or (cls == _KILLER and _borders(body[-1]))
             or _hard_eow(body)
             or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
 
@@ -346,11 +344,8 @@ def _runs(norm: str, model) -> list[tuple[str, str]]:
     A killer does not close a word *after itself*. It stands outside the word: the preceding WORDY
     run closes before the mark and a following WORDY run opens after it. Thus ``C killer X`` is
     written ``⟨bow⟩C⟨eow⟩ killer ⟨bow⟩X⟨eow⟩``. This factorization explains word-final and
-    standalone marks without ``killer⟨eow⟩`` pieces or a stacked-killer exception.
-
-    ``_KILLER`` is deliberately a stream class rather than ``HARD``. The output is unmarked in both
-    cases, but keeping the class distinct prevents a neighbouring punctuation or symbol run from
-    inheriting the mark and losing its own boundary treatment.
+    standalone marks without ``killer⟨eow⟩`` pieces or a stacked-killer exception. Killers are
+    HARD, punct-kind characters: they take punctuation's border markers at space borders.
     """
     if not norm:
         return []
@@ -423,7 +418,9 @@ def _hard_kind(ch: str) -> str:
 
 
 def _marks_like_punct(ch: str) -> bool:
-    """Is this character one the border-marker branch can claim — punctuation, symbol or format?
+    """Is this character one the border-marker branch can claim — punctuation, symbol, format
+    character, or a killer (a terminal separator measures the same border markers
+    punctuation takes)?
 
     Ideographic punctuation is excluded, so it stays in the ideograph run it sits in and takes no
     markers. That is per border character rather than per run: `1。？ 1` and `1 ？。1` are exact
@@ -437,6 +434,8 @@ def _marks_like_punct(ch: str) -> bool:
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     if ord(ch) >= 0x10000:
         return False
+    if is_killer(ch):
+        return True
     cat = unicodedata.category(ch)
     return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not _ideographic_punct(ch)
 
@@ -529,7 +528,6 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     head_quote = _opens_word(runs, 0)
     has_own_bow = not head_quote and (
                    first[0] in (WORDY, PUNCT, _STRAY_MARK)
-                   or (first[0] == _KILLER and _borders(first[1][0]))
                    or _hard_bow(first[1])
                    or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
@@ -559,13 +557,6 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             # words. The run head does not byte-price — the mark reaches its own unit piece.
             letter_follows = i + 1 < n_runs and runs[i + 1][0] == WORDY
             out.append(BOW_G + body + ("" if letter_follows else EOW_G))
-        elif cls == _KILLER:
-            # A terminal separator run takes the same border markers punctuation does
-            # (measured on Lao, Khmer, Myanmar, Thai and Bengali marks, with a non-terminal
-            # script-mate as control). An astral separator writes neither (:func:`_borders`),
-            # per border character as the digit branch is.
-            out.append((BOW_G if borders_space(i, -1) and _borders(body[0]) else "") + body
-                       + (EOW_G if borders_space(i, +1) and _borders(body[-1]) else ""))
         elif cls == PUNCT or _hard_bow(body) or _hard_eow(body):
             # A punct span is marked only on the side that borders whitespace: `a! b` gets `!⟨eow⟩`,
             # `a!b` gets a bare `!`. The marker is written unconditionally; the vocabulary decides
