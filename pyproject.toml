@@ -33,6 +33,7 @@ ctok = "ctok.main:main"
 dev = [
     "pytest>=9.0.3",
     "pytest-xdist>=3.6",
+    "tabulate>=0.10.0",
 ]
 
 [build-system]

@@ -26,6 +26,8 @@ import statistics
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+from tabulate import tabulate
+
 from ctok.main import FAMILIES, _vocabulary, token_count
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -222,83 +224,47 @@ def cells_of(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
     return total, w, pct, bucket
 
 
-def report_vocabulary(markdown: bool = False) -> None:
+def _table(rows, headers) -> None:
+    print(tabulate(rows, headers=headers, tablefmt="github"), end="\n\n")
+
+
+def report_vocabulary() -> None:
     """Piece counts by group, and what share of each group carries a witness.
 
     Catches two regressions the error gates cannot: a silently emptied or ballooning group, and a
     group whose pieces stopped being backed by measurements (an unwitnessed piece counts exactly
     like a witnessed one, so only this table can tell). Gap kinds: ``missing`` (unbought or
     unreachable), ``unresolved`` (probe and corpus disagree), plus ``special``/``other`` to keep
-    structural atoms and unknown kinds visible.
+    structural atoms and unknown kinds visible. Collapses to one line per family at full coverage.
     """
     cov = witness_coverage()
-    groups = sorted({g for fam in cov.values() for g in fam})
-    # Every kind the numerator withholds needs a column, or the table shows a rate below 100% with
-    # nothing to explain it; `other` covers kinds nobody has classified yet.
     cols = ("missing", "unresolved", "special", "other")
-    cells = cells_of
     refuted = _breaches(cov, "refuted")
 
-    # Print the breakdown only when it has something to say — a gap anywhere, or a piece its
-    # own probe refutes — and the summary line otherwise.
-    gap = refuted or any(cells(totals(by_group))[0] != cells(totals(by_group))[1]
+    print("\n## Vocabulary\n")
+    gap = refuted or any(cells_of(totals(by_group))[0] != cells_of(totals(by_group))[1]
                          for by_group in cov.values())
     if not gap:
-        if markdown:
-            print("\n## Vocabulary\n")
-            for fam, by_group in cov.items():
-                total, w, pct, _ = cells(totals(by_group))
-                print(f"* **{fam}** — {total:,} pieces, every one on a fixed template or "
-                      f"structural-special.")
-            for line in _borrowers():
-                print(f"* {line}.")
-            print()
-        else:
-            for fam, by_group in cov.items():
-                total, _, _, _ = cells(totals(by_group))
-                print(f"  [{fam}] {total:,} pieces, all witnessed or special")
-            for line in _borrowers():
-                print(f"  {line}")
-            print()
-        return
-
-    if markdown:
-        print("\n## Vocabulary and witness coverage\n")
-        print("Every piece must be witnessed or structural-special. Token witnesses carry the "
-              "measurements that pin them; specials are reported separately. See README.md.\n")
         for fam, by_group in cov.items():
-            total, w, pct, bucket = cells(totals(by_group))
+            total, _w, _pct, _ = cells_of(totals(by_group))
+            print(f"* **{fam}** — {total:,} pieces, every one on a fixed template or "
+                  f"structural-special.")
+    else:
+        print("Every piece must be witnessed or structural-special; specials are reported "
+              "separately. See README.md.\n")
+        for fam, by_group in cov.items():
+            total, w, pct, _ = cells_of(totals(by_group))
             print(f"### {fam} — {w:,} of {total:,} witnessed or special ({pct})\n")
-            print("| group | pieces | witnessed or special | " + " | ".join(cols) + " |")
-            print("|---" * (len(cols) + 3) + "|")
-            for g in groups:
-                if g not in by_group:
-                    continue
-                total, w, pct, bucket = cells(by_group[g])
-                gaps = " | ".join(f"{bucket[c]:,}" if bucket[c] else "·" for c in cols)
-                print(f"| {g} | {total:,} | {w:,} ({pct}) | {gaps} |")
-            print()
-        for line in _borrowers():
-            print(f"\n{line}.")
-        return
-
-    print("Vocabulary and witness coverage by group\n")
-    for fam, by_group in cov.items():
-        tot = totals(by_group)
-        total, w, pct, _ = cells(tot)
-        print(f"  [{fam}] {w:,} of {total:,} pieces on a fixed template or special ({pct})")
-        for g in groups:
-            if g not in by_group:
-                continue
-            total, w, pct, bucket = cells(by_group[g])
-            gaps = "  ".join(f"{c}={n:,}" for c, n in bucket.items() if n)
-            print(f"    {g:16} {total:>7,}  accounted {w:>7,} ({pct:>6})   {gaps}")
-    if refuted:
-        print(f"\n  !! {sum(n for *_, n in refuted)} pieces REFUTED by their own probe:")
-        for fam, g, n in refuted:
-            print(f"       {fam} {g} ({n})   -> remove or replace with a fixed-template witness")
+            rows = [[g, f"{total:,}", f"{w:,} ({pct})"]
+                    + [f"{bucket[c]:,}" if bucket[c] else "·" for c in cols]
+                    for g, counts in by_group.items()
+                    for total, w, pct, bucket in [cells_of(counts)]]
+            _table(rows, ["group", "pieces", "witnessed or special", *cols])
+        if refuted:
+            print(f"⚠️ {sum(n for *_, n in refuted)} pieces are refuted by their own probe — "
+                  f"remove them or replace them with fixed-template witnesses.\n")
     for line in _borrowers():
-        print(f"  {line}")
+        print(f"* {line}.")
     print()
 
 
@@ -355,11 +321,12 @@ def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
     return name, family, score(name, family)
 
 
-def report(markdown: bool = False) -> None:
-    """Print every gate's numbers, applying the thresholds as we go.
+def report() -> None:
+    """Print every gate's numbers, applying the thresholds as we go. GitHub-flavored markdown is
+    the one output format, for terminals and the CI step summary alike.
 
     A corpus every family reproduces document for document collapses into a single grid row; only
-    a corpus with a residual gets its documents listed, so a corpus leaving the grid is itself the
+    a corpus with a residual gets its own table, so a corpus leaving the grid is itself the
     signal. Scored in a process pool — the (corpus, family) replays are independent.
     """
     jobs = [(name, family) for name, cfg in GATES.items() for family in cfg["families"]]
@@ -384,70 +351,28 @@ def report(markdown: bool = False) -> None:
         total, w, pct, _ = cov[family]
         return f"✅ {total:,}" if w == total else f"⚠️ {pct} of {total:,}"
 
-    head = [GATES[n]["title"] for n in finished] + ["witness coverage"]
-    rows = [[fam] + [cell(n, fam) for n in finished] + [wcell(fam)] for fam in families]
-    if markdown:
-        print("## Reproduction gates\n")
-        print("Every document reproduced, against recorded `count_tokens` values.\n")
-        print("| family | " + " | ".join(head) + " |")
-        print("|---" * (len(head) + 1) + "|")
-        for r in rows:
-            print("| " + " | ".join(r) + " |")
-        print()
-    else:
-        # ✅ and ⚠️ are one character to `len` and two columns to a terminal, so pad on the
-        # rendered width or the grid comes out ragged exactly where the marks are.
-        def shown(s: str) -> int:
-            return len(s) + sum(c in "✅⚠️" for c in s)
-
-        def pad(s: str, w: int) -> str:
-            return s + " " * max(w - shown(s), 0)
-
-        width = max(max(shown(h) for h in head), max(shown(c) for r in rows for c in r[1:])) + 2
-        print("Reproduction gates — every document exact\n")
-        print("  " + " " * 7 + "".join(pad(h, width) for h in head).rstrip())
-        for r in rows:
-            print("  " + pad(r[0], 7) + "".join(pad(c, width) for c in r[1:]).rstrip())
-        print()
+    print("## Reproduction gates\n")
+    print("Every document reproduced, against recorded `count_tokens` values.\n")
+    _table([[fam] + [cell(n, fam) for n in finished] + [wcell(fam)] for fam in families],
+           ["family"] + [GATES[n]["title"] for n in finished] + ["witness coverage"])
 
     for name in GATES:
         if name in finished:
             continue
         cfg = GATES[name]
-        if markdown:
-            print(f"### {cfg['title']} — not finished\n")
-            print("| family | docs | error mass | mean \\|err\\| | exact | ≤1% | 1–5% | >5% | worst |")
-            print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
+        print(f"### {cfg['title']} — not finished\n")
+        rows = []
         for family in cfg["families"]:
             a = scored[(name, family)]
-
-            def label(row: dict) -> str:
-                """A parallel corpus names its rows (`Bash`, `lang_ru`); Rosetta's are anonymous
-                documents, so fall back to the key the counts are stored under."""
-                return str(row.get("name") or row[cfg["key"]])
-
             w = a["worst"]
-            worst = f"{label(w)} {100 * w['rel']:+.1f}%"
-            if markdown:
-                print(f"| {family} | {a['n']} | {100 * a['mass']:.3f}% "
-                      f"| {100 * a['mean']:.3f}% | {a['exact']} | {a['under1']} | {a['mid']} "
-                      f"| {a['over5']} | {worst} |")
-                continue
-            print(f"{cfg['title']} [{family}] — {a['n']} {cfg['unit']}\n")
-            print(f"  error mass          {100 * a['mass']:.3f}%")
-            print(f"  mean |err|          {100 * a['mean']:.3f}%")
-            print(f"  {cfg['weight']}-weighted  {100 * a['weighted']:.3f}%")
-            print(f"  exact {a['exact']}   ≤1% {a['under1']}   1–5% {a['mid']}   >5% {a['over5']}\n")
-            print("  worst documents:")
-            for r in sorted(a["rows"], key=lambda r: -r["abs"])[:8]:
-                print(f"    {label(r)[:28]:28} ours={r['ours']:6} recorded={r['api']:6} "
-                      f"rel={100 * r['rel']:+6.2f}%")
-            print()
+            worst = str(w.get("name") or w[cfg["key"]])
+            rows.append([family, a["n"], f"{100 * a['mass']:.3f}%", f"{100 * a['mean']:.3f}%",
+                         a["exact"], a["under1"], a["mid"], a["over5"],
+                         f"{worst} {100 * w['rel']:+.1f}%"])
+        _table(rows, ["family", "docs", "error mass", "mean |err|",
+                      "exact", "≤1%", "1–5%", ">5%", "worst"])
 
 
 if __name__ == "__main__":
-    import sys
-
-    md = "--markdown" in sys.argv
-    report(markdown=md)
-    report_vocabulary(markdown=md)
+    report()                    # `--markdown` is accepted and ignored: markdown is the one format
+    report_vocabulary()

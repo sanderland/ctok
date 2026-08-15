@@ -62,67 +62,82 @@ def test_marked_stream_is_the_one_intermediate():
     assert marked_stream("hello, world") == "⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩"
 
 
-@pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_terminal_marks_stand_outside_word_boundaries(version: float):
-    """A terminal mark is an unmarked separator, not the last character of the left word."""
-    assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
-    assert marked_stream("क्ष", version) == "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩"
-    # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam
-    # then deletes the space (killers are punct-kind in `_marks_like_punct`).
-    assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩"
-    assert marked_stream("्", version) == "⟨bow⟩्"
+# ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in
+# both families. Killers stand outside the word; generic combining accents separate words exactly
+# as viramas do (U+0345 and U+0363–U+036F stay inside and pin the range); a Syriac vowel point
+# after a killer is a word-forming letter; an unattached mark run is a word that a following
+# letter continues. Every content number is a recorded measurement.
+MARK_ROWS = [
+    # terminal marks (killers) stand outside word boundaries; at a single-space border the killer
+    # takes punctuation's right-hand ⟨eow⟩ and the seam then deletes the space
+    ("क्", "⟨bow⟩क⟨eow⟩्", None),
+    ("क्ष", "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩", None),
+    ("क् ष", "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩", None),
+    ("्", "⟨bow⟩्", None),
+    # a Latin accent separates exactly as a virama does (`constants.SEPARATOR_MARKS`)
+    ("h\u0301b", "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩", None),
+    ("h\u030ab", "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩", None),
+    ("h\u0345b", "⟨bow⟩hͅb⟨eow⟩", None),
+    ("h\u0363b", "⟨bow⟩hͣb⟨eow⟩", None),
+    # Syriac killer runs: a vowel point after one is a word-forming letter (`_syriac_vowel`);
+    # vowel points on a real base stay inside one word
+    ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
+    # Same count as the older `݂ ⟨bow⟩` spelling: the killer's ⟨eow⟩ lets the seam eat the space.
+    ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
+    ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨bow⟩ܶܒ⟨eow⟩", 12),
+    ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
+    ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊⟨bow⟩ܶܒ⟨eow⟩", 12),
+    ("ܒܰܒ", "⟨bow⟩ܒܰܒ⟨eow⟩", 8),
+    # accents separate a Syriac word like any other host's
+    ("ܒ̱", "⟨bow⟩ܒ⟨eow⟩̱", 6),
+    ("ܒ̱ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܒ⟨eow⟩", 10),
+    # The separator takes punctuation's right-hand ⟨eow⟩ at a single-space border and the
+    # seam then deletes the space, so this row costs the same as a literal space.
+    ("ܒ̱ ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
+    ("ܒ̱ܶܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܶܒ⟨eow⟩", 12),
+    ("ܒ̣ܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩", 10),
+    ("ܒ̣ܶܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܶܒ⟨eow⟩", 12),
+    ("ܒͣܒ", "⟨bow⟩ܒͣܒ⟨eow⟩", 8),
+    # an unattached mark run is a word (`_stray_mark`)
+    ("\u0363", "⟨bow⟩ͣ⟨eow⟩", 4),
+    ("\u0363\u0363", "⟨bow⟩ͣͣ⟨eow⟩", 6),
+    ("x \u0363 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+    ("x \u03635 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩5 ⟨bow⟩x⟨eow⟩", 8),
+    ("x \u0363", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩", 5),
+    # A letter after it is the same word: no ⟨eow⟩, and no ⟨bow⟩ of its own.
+    ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣx⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+    ("x \u0363abc x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣabc⟨eow⟩⟨bow⟩x⟨eow⟩", 7),
+    ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣa⟨eow⟩", 5),
+    ("\u0363\ua75b", "⟨bow⟩ͣꝛ⟨eow⟩", 7),
+    # The span head is the mark, so neither case marker can assert what it asserts: literal.
+    ("x \u0363\u0e01 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣก⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
+    # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
+    ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
+    ("\u0302", "⟨bow⟩̂", 3),
+    ("\u0302\u0302", "⟨bow⟩̂̂", 5),
+    ("\u0363\u0302", "⟨bow⟩ͣ⟨eow⟩̂", 6),
+    ("\u0302\u0363", "⟨bow⟩̂⟨bow⟩ͣ⟨eow⟩", 7),
+    # a non-killer stray mark opens its own run after punctuation; a killer shares the
+    # punctuation run's opening boundary
+    ("!\u0302", "⟨bow⟩!̂", 3),
+    ("!\u0363", "⟨bow⟩!⟨bow⟩ͣ⟨eow⟩", 5),
+    # an apostrophe opens an unattached mark word too (Syriac vowels are already word-forming;
+    # separator accents are not mark words)
+    ("'ً", None, 4), ("a 'ً x", None, 6), ("1 'ً 1", None, 8), ("a 'ͣ x", None, 8),
+    ("a 'ܶ x", None, 8), ("a '́ x", None, 5),
+    # a variation selector keeps its base's kind and owns the run's right edge
+    ("  ☀️夏", None, 7), ("🏻️ 5", None, 8), ("夏️ 5", None, 7), ("☀️ 5", None, 7),
+]
 
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_generic_combining_accents_stand_outside_the_word(version: float):
-    """A Latin accent is an orthographic separator exactly as a virama is: the word closes
-    before the mark, so an accented word is two words (`constants.SEPARATOR_MARKS`)."""
-    assert marked_stream("h\u0301b", version) == "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩"
-    assert marked_stream("h\u030ab", version) == "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩"
-    # U+0345 and U+0363-U+036F pin the range's ends from outside it and stay inside the word.
-    assert marked_stream("h\u0345b", version) == "⟨bow⟩hͅb⟨eow⟩"
-    assert marked_stream("h\u0363b", version) == "⟨bow⟩hͣb⟨eow⟩"
-
-
-@pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_syriac_terminal_mark_runs(version: float):
-    """U+0740–U+074A stand outside the words. A vowel point written after one is a word-forming
-    letter: it opens a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues
-    (`normalize._syriac_vowel`). Vowel points on a real base remain inside one word."""
-    overhead = _model(_family(version)).message_overhead
-    rows = [
-        ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
-        # Same count as the older `݂ ⟨bow⟩` spelling: the killer's ⟨eow⟩ lets the seam eat the space.
-        ("ܒ݂ ܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
-        ("ܒ݂ܶܒ", "⟨bow⟩ܒ⟨eow⟩݂⟨bow⟩ܶܒ⟨eow⟩", 12),
-        ("ܒ݀ܒ", "⟨bow⟩ܒ⟨eow⟩݀⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ݊ܶܒ", "⟨bow⟩ܒ⟨eow⟩݊⟨bow⟩ܶܒ⟨eow⟩", 12),
-        ("ܒܰܒ", "⟨bow⟩ܒܰܒ⟨eow⟩", 8),
-    ]
-    for text, stream, content in rows:
+@pytest.mark.parametrize("text,stream,content", MARK_ROWS,
+                         ids=lambda v: repr(v) if isinstance(v, str) else str(v))
+def test_marks_and_boundaries(version, text, stream, content):
+    if stream is not None:
         assert marked_stream(text, version) == stream
-        assert token_count(text, version) - overhead == content
-
-
-@pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_an_accent_separates_a_syriac_word_like_any_other(version: float):
-    """The word closes before the mark on every host, and a vowel point written after the
-    accent opens the next word rather than riding the first. U+0345 and U+0363–U+036F stay
-    inside the word here too."""
-    overhead = _model(_family(version)).message_overhead
-    rows = [
-        ("ܒ̱", "⟨bow⟩ܒ⟨eow⟩̱", 6),
-        ("ܒ̱ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܒ⟨eow⟩", 10),
-        # The separator takes punctuation's right-hand ⟨eow⟩ at a single-space border and the
-        # seam then deletes the space, so this row costs the same as a literal space.
-        ("ܒ̱ ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
-        ("ܒ̱ܶܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܶܒ⟨eow⟩", 12),
-        ("ܒ̣ܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩", 10),
-        ("ܒ̣ܶܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܶܒ⟨eow⟩", 12),
-        ("ܒͣܒ", "⟨bow⟩ܒͣܒ⟨eow⟩", 8),
-    ]
-    for text, stream, content in rows:
-        assert marked_stream(text, version) == stream
+    if content is not None:
+        overhead = _model(_family(version)).message_overhead
         assert token_count(text, version) - overhead == content
 
 
@@ -136,51 +151,14 @@ def test_the_accent_spelling_does_not_depend_on_the_host():
 
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_a_stray_mark_run_is_a_word(version: float):
-    """An unattached mark run is a word — ⟨bow⟩ on the left, ⟨eow⟩ on the right against
-    everything except a letter, which is the rest of the same word: the run writes no ⟨eow⟩, the
-    letter writes no ⟨bow⟩, the way a baseless Syriac vowel or U+0CF3 already fuse."""
+def test_case_markers_do_not_fire_on_a_mark_headed_word(version):
+    """⟨shift⟩ and ⟨caps⟩ both go when an unattached mark run heads the word: `x ͣThe x` reads one
+    over with ⟨shift⟩ written, and v3's `x ͣHELLO x` reads two under with ⟨caps⟩."""
     overhead = _model(_family(version)).message_overhead
-    rows = [
-        ("\u0363", "⟨bow⟩ͣ⟨eow⟩", 4),
-        ("\u0363\u0363", "⟨bow⟩ͣͣ⟨eow⟩", 6),
-        ("x \u0363 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-        ("x \u03635 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩5 ⟨bow⟩x⟨eow⟩", 8),
-        ("x \u0363", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣ⟨eow⟩", 5),
-        # A letter after it is the same word: no ⟨eow⟩, and no ⟨bow⟩ of its own.
-        ("x \u0363x x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣx⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-        ("x \u0363abc x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣabc⟨eow⟩⟨bow⟩x⟨eow⟩", 7),
-        ("!\u0363a", "⟨bow⟩!⟨bow⟩ͣa⟨eow⟩", 5),
-        ("\u0363\ua75b", "⟨bow⟩ͣꝛ⟨eow⟩", 7),
-        # The span head is the mark, so neither case marker can assert what it asserts: literal.
-        ("x \u0363\u0e01 x", "⟨bow⟩x⟨eow⟩⟨bow⟩ͣก⟨eow⟩⟨bow⟩x⟨eow⟩", 6),
-        # A separator mark is a killer run, not a stray one, and writes no ⟨eow⟩ at message end.
-        ("\u1be6\ua75b", "⟨bow⟩᯦⟨bow⟩ꝛ⟨eow⟩", 9),
-        ("\u0302", "⟨bow⟩̂", 3),
-        ("\u0302\u0302", "⟨bow⟩̂̂", 5),
-        ("\u0363\u0302", "⟨bow⟩ͣ⟨eow⟩̂", 6),
-        ("\u0302\u0363", "⟨bow⟩̂⟨bow⟩ͣ⟨eow⟩", 7),
-    ]
-    for text, stream, content in rows:
-        assert marked_stream(text, version) == stream
-        assert token_count(text, version) - overhead == content
-    # ⟨shift⟩ and ⟨caps⟩ both go: `x ͣThe x` reads one over with ⟨shift⟩ written, and v3's
-    # `x ͣHELLO x` = 17 reads two under with ⟨caps⟩.
     assert marked_stream("x \u0363The x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣThe⟨eow⟩⟨bow⟩x⟨eow⟩"
     assert marked_stream("x \u0363HELLO x", version) == "⟨bow⟩x⟨eow⟩⟨bow⟩ͣHELLO⟨eow⟩⟨bow⟩x⟨eow⟩"
     assert token_count("x \u0363The x", version) - overhead == (6 if version == "3.0" else 7)
     assert token_count("x \u0363HELLO x", version) - overhead == (10 if version == "3.0" else 9)
-
-
-@pytest.mark.parametrize("version", ["3.0", "4.7"])
-def test_stray_mark_opening_boundary_depends_on_the_run_to_its_left(version: float):
-    """A non-killer stray mark opens its own run after punctuation. A killer shares the
-    punctuation run's opening boundary."""
-    overhead = _model(_family(version)).message_overhead
-    assert marked_stream("!\u0302", version) == "⟨bow⟩!̂"
-    assert marked_stream("!\u0363", version) == "⟨bow⟩!⟨bow⟩ͣ⟨eow⟩"
-    assert token_count("!\u0302", version) - overhead == 3
-    assert token_count("!\u0363", version) - overhead == 5
 
 
 def test_normalization_is_family_specific():
@@ -210,26 +188,6 @@ def test_literal_internal_marker_codepoints_are_byte_priced(version, overhead, l
     assert token_count(literal * 2, version=version) == overhead + 7
     assert token_count(f"a{literal}b", version=version) == overhead + 5
     assert "⟨0xEF⟩" in marked_stream(literal, version=version)
-
-
-@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
-def test_apostrophe_opens_an_unattached_mark_word(version, overhead):
-    assert token_count("'ً", version=version) == overhead + 4
-    assert token_count("a 'ً x", version=version) == overhead + 6
-    assert token_count("1 'ً 1", version=version) == overhead + 8
-    assert token_count("a 'ͣ x", version=version) == overhead + 8
-
-    # Syriac vowels are already word-forming; separator accents are not mark words.
-    assert token_count("a 'ܶ x", version=version) == overhead + 8
-    assert token_count("a '́ x", version=version) == overhead + 5
-
-
-@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
-def test_variation_selector_keeps_its_base_kind_and_owns_the_right_edge(version, overhead):
-    assert token_count("  ☀️夏", version=version) == overhead + 7
-    assert token_count("🏻️ 5", version=version) == overhead + 8
-    assert token_count("夏️ 5", version=version) == overhead + 7
-    assert token_count("☀️ 5", version=version) == overhead + 7
 
 
 @pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
@@ -376,13 +334,6 @@ APOSTROPHE_ROWS = [
 SPACE_RUN_ROWS = [("4.7", "]" + " " * 17 + "i", 5), ("4.7", "a" + " " * 17 + "b", 4)]
 
 
-@pytest.mark.parametrize("version,text,content", APOSTROPHE_ROWS + SPACE_RUN_ROWS,
-                         ids=lambda v: repr(v) if isinstance(v, str) else str(v))
-def test_recorded_apostrophe_and_space_run_costs(version, text, content):
-    overhead = _model(_family(version)).message_overhead
-    assert token_count(text, version=version) - overhead == content
-
-
 # A message whose content strips to nothing is pinned to the measured count, not to another
 # stripped message (a relative comparison cannot fail — both sides move together).
 FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
@@ -442,9 +393,11 @@ SYMBOL_ROWS = [
 ]
 
 
-@pytest.mark.parametrize("version,text,content", CONTRACTION_ROWS + SYMBOL_ROWS + PIECE_ROWS,
-                         ids=lambda v: repr(v) if isinstance(v, str) else str(v))
-def test_recorded_contraction_and_symbol_costs(version, text, content):
+@pytest.mark.parametrize(
+    "version,text,content",
+    APOSTROPHE_ROWS + SPACE_RUN_ROWS + CONTRACTION_ROWS + SYMBOL_ROWS + PIECE_ROWS,
+    ids=lambda v: repr(v) if isinstance(v, str) else str(v))
+def test_recorded_costs(version, text, content):
     overhead = _model(_family(version)).message_overhead
     assert token_count(text, version=version) - overhead == content
 
