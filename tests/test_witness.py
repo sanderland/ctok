@@ -1,20 +1,14 @@
 """Every witness in the shipped vocabulary, re-checked against the arithmetic it ships with.
 
-The file records, per piece, the probe that was sent and the raw ``count_tokens`` value it returned.
-Nothing here talks to the API — that is the mining repo's job and its measurement cache lives there —
-but everything else about a witness is checkable offline and is checked here:
+Nothing here talks to the API; everything else about a witness is checkable offline and is checked:
 
 * the probe text really is the named template applied to this piece;
-* ``cost = raw − base + 1 − overhead`` comes out at exactly 1, so the record cannot claim a probe and
-  a number that do not go together;
-* the ENCODER still writes the piece into that probe where its position claims — a suffix piece in a
-  probe that closes the word before it is measuring something else;
-* nothing calls itself unwitnessable while a template in the file's own table reaches it.
-
-The last one is what rots. `normalize.py` changes, a piece that no template could isolate becomes
-reachable, and the file keeps saying "no instrument" for something now askable. That is an unclaimed
-measurement rather than a wrong answer, and this is what notices.
+* ``cost = raw − base + 1 − overhead`` comes out at exactly 1;
+* the encoder still writes the piece into that probe where its position claims;
+* nothing calls itself unwitnessable while a template in the file's own table reaches it — the
+  check that rots as `normalize.py` changes and unreachable pieces become askable.
 """
+
 
 import json
 from importlib.resources import files
@@ -48,8 +42,6 @@ def test_every_piece_carries_a_witness_or_says_why_not(name):
     for group, entries in doc["tokens"].items():
         assert isinstance(entries, dict), f"{group}: expected a piece-to-witness mapping"
         for piece, w in entries.items():
-            # `bytes_fallback` used to be null here — a prefix is not a token, so there was thought
-            # to be nothing to ask. There is: it predicts what characters sharing it cost.
             assert isinstance(w, dict) and w.get("kind"), f"{piece}: no witness record"
             assert w["kind"] in kinds, f"{piece}: unknown kind {w['kind']!r}"
 
@@ -69,8 +61,8 @@ def test_each_witness_holds_under_the_arithmetic_that_ships_with_it(name):
 
 @pytest.mark.parametrize("name", FILES)
 def test_a_refutation_records_what_refuted_it(name):
-    """A refuted piece is one the file admits it cannot justify. It has to say by which probe, and
-    that probe must genuinely disagree — otherwise it is a stale label nobody can act on."""
+    """A refuted piece must say which probe refuted it, and that probe must genuinely
+    disagree — otherwise it is a stale label nobody can act on."""
     doc = _doc(name)
     base = doc["meta"]["witness"]["base"]
     templates = doc["meta"]["witness"]["templates"]
@@ -122,8 +114,8 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
 
 
 def test_the_witness_reader_serves_a_borrowing_family():
-    """v5 borrows v4.7's file, so it borrows its witnesses — measured on v4.7's source model, which
-    `meta.witness.measured_on` is what says. The accessor must not pretend otherwise."""
+    """v5 borrows v4.7's file, so it borrows its witnesses — measured on v4.7's source model,
+    as `meta.witness.measured_on` says."""
     assert witness("⟨bow⟩the⟨eow⟩", "4.7") == witness("⟨bow⟩the⟨eow⟩", "5.0")
     assert pieces("5.0") == pieces("4.7")
     for fam in FAMILIES.values():
@@ -154,14 +146,8 @@ def test_every_vocabulary_piece_is_witnessed_or_special(name):
 
 @pytest.mark.parametrize("name", FILES)
 def test_no_shipped_piece_is_one_its_own_probe_refutes(name):
-    """`refuted` means the vocabulary claims a piece and the measurement says it is two tokens.
-
-    Unlike the other gap kinds this is not a state to pass through: `unmeasured` is work not yet
-    bought and `no-instrument` is a piece the inventory cannot reach, but a refuted piece is one we
-    have already asked about and been told no. Removal still needs a leave-one-out corpus check,
-    because a fabricated piece can mask a missing one and dropping it blind can expose that second
-    error.
-    """
+    """`refuted` means the vocabulary claims a piece and the measurement says no. Removal still
+    needs a leave-one-out corpus check: a fabricated piece can mask a missing one."""
     from tests.gates import totals, witness_coverage
 
     family = _family_of(name)
@@ -196,19 +182,9 @@ def test_tamil_terminal_ng_has_one_direct_witness_not_overlapping_proxies():
 
 @pytest.mark.parametrize("name", FILES)
 def test_no_piece_mixes_whitespace_with_other_material(name):
-    """A space, tab or newline is either the whole piece or not in it.
-
-    Whitespace does not sit inside a token here: the stream absorbs a seam space into the following
-    ``⟨bow⟩`` and spells anything it cannot absorb as its own run, which is why there is a
-    ``whitespace`` group at all. A piece holding a letter and a space is therefore not a token that
-    was measured; it is a modelling device standing in for an absorption the stream failed to
-    perform, and it prices correctly only while the material after it happens to open a word.
-
-    Five such pieces shipped — a virama glued to a space, in Devanagari, Tamil, Malayalam, Sinhala
-    and Myanmar. They carried most of those languages' accuracy AND all of their under-count, and
-    their witness could not tell ``्`` from ``् ``: the probe ``.ᛒ् ᛒ.`` reads the same as
-    ``.ᛒ्ᛒ.``, because a following letter absorbs the space and it costs nothing.
-    """
+    """A space, tab or newline is either the whole piece or not in it. A piece holding a
+    letter and a space is not a token that was measured; it is a modelling device standing in for
+    an absorption the stream failed to perform, and its witness cannot tell the two apart."""
     doc = _doc(name)
     bad = [piece for entries in doc["tokens"].values() for piece in entries
            if (body := "".join(c for c in piece if c not in MARKER_GLYPHS))

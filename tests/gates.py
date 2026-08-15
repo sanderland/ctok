@@ -1,33 +1,17 @@
-"""The two offline reproduction gates: score this tokenizer against recorded ``count_tokens`` values
-over two parallel corpora, and assert the aggregate accuracy holds.
+"""Offline reproduction gates: score this tokenizer against recorded ``count_tokens`` values and
+assert the aggregate accuracy holds. No API and no network — each fixture ships the corpus once
+(``<name>.jsonl.gz``) plus one recorded count per family (``<name>_counts.json``).
 
-A *parallel* corpus holds the same content expressed in every language, so content is constant and
-the counts vary only with the language:
+Corpora:
 
-  * **UDHR** — the Universal Declaration of Human Rights in 501 natural languages.
-  * **MultiPL-E** — the same 25 HumanEval problems in 22 programming languages, translated by
-    MultiPL-E's own translators (https://huggingface.co/datasets/nuprl/MultiPL-E).
+  * UDHR — the Universal Declaration of Human Rights in 501 natural languages (parallel).
+  * MultiPL-E — the same 25 HumanEval problems in 22 programming languages (parallel, held out:
+    nothing may select, accept or reject a piece because of it).
+  * Rosetta Code — 1,741 documents of real multi-language source (in-sample: mining bisects it),
+    plus 250 from blocks the first sample never touched (out-of-sample for anything it chose).
 
-Plus one corpus that is not parallel at all, and is here for the opposite reason — it is real,
-unedited source in hundreds of languages, so it exercises the whole model rather than one axis:
-
-  * **Rosetta Code** — 1,741 documents sampled from ``christopher/rosetta-code``, and a further 250
-    drawn from blocks the first sample never touched. Every campaign bisects against the first, so
-    its rate is in-sample by construction: pieces are accepted on membership probes rather than on
-    documents, but the documents choose which candidates get probed. The 250 are out-of-sample for
-    anything the 1,741 chose, which makes them the sharper accuracy reading; the in-sample gate is
-    the sharper regression detector, and both are asserted.
-
-MultiPL-E is the held-out gate and Rosetta is not. Mining may bisect Rosetta freely; nothing may
-select, accept or reject a piece because of MultiPL-E. UDHR was held out until 2026-08-12, when its
-last nine non-exact readings were closed by bisecting the documents themselves — six pieces selected
-off the gate, each accepted on its own fixed-template membership witness. Its rate is in-sample from
-that date, and is labeled so wherever it is quoted. The dev repo's ``CLAUDE.md`` carries the same
-table, and it is the reason these numbers mean what they say.
-
-Each fixture ships the corpus once (``<name>.jsonl.gz``) plus one recorded count per family
-(``<name>_counts.json``) — the corpus text is identical across families, only the counts differ. No
-API and no network: the counts were measured once against each family's source model.
+UDHR was held out until 2026-08-12, when its last nine non-exact readings were closed by bisecting
+the documents themselves; its rate is in-sample from that date and labeled so wherever quoted.
 
     relative error per document = (ours - recorded) / recorded
 
@@ -47,22 +31,15 @@ from ctok.main import FAMILIES, _vocabulary, token_count
 FIXTURES = Path(__file__).parent / "fixtures"
 
 # Thresholds carry margin so ordinary per-piece churn passes but a real regression trips. ``None``
-# means the metric is reported but not asserted.
-#
-# ``"exact": ALL`` asserts that every document reproduces, the right gate once a corpus is
-# finished. A fraction, however tight, has to sit strictly below the real rate to leave room for
-# churn, which means it silently permits the first regression it was meant to catch. ``mean`` and ``within1`` go ``None`` alongside it, since a corpus with no
-# error has nothing left for them to measure.
+# means the metric is reported but not asserted. ``"exact": ALL`` asserts every document
+# reproduces — the right gate once a corpus is finished, since any fractional threshold silently
+# permits the first regression it was meant to catch.
 ALL = "all"
 
-# v5 is deliberately not gated here. It reads v4.7's vocabulary
-# and differs only in its message frame, so on every corpus below it lands on exactly the same
-# documents with exactly the same errors — scoring it doubled the gate's cost to re-derive numbers
-# that were equal by construction. What actually guards it is cheaper and more direct: the frame
-# rules are pinned on constructed strings in `test_api.py`, and
-# `test_v5_tracks_v4_7_document_for_document` asserts the equality this omission rests on, over real
-# documents of the corpora below and against both families' recorded counts. If v5 ever stops
-# tracking v4.7, that test fails and v5 comes back into this table.
+# v5 is deliberately not gated here: it reads v4.7's vocabulary and differs only in its message
+# frame, so it lands on the same documents with the same errors. The frame rules are pinned in
+# `test_api.py`, and `test_v5_tracks_v4_7_document_for_document` asserts the equality this rests
+# on; if v5 ever stops tracking v4.7, that test fails and v5 comes back into this table.
 GATES: dict[str, dict] = {
     "udhr": {
         "title": "UDHR",
@@ -70,12 +47,9 @@ GATES: dict[str, dict] = {
         "key": "f",
         "weight": "speakers",
         "n": 501,
-        # Finished 2026-08-12: both families reproduce all 501 documents, so the gate is every
-        # document. The final six pieces were selected by bisecting the gate's own documents —
-        # UDHR is in-sample from that date (see the module docstring) — but selection is not
-        # acceptance: each piece carries its own fixed-template membership witness in
-        # `pieces_*.json`, and the corpus court passed it (65 cached rows repaired, none broken,
-        # none pushed below).
+        # Finished 2026-08-12: both families reproduce all 501 documents. In-sample from that
+        # date (see the module docstring), but each of the final six pieces carries its own
+        # fixed-template membership witness.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
@@ -87,10 +61,8 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 1741,
-        # Finished: all three families reproduce all 1,741 documents, so the gate is every document
-        # rather than a rate. When a deliberate change does break a file, the `known` allowlist in
-        # `assert_gate` holds the gate up while it is repaired — the gate is never lowered to a
-        # rate, which would silently permit the next regression as well.
+        # Finished: all families reproduce all 1,741 documents. When a deliberate change breaks
+        # a file, the `known` allowlist in `assert_gate` holds the gate up while it is repaired.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
@@ -102,9 +74,8 @@ GATES: dict[str, dict] = {
         "key": "id",
         "weight": "chars",
         "n": 250,
-        # Documents that selected nothing: no piece in the vocabulary was probed because of them.
-        # Finished, and gated at every document: `exact: 0.99` on 250 documents would silently
-        # permit the next two regressions.
+        # Documents that selected nothing: no piece in the vocabulary was probed because of
+        # them. Finished.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
@@ -116,7 +87,7 @@ GATES: dict[str, dict] = {
         "key": "lang",
         "weight": "chars",
         "n": 22,
-        # Finished: every family reproduces all 22 files, so the gate is every file.
+        # Finished: every family reproduces all 22 files.
         "families": {
             "v3": {"version": "3.0", "mean": None, "within1": None, "exact": ALL},
             "v4.7": {"version": "4.7", "mean": None, "within1": None, "exact": ALL},
@@ -178,13 +149,9 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
     assert agg["exact"] + agg["under1"] + agg["mid"] + agg["over5"] == agg["n"], "buckets must partition"
     exact, within1 = agg["exact"] / agg["n"], (agg["exact"] + agg["under1"]) / agg["n"]
     if limits["exact"] is ALL:
-        # Named rather than counted: "3 of 1741 documents regressed" is the report a reader wants,
-        # and an exact-rate percentage rounds the first regression out of sight.
-        #
-        # `known` is an allowlist of documents already understood to fail, named one by one. It is
-        # how a corpus keeps an every-document gate while carrying an open defect: dropping the gate
-        # to a rate to accommodate one document would silently readmit the next eight. A document
-        # that starts reproducing is also reported, so the list cannot rot into a wish.
+        # Failures are named, not counted. `known` is an allowlist of documents already understood
+        # to fail, so a corpus keeps an every-document gate while carrying an open defect; a
+        # document that starts reproducing again is also reported, so the list cannot rot.
         known = set(limits.get("known", ()))
         bad = [str(r.get("name") or r[cfg["key"]]) for r in agg["rows"] if r["rel"]]
         fixed = known - set(bad)
@@ -206,10 +173,8 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
 
 
 def vocabulary_owners() -> dict[str, str]:
-    """family -> the family whose vocabulary file it counts with (itself, unless it borrows one).
-
-    Derived rather than declared: two families borrow when they share a file. The
-    first family listed for a file owns it; v5 reads v4.7's."""
+    """family -> the family whose vocabulary file it counts with. Derived: two families borrow
+    when they share a file, and the first family listed for a file owns it (v5 reads v4.7's)."""
     owner: dict[str, str] = {}
     for key, fam in FAMILIES.items():
         if fam.pieces is None:
@@ -226,18 +191,14 @@ def _owned_vocabularies():
 
 
 def vocabulary_sizes() -> dict[str, dict[str, int]]:
-    """Piece counts per group, per vocabulary file — keyed by the family that owns it.
-
-    A borrowing family is deliberately absent rather than listed with a copy of the lender's row:
-    repeating the numbers reads as two vocabularies that happen to agree, when there is one file
-    and no second measurement behind the second row."""
+    """Piece counts per group, per vocabulary file — keyed by the family that owns it. A
+    borrowing family is absent rather than listed with a copy of the lender's row."""
     return {key: {group: len(entries) for group, entries in doc["tokens"].items()}
             for key, doc in _owned_vocabularies()}
 
 
 def _borrowers() -> list[str]:
-    """One line per family that counts with someone else's file, so the report says so
-    rather than leaving that family to look like an omission."""
+    """One line per family that counts with someone else's file."""
     return [f"{key} counts with {owner}'s vocabulary ({FAMILIES[key].pieces})"
             for key, owner in vocabulary_owners().items() if owner != key]
 
@@ -250,10 +211,7 @@ def _breaches(cov: dict[str, dict[str, dict[str, int]]], kind: str) -> list[tupl
 
 def cells_of(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
     """``(pieces, witnessed-or-special, percentage, the gaps by kind)`` for one set of counts.
-
-    Module level rather than a closure because :func:`report` needs the same arithmetic for the
-    single coverage cell it prints, and two copies of it would be free to drift apart.
-    """
+    Module level because :func:`report` needs the same arithmetic for its coverage cell."""
     known = known_kinds()
     total, w = sum(counts.values()), witnessed(counts)
     bucket = {"missing": sum(counts.get(k, 0) for k in MISSING),
@@ -267,28 +225,22 @@ def cells_of(counts: dict[str, int]) -> tuple[int, int, str, dict[str, int]]:
 def report_vocabulary(markdown: bool = False) -> None:
     """Piece counts by group, and what share of each group carries a witness.
 
-    Two regressions the error gates cannot name, in one table: a silently emptied or ballooning
-    group, and a group whose pieces stopped being backed by measurements. They belong in the same
-    table because the second is only actionable per group — an unwitnessed piece counts exactly like
-    a witnessed one, so every accuracy number is identical either way and only this says so.
-
-    The two evidence gaps are ABSENT (missing: unbought, or unreachable by any template) and
-    CONTRADICTORY (unresolved: the probe and the corpus disagree). ``special`` and ``other`` keep
-    structural atoms and unknown kinds visible without presenting either as token evidence.
+    Catches two regressions the error gates cannot: a silently emptied or ballooning group, and a
+    group whose pieces stopped being backed by measurements (an unwitnessed piece counts exactly
+    like a witnessed one, so only this table can tell). Gap kinds: ``missing`` (unbought or
+    unreachable), ``unresolved`` (probe and corpus disagree), plus ``special``/``other`` to keep
+    structural atoms and unknown kinds visible.
     """
     cov = witness_coverage()
     groups = sorted({g for fam in cov.values() for g in fam})
     # Every kind the numerator withholds needs a column, or the table shows a rate below 100% with
-    # nothing to explain it. `other` is the same guarantee for a kind nobody has classified yet:
-    # unknown kinds used to fall through to the witnessed side, which is the direction that
-    # flatters.
+    # nothing to explain it; `other` covers kinds nobody has classified yet.
     cols = ("missing", "unresolved", "special", "other")
     cells = cells_of
     refuted = _breaches(cov, "refuted")
 
-    # At 100% on every file this table is one number per group and four columns of dots, and
-    # `report` already prints that number. Print the breakdown when it has something to say — a gap
-    # anywhere, or a piece its own probe refutes — and the summary line otherwise.
+    # Print the breakdown only when it has something to say — a gap anywhere, or a piece its
+    # own probe refutes — and the summary line otherwise.
     gap = refuted or any(cells(totals(by_group))[0] != cells(totals(by_group))[1]
                          for by_group in cov.values())
     if not gap:
@@ -351,13 +303,8 @@ def report_vocabulary(markdown: bool = False) -> None:
 
 
 def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
-    """family -> group -> {witness kind: pieces}, per vocabulary file.
-
-    Keyed like ``vocabulary_sizes``: one row per file, so a borrowing family is absent rather than
-    listed with a copy of the lender's numbers it did not measure. Broken down by GROUP because that
-    is where a gap is actionable — "845 unwitnessed" is a number, "845 of them in word_pieces" is a
-    campaign.
-    """
+    """family -> group -> {witness kind: pieces}, per vocabulary file. Keyed like
+    ``vocabulary_sizes``, and broken down by group because that is where a gap is actionable."""
     out: dict[str, dict[str, dict[str, int]]] = {}
     for key, doc in _owned_vocabularies():
         out[key] = {}
@@ -370,15 +317,9 @@ def witness_coverage() -> dict[str, dict[str, dict[str, int]]]:
     return out
 
 
-# The kinds that are not a witness, in two groups that mean different things to a reader.
-#
-# MISSING is an absence of evidence: nobody has bought the measurement (`unmeasured`) or no template
-# in the inventory reaches the piece (`no-instrument`). Both are work.
-#
-# UNRESOLVED is a CONFLICT of evidence: the probe refuses a piece outright and nothing has retired
-# it yet (`refuted`). That means a second error is hiding nearby, which is why it is not folded in
-# with the merely unmeasured.
-# Neither evidence nor a gap: a marker atom (`⟨bow⟩`) is not text, so no probe can contain it.
+# The kinds that are not a witness. MISSING is an absence of evidence (unbought, or no template
+# reaches the piece); UNRESOLVED is a conflict of evidence (the probe refutes the piece, so a
+# second error is hiding nearby); SPECIAL is a marker atom, which is not text.
 SPECIAL = ("special",)
 MISSING = ("unmeasured", "no-instrument")
 UNRESOLVED = ("refuted",)
@@ -386,21 +327,11 @@ GAP_KINDS = MISSING + UNRESOLVED + SPECIAL
 
 
 def known_kinds() -> frozenset[str]:
-    """Every kind a witness record may carry, derived from the files rather than listed here.
-
-    `witnessed` subtracts the known non-witness kinds from the total, so a kind it has never heard
-    of lands silently on the witnessed side — the one direction a coverage number must never round.
-    The guard is only as good as its list, and a hand-written list goes stale: one missed
-    `digit_bow` — a shipped template carrying 28 v3 punctuation
-    pieces — so the template names now come from each vocabulary's own `meta.witness.templates`,
-    the same place `verify` reads them. `prefix` is added on top because `verify` dispatches it
-    before that lookup: 467 byte-fallback pieces per file rest on it and no template declares it.
-    Anything outside the union is reported in the `other` column instead of passing as evidence.
+    """Every kind a witness record may carry, derived from each vocabulary's own
+    ``meta.witness.templates`` (a hand-written list goes stale, and an unknown kind must land in
+    the `other` column, never on the witnessed side). `prefix` is added on top because `verify`
+    dispatches it before the template lookup.
     """
-    # `verify` dispatches `prefix` before the template lookup — a byte-prefix piece is pinned by
-    # three characters agreeing, not by a probe string, so it is a real witness with no template.
-    # It is named here because `witness.verify` names it, which is the only authority on what a
-    # witness kind is.
     names: set[str] = set(GAP_KINDS) | {"prefix"}
     for _key, doc in _owned_vocabularies():
         names |= set(doc["meta"]["witness"]["templates"])
@@ -427,17 +358,9 @@ def _score_one(job: tuple[str, str]) -> tuple[str, str, dict]:
 def report(markdown: bool = False) -> None:
     """Print every gate's numbers, applying the thresholds as we go.
 
-    A corpus every family reproduces document for document gets one cell, not a table. Three of
-    the four are finished, and a finished corpus has exactly one thing to say — a per-document error
-    breakdown of a corpus with no error is nine columns of zeroes, and the one line that still
-    carries information (UDHR's) was buried under them. So the finished corpora collapse into a
-    single grid, one row per family, and only a corpus with a residual gets its documents listed.
-
-    A corpus leaving the grid is itself the signal: it means some document stopped reproducing.
-
-    The corpora are scored in a process pool: there are eight independent (corpus, family) replays
-    and the biggest of them is most of the wall clock, so running them sequentially is the slowest
-    thing in CI for no reason.
+    A corpus every family reproduces document for document collapses into a single grid row; only
+    a corpus with a residual gets its documents listed, so a corpus leaving the grid is itself the
+    signal. Scored in a process pool — the (corpus, family) replays are independent.
     """
     jobs = [(name, family) for name, cfg in GATES.items() for family in cfg["families"]]
     with ProcessPoolExecutor() as pool:

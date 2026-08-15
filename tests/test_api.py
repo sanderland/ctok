@@ -67,19 +67,16 @@ def test_terminal_marks_stand_outside_word_boundaries(version: float):
     """A terminal mark is an unmarked separator, not the last character of the left word."""
     assert marked_stream("क्", version) == "⟨bow⟩क⟨eow⟩्"
     assert marked_stream("क्ष", version) == "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩"
-    # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam then
-    # deletes the space — count-identical to the older `् ⟨bow⟩` spelling here, which is why the
-    # word side could never decide between them. The digit side can: `ກ່ 5` costs one more than the
-    # unmarked spelling charges. See `normalize._runs` / the `_KILLER` branch of `stream_norm`.
+    # The killer takes punctuation's right-hand ⟨eow⟩ at a single-space border, and the seam
+    # then deletes the space. See the `_KILLER` branch of `stream_norm`.
     assert marked_stream("क् ष", version) == "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩"
     assert marked_stream("्", version) == "⟨bow⟩्"
 
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_generic_combining_accents_stand_outside_the_word(version: float):
-    """A Latin accent is an orthographic separator exactly as a virama is: the word closes BEFORE
-    the mark, so an accented word is two words. See `constants.SEPARATOR_MARKS` — `x q̊5 x` = 14 is
-    the row, against the 15 the accent charges from inside the word."""
+    """A Latin accent is an orthographic separator exactly as a virama is: the word closes
+    before the mark, so an accented word is two words (`constants.SEPARATOR_MARKS`)."""
     assert marked_stream("h\u0301b", version) == "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩"
     assert marked_stream("h\u030ab", version) == "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩"
     # U+0345 and U+0363-U+036F pin the range's ends from outside it and stay inside the word.
@@ -90,11 +87,8 @@ def test_generic_combining_accents_stand_outside_the_word(version: float):
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_syriac_terminal_mark_runs(version: float):
     """U+0740–U+074A stand outside the words. A vowel point written after one is a word-forming
-    LETTER: it opens a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues (see
-    `normalize._syriac_vowel` — `ܒ݂ܶ` = 21 and `x ܒ݂ܶ x` = 23 pin the word model, `x ܒ݂ܶx` = 22
-    pins the fusion). The riding spelling asserted here before 2026-08-09 priced these mid-word
-    rows identically and was refuted by the space-border and message-end rows. Ordinary
-    U+0730–U+073F vowel points on a real base remain inside one word."""
+    letter: it opens a ⟨bow⟩…⟨eow⟩ word of its own that a following letter continues
+    (`normalize._syriac_vowel`). Vowel points on a real base remain inside one word."""
     overhead = _model(_family(version)).message_overhead
     rows = [
         ("ܒ݁ܒ", "⟨bow⟩ܒ⟨eow⟩݁⟨bow⟩ܒ⟨eow⟩", 10),
@@ -112,19 +106,15 @@ def test_syriac_terminal_mark_runs(version: float):
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_an_accent_separates_a_syriac_word_like_any_other(version: float):
-    """The accents were once read as closing the word AFTER themselves, and one host — Syriac —
-    was excepted from that. Neither survives `x q̊5 x`: the word closes before the mark on every
-    host, and a vowel point written after the accent opens the next word rather than riding the
-    first. U+0345 and U+0363–U+036F stay inside the word here too."""
+    """The word closes before the mark on every host, and a vowel point written after the
+    accent opens the next word rather than riding the first. U+0345 and U+0363–U+036F stay
+    inside the word here too."""
     overhead = _model(_family(version)).message_overhead
     rows = [
         ("ܒ̱", "⟨bow⟩ܒ⟨eow⟩̱", 6),
         ("ܒ̱ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܒ⟨eow⟩", 10),
-        # The separator takes punctuation's right-hand ⟨eow⟩ at a single-space border and the seam
-        # then deletes the space, so this row costs the same as a literal space. The digit side is
-        # what decides: `x ܒ̱ 2 x` = 23 and `x ܒ̱ 文 x` = 23 cost one more than a literal space
-        # charges, while `x ܒ̱ ܒ x` = 24, `x ܒ̱  2 x` = 22 (a space run kills the marker),
-        # `x ܒ̱2 x` = 21 and `x ܒ 2 x` = 20 are exact either way.
+        # The separator takes punctuation's right-hand ⟨eow⟩ at a single-space border and the
+        # seam then deletes the space, so this row costs the same as a literal space.
         ("ܒ̱ ܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨eow⟩⟨bow⟩ܒ⟨eow⟩", 11),
         ("ܒ̱ܶܒ", "⟨bow⟩ܒ⟨eow⟩̱⟨bow⟩ܶܒ⟨eow⟩", 12),
         ("ܒ̣ܒ", "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩", 10),
@@ -137,9 +127,8 @@ def test_an_accent_separates_a_syriac_word_like_any_other(version: float):
 
 
 def test_the_accent_spelling_does_not_depend_on_the_host():
-    """`q̂q` = 15 and `ܒ̂ܒ` = 21 used to need a Latin mark PIECE plus a Syriac-host exception that
-    byte-priced it. They need neither: no accent but U+0301 is a piece, the two rows differ only by
-    what the host letters cost, and the mark spelling is one rule."""
+    """No accent but U+0301 is a piece; the two rows differ only by what the host letters
+    cost, and the mark spelling is one rule with no per-host exception."""
     assert marked_stream("ܒ̣ܒ", "4.7") == "⟨bow⟩ܒ⟨eow⟩̣⟨bow⟩ܒ⟨eow⟩"
     assert marked_stream("q̣q", "4.7") == "⟨bow⟩q⟨eow⟩̣⟨bow⟩q⟨eow⟩"
     assert token_count("q̂q", "4.7") == 15
@@ -148,20 +137,9 @@ def test_the_accent_spelling_does_not_depend_on_the_host():
 
 @pytest.mark.parametrize("version", ["3.0", "4.7"])
 def test_a_stray_mark_run_is_a_word(version: float):
-    """An unattached mark run is a WORD — ⟨bow⟩ on the left, ⟨eow⟩ on the right against everything
-    except a LETTER, which is not a next word but the rest of THIS one: the run writes no ⟨eow⟩,
-    the letter writes no ⟨bow⟩, and the two are one word, the way a baseless Syriac vowel or U+0CF3
-    already fuse.
-
-    The ⟨eow⟩ was previously written only against a space, which read one under everywhere else —
-    `x ͣ5 x` `x ͣ. x` `x ͣ文 x` `x ͣ` `x ͣ  x` `x ͣ\tx`, and `x ͣ̊ x` against a separator run.
-
-    The fusion is measured on the frame that cancels the mark's own price, where the two spellings
-    differ only by the word's ⟨bow⟩: over 22 marks and six right-hand words the
-    severed spelling's error moves with the word — `x ͣabc x` = 14 one under on v3, `x ͣก x` = 13
-    one over — and the fused spelling's does not move at all. The mark's head is ordinary
-    vocabulary here, not a forced byte floor; that floor was standing in for the missing ⟨bow⟩.
-    """
+    """An unattached mark run is a word — ⟨bow⟩ on the left, ⟨eow⟩ on the right against
+    everything except a letter, which is the rest of the same word: the run writes no ⟨eow⟩, the
+    letter writes no ⟨bow⟩, the way a baseless Syriac vowel or U+0CF3 already fuse."""
     overhead = _model(_family(version)).message_overhead
     rows = [
         ("\u0363", "⟨bow⟩ͣ⟨eow⟩", 4),
@@ -294,8 +272,8 @@ def test_version_routing():
 
 
 def test_version_must_be_a_string():
-    """A float can't distinguish "4.1" from "4.10" -- the literal 4.10 is already 4.1 before any code here
-    runs -- so the type is enforced rather than coerced."""
+    """A float can't distinguish "4.1" from "4.10" — the literal 4.10 is already 4.1 — so the
+    type is enforced rather than coerced."""
     for bad in (4.7, 5, None, ["4.7"]):
         with pytest.raises(TypeError):
             _family(bad)
@@ -405,15 +383,8 @@ def test_recorded_apostrophe_and_space_run_costs(version, text, content):
     assert token_count(text, version=version) - overhead == content
 
 
-# A message whose content strips to nothing is pinned to the count the ORACLE gives it, not to
-# another stripped message. The frame is all that survives, so the reading is the family's base —
-# measured 2026-08-11, one call each, over a BMP private-use codepoint, a C0 control, and the two
-# together: 8 on v3, 12 on v4.7, 6 on v5.
-#
-# The comparison this replaced was `token_count("<PUA>") == token_count("")`, which cannot fail:
-# when `stream_norm` returned "" the frame's own boundary marker had nothing to attach to and tiled
-# as itself, so both sides carried the same wrong value and both moved together when it was fixed.
-# The empty message cannot serve as the anchor either, since the oracle rejects it.
+# A message whose content strips to nothing is pinned to the measured count, not to another
+# stripped message (a relative comparison cannot fail — both sides move together).
 FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
 
 
@@ -426,12 +397,9 @@ def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected)
 
 @pytest.mark.parametrize("version", ["3.0", "4.7", "5.0"])
 def test_private_use_characters_are_stripped(version: float):
-    """A BMP private-use codepoint costs nothing AND joins its neighbours into one word \u2014 it is
-    deleted, like the C0/C1 controls, not merely free.
-
-    Two controls, because "costs nothing" is also true of a character that is merely free: an
-    astral private-use codepoint is not stripped and pays its four bytes (frame + 4 for one, + 8
-    for two), and an UNASSIGNED codepoint survives and pays its bytes as well."""
+    """A BMP private-use codepoint is deleted, like the C0/C1 controls — it costs nothing and
+    joins its neighbours into one word. An astral private-use codepoint is not stripped and pays
+    its bytes, as does an unassigned codepoint."""
     assert token_count("a\uf0b7b", version=version) == token_count("ab", version=version)
     assert normalize("a\ue000\uf8ffb", version=version) == "ab"
     assert token_count("\U000f0000", version=version) == FRAME_ONLY[version] + 4
@@ -483,20 +451,11 @@ def test_recorded_contraction_and_symbol_costs(version, text, content):
 
 @pytest.mark.parametrize("corpus_name", ["rosetta", "multipl_e", "udhr", "rosetta_holdout"])
 def test_v5_tracks_v4_7_document_for_document(corpus_name):
-    """v5 makes the SAME error as v4.7 on every document, which is why it is not gated separately.
-
-    v5 borrows v4.7's vocabulary outright and differs only in its message frame, so scoring it over
-    the four corpora asserted nothing v4.7 had not already asserted, at twice the cost. This is the
-    equality that omission rests on, stated once and checked directly: for each document, v5's
-    deviation from ITS recorded count equals v4.7's deviation from ITS OWN. Both fixtures are real
-    `count_tokens` readings against different models, so the two sides are measured independently.
-
-    Note what this deliberately does not assert: that the two counts differ by a constant. They do
-    not — the offset is 5 on most documents and 6 where one opens with punctuation, because v5's
-    frame ends in no ⟨bow⟩ and the opening run has nothing to absorb. Predicting which is which
-    would mean restating `normalize.stream_norm`'s head rule inside a test, and a test that
-    reimplements the thing it checks cannot fail for the right reason. The frame rules themselves
-    are pinned on constructed strings above.
+    """v5 makes the same error as v4.7 on every document, which is why it is not gated
+    separately: for each document, v5's deviation from its recorded count equals v4.7's from its
+    own, both fixtures being independent `count_tokens` readings. Deliberately not asserted: that
+    the two counts differ by a constant (they differ by 5 or 6 depending on the opening run, and
+    predicting which would restate the head rule inside a test).
     """
     from gates import GATES, corpus, recorded
 
