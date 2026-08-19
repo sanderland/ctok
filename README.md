@@ -70,7 +70,7 @@ These results compare `ctok` with recorded `count_tokens` responses:
 
 | corpus | role | v3 exact | v4.7 exact |
 |---|---|---:|---:|
-| Goldfish, 350 languages and 350,000 rows | mining | 350,000 | 350,000 |
+| Goldfish, 350 languages and 962,054 rows | mining | 962,053 | 962,054 |
 | MultiPL-E, 22 programming languages | held out | 22 | 22 |
 | Rosetta Code, 1,741 documents | mining | 1,741 | 1,741 |
 | Rosetta Code, separate 250 documents | held out | 250 | 250 |
@@ -79,7 +79,7 @@ These results compare `ctok` with recorded `count_tokens` responses:
 v5 is omitted from the table because its deviation from recorded counts matches v4.7's on every
 gated document. Separate API tests cover its message-frame rules.
 
-The stored measurement sets contain no under-counts: 0 of 1,664,940 v3 texts and 0 of 1,722,961
+The stored measurement sets contain no under-counts: 0 of 2,276,929 v3 texts and 0 of 2,328,425
 v4.7 texts. This does not guarantee the result for arbitrary input. Goldfish, the main Rosetta
 sample, and UDHR informed piece selection. MultiPL-E and the separate Rosetta sample did not.
 
@@ -92,13 +92,13 @@ uv run python tests/gates.py
 
 ## Vocabulary evidence
 
-The two vocabulary files contain 48,645 v3 pieces and 15,240 v4.7 pieces. Every entry has a fixed
+The two vocabulary files contain 48,706 v3 pieces and 15,256 v4.7 pieces. Every entry has a fixed
 membership witness or is one of the structural marker atoms checked by the test suite.
 
 ```python
 from ctok import pieces, witness
 
-len(pieces("4.7"))                       # 15240
+len(pieces("4.7"))                       # 15256
 witness("⟨bow⟩the⟨eow⟩", "4.7")
 # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 ```

@@ -34,21 +34,21 @@
         "mark_sep": [".ᛒ{}ᛒ.", 12]
       },
       "coverage": {
-        "bow": 3342,
+        "bow": 3343,
         "cased_bow": 201,
         "char": 2366,
         "contraction": 4,
         "digit_bow": 5,
         "digit_eow": 92,
-        "digit_mid": 261,
+        "digit_mid": 262,
         "digit_word": 47,
         "eow": 2801,
         "glued": 1110,
         "mark_mid": 20,
         "mark_sep": 21,
-        "mid": 2361,
+        "mid": 2369,
         "prefix": 467,
-        "raw": 2108,
+        "raw": 2114,
         "special": 4,
         "word": 30
       }
@@ -13244,7 +13244,22 @@
       "ález⟨eow⟩": {"probe": ".ヲález.", "raw": 17, "kind": "eow"},
       "év⟨eow⟩": {"probe": ".ヲév.", "raw": 17, "kind": "eow"},
       "⟨bow⟩král⟨eow⟩": {"probe": "král", "raw": 12, "kind": "raw"},
-      "░": {"probe": "a░a", "raw": 14, "kind": "char"}
+      "░": {"probe": "a░a", "raw": 14, "kind": "char"},
+      "ouou": {"probe": ".ヲououヲ.", "raw": 20, "kind": "mid"},
+      "verver": {"probe": ".ヲververヲ.", "raw": 20, "kind": "mid"},
+      "⟨bow⟩fév": {"probe": ".févヲ.", "raw": 17, "kind": "bow"},
+      "⟨bow⟩król⟨eow⟩": {"probe": "król", "raw": 12, "kind": "raw"},
+      "⟨bow⟩község⟨eow⟩": {"probe": "község", "raw": 12, "kind": "raw"},
+      "⟨bow⟩író⟨eow⟩": {"probe": "író", "raw": 12, "kind": "raw"},
+      "⟨shift⟩⟨bow⟩további⟨eow⟩": {"probe": "További", "raw": 12, "kind": "raw"},
+      "⟨shift⟩⟨bow⟩år⟨eow⟩": {"probe": "År", "raw": 12, "kind": "raw"},
+      "⟨shift⟩⟨bow⟩события⟨eow⟩": {"probe": "События", "raw": 12, "kind": "raw"},
+      "ああ": {"probe": ".ヲああヲ.", "raw": 20, "kind": "mid"},
+      "がが": {"probe": ".ヲががヲ.", "raw": 20, "kind": "mid"},
+      "きき": {"probe": ".ヲききヲ.", "raw": 20, "kind": "mid"},
+      "なな": {"probe": ".ヲななヲ.", "raw": 20, "kind": "mid"},
+      "もも": {"probe": ".ヲももヲ.", "raw": 20, "kind": "mid"},
+      "やや": {"probe": ".ヲややヲ.", "raw": 20, "kind": "mid"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
@@ -14775,7 +14790,8 @@
       "××": {"probe": "1××1", "raw": 15, "kind": "digit_mid"},
       "⟨bow⟩(†⟨eow⟩": {"probe": "a († a", "raw": 14, "kind": "digit_word"},
       "););": {"probe": "1););1", "raw": 15, "kind": "digit_mid"},
-      ">#⟨eow⟩": {"probe": "1># a", "raw": 15, "kind": "digit_eow"}
+      ">#⟨eow⟩": {"probe": "1># a", "raw": 15, "kind": "digit_eow"},
+      "························": {"probe": "1························1", "raw": 15, "kind": "digit_mid"}
     },
     "whitespace": {
       "\t": {"probe": "1\t1", "raw": 15, "kind": "digit_mid"},
