@@ -52,7 +52,7 @@
     "prefix": 467,
     "raw": 6503,
     "special": 4,
-    "word": 13252
+    "word": 13253
    }
   }
  },
@@ -45790,7 +45790,8 @@
    "����": {"probe": "a����a", "raw": 10, "kind": "char"},
    "������": {"probe": "a������a", "raw": 10, "kind": "char"},
    "⟨shift⟩⟨bow⟩glej⟨eow⟩": {"probe": ".Glej.", "raw": 10, "kind": "word"},
-   "⟨shift⟩⟨bow⟩vegeu⟨eow⟩": {"probe": ".Vegeu.", "raw": 10, "kind": "word"}
+   "⟨shift⟩⟨bow⟩vegeu⟨eow⟩": {"probe": ".Vegeu.", "raw": 10, "kind": "word"},
+   "⟨shift⟩⟨bow⟩француске⟨eow⟩": {"probe": ".Француске.", "raw": 10, "kind": "word"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
