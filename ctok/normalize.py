@@ -18,7 +18,7 @@ from .constants import (
     SEPARATOR_SIGNS, FUNNY_SPACE,
     LITERAL_MARKER_ESCAPE_TABLE,
     NON_SEPARATORS,
-    HARD, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
+    HARD, IDEOGRAPHIC_LETTERLIKE, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
@@ -109,6 +109,9 @@ def classify(c: str) -> str:
         # with older tables reports Cn, which would drop it to HARD. Measured as plain word
         # material (Mc, ccc 0), so pin it WORDY.
         return WORDY
+    if c in IDEOGRAPHIC_LETTERLIKE:
+        # Category Lm/Lo, but measured to take no word model at all — see `constants.py`.
+        return HARD
     if cat[0] in ("L", "M") and not is_hard_cp(o):
         # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
         # vocabulary plus the per-codepoint byte floor as any other letter script.
