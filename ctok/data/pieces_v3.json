@@ -42,7 +42,7 @@
     "contraction": 7,
     "digit_bow": 30,
     "digit_eow": 252,
-    "digit_mid": 833,
+    "digit_mid": 834,
     "digit_word": 119,
     "eow": 7804,
     "glued": 1110,
@@ -50,7 +50,7 @@
     "mark_sep": 22,
     "mid": 4764,
     "prefix": 467,
-    "raw": 6503,
+    "raw": 6506,
     "special": 4,
     "word": 13253
    }
@@ -45791,7 +45791,10 @@
    "������": {"probe": "a������a", "raw": 10, "kind": "char"},
    "⟨shift⟩⟨bow⟩glej⟨eow⟩": {"probe": ".Glej.", "raw": 10, "kind": "word"},
    "⟨shift⟩⟨bow⟩vegeu⟨eow⟩": {"probe": ".Vegeu.", "raw": 10, "kind": "word"},
-   "⟨shift⟩⟨bow⟩француске⟨eow⟩": {"probe": ".Француске.", "raw": 10, "kind": "word"}
+   "⟨shift⟩⟨bow⟩француске⟨eow⟩": {"probe": ".Француске.", "raw": 10, "kind": "word"},
+   "⟨shift⟩⟨bow⟩списак⟨eow⟩": {"probe": "Списак", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩noter⟨eow⟩": {"probe": "Noter", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 8, "kind": "raw"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
@@ -48277,7 +48280,8 @@
    "[![": {"probe": "1[![1", "raw": 11, "kind": "digit_mid"},
    "](#": {"probe": "1](#1", "raw": 11, "kind": "digit_mid"},
    "](/": {"probe": "1](/1", "raw": 11, "kind": "digit_mid"},
-   "][][": {"probe": "1][][1", "raw": 11, "kind": "digit_mid"}
+   "][][": {"probe": "1][][1", "raw": 11, "kind": "digit_mid"},
+   "................................................................................................................................": {"probe": "1................................................................................................................................1", "raw": 11, "kind": "digit_mid"}
   },
   "whitespace": {
    "\t": {"probe": "1\t1", "raw": 11, "kind": "digit_mid"},

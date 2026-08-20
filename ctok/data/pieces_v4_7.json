@@ -48,7 +48,7 @@
         "mark_sep": 21,
         "mid": 2371,
         "prefix": 468,
-        "raw": 2115,
+        "raw": 2116,
         "special": 4,
         "word": 30
       }
@@ -13271,7 +13271,8 @@
       "⟨bow⟩throug": {"probe": ".througヲ.", "raw": 17, "kind": "bow"},
       "���": {"probe": "a���a", "raw": 14, "kind": "char"},
       "����": {"probe": "a����a", "raw": 14, "kind": "char"},
-      "������": {"probe": "a������a", "raw": 14, "kind": "char"}
+      "������": {"probe": "a������a", "raw": 14, "kind": "char"},
+      "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 12, "kind": "raw"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
