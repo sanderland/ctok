@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 10041,
+    "bow": 10042,
     "cased_bow": 880,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -48,7 +48,7 @@
     "glued": 1110,
     "mark_mid": 25,
     "mark_sep": 22,
-    "mid": 4764,
+    "mid": 4765,
     "prefix": 467,
     "raw": 6506,
     "special": 4,
@@ -45794,7 +45794,9 @@
    "⟨shift⟩⟨bow⟩француске⟨eow⟩": {"probe": ".Француске.", "raw": 10, "kind": "word"},
    "⟨shift⟩⟨bow⟩списак⟨eow⟩": {"probe": "Списак", "raw": 8, "kind": "raw"},
    "⟨shift⟩⟨bow⟩noter⟨eow⟩": {"probe": "Noter", "raw": 8, "kind": "raw"},
-   "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 8, "kind": "raw"}
+   "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 8, "kind": "raw"},
+   "étét": {"probe": ".ヲététヲ.", "raw": 16, "kind": "mid"},
+   "⟨bow⟩reformát": {"probe": ".reformátヲ.", "raw": 13, "kind": "bow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
