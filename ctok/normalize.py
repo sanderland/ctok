@@ -18,7 +18,7 @@ from .constants import (
     SEPARATOR_SIGNS, FUNNY_SPACE,
     LITERAL_MARKER_ESCAPE_TABLE,
     NON_SEPARATORS,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
+    HARD, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
@@ -398,6 +398,10 @@ def _marks_like_punct(ch: str) -> bool:
     because the marker sits on the `？` side, while `1？。 1` and `1 。？1` are one over if the run
     is judged as a whole.
 
+    The exclusion is by category, so it never reached the eight SYMBOLS the same block holds
+    (`〄 〒 〓 〠 〶 〷 〾 〿`, category So). Each was then asked directly and every one reads the
+    same way its neighbouring punctuation does — `IDEOGRAPHIC_SYMBOLS` carries the measurement.
+
     Astral characters are excluded too: an emoji takes no border marker, so it must not be the
     punct kind either. A format character in front of one would otherwise be glued into a single
     markerless sub-run and lose the ⟨bow⟩ it is entitled to.
@@ -408,7 +412,8 @@ def _marks_like_punct(ch: str) -> bool:
     if is_separator(ch):
         return True
     cat = unicodedata.category(ch)
-    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and cat.startswith("P")
+    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and (cat.startswith("P")
+                                                         or ch in IDEOGRAPHIC_SYMBOLS)
     return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not ideographic_punct
 
 

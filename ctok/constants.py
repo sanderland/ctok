@@ -40,6 +40,16 @@ WORDY, HARD, DIGIT, PUNCT, SPACE = "wordy", "hard", "digit", "punct", "space"
 # is hard). Anything unlisted stays HARD.
 PUNCT_SYMS = frozenset("—»«•°„–−£§€…√→（№†└│།·─═█")
 
+# The symbols of the CJK Symbols and Punctuation block. `normalize._marks_like_punct` keeps that
+# block's PUNCTUATION inside the ideograph run it sits in, where it takes no border markers; these
+# eight are category So, so the category half of that test did not reach them and they were marked.
+# Measured one at a time in both families, on six frames per character where the two spellings
+# predict counts one apart (`八 X`, `X 八`, `1 X`, `X 1` and the two spaced-neighbour frames): all
+# forty-eight cells per family read markerless, and none of the frames where the two spellings agree
+# moves. Enumerated, not derived from the category: this is the measurement of these eight
+# codepoints and says nothing about any other.
+IDEOGRAPHIC_SYMBOLS = frozenset("〄〒〓〠〶〷〾〿")
+
 # Symbol-letters measured to take the full word model (⟨bow⟩ and ⟨eow⟩ flanks, seam absorption, case
 # markers) exactly like Latin letters. Enumerated blocks: category Nl/So/Lu splits both ways, and
 # the Hangzhou numerals (also Nl) measured markerless, so it is the block that predicts, not the
