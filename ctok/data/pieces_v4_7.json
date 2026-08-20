@@ -34,21 +34,21 @@
         "mark_sep": [".ᛒ{}ᛒ.", 12]
       },
       "coverage": {
-        "bow": 3343,
+        "bow": 3344,
         "cased_bow": 201,
-        "char": 2366,
+        "char": 2367,
         "contraction": 4,
         "digit_bow": 5,
-        "digit_eow": 92,
-        "digit_mid": 262,
-        "digit_word": 47,
+        "digit_eow": 93,
+        "digit_mid": 263,
+        "digit_word": 49,
         "eow": 2801,
         "glued": 1110,
         "mark_mid": 20,
         "mark_sep": 21,
-        "mid": 2369,
-        "prefix": 467,
-        "raw": 2114,
+        "mid": 2371,
+        "prefix": 468,
+        "raw": 2115,
         "special": 4,
         "word": 30
       }
@@ -13259,7 +13259,15 @@
       "きき": {"probe": ".ヲききヲ.", "raw": 20, "kind": "mid"},
       "なな": {"probe": ".ヲななヲ.", "raw": 20, "kind": "mid"},
       "もも": {"probe": ".ヲももヲ.", "raw": 20, "kind": "mid"},
-      "やや": {"probe": ".ヲややヲ.", "raw": 20, "kind": "mid"}
+      "やや": {"probe": ".ヲややヲ.", "raw": 20, "kind": "mid"},
+      "ององ": {"probe": ".ヲององヲ.", "raw": 20, "kind": "mid"},
+      "⟨bow⟩househ": {"probe": ".househヲ.", "raw": 17, "kind": "bow"},
+      "⟨bow⟩－⟨eow⟩": {"probe": "a － a", "raw": 14, "kind": "digit_word"},
+      "⟨bow⟩�": {"probe": "�", "raw": 12, "kind": "raw"},
+      "⟨bow⟩�⟨eow⟩": {"probe": "a � a", "raw": 14, "kind": "digit_word"},
+      "ええ": {"probe": ".ヲええヲ.", "raw": 20, "kind": "mid"},
+      "�⟨eow⟩": {"probe": "1� a", "raw": 15, "kind": "digit_eow"},
+      "��": {"probe": "a��a", "raw": 14, "kind": "char"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
@@ -14791,7 +14799,8 @@
       "⟨bow⟩(†⟨eow⟩": {"probe": "a († a", "raw": 14, "kind": "digit_word"},
       "););": {"probe": "1););1", "raw": 15, "kind": "digit_mid"},
       ">#⟨eow⟩": {"probe": "1># a", "raw": 15, "kind": "digit_eow"},
-      "························": {"probe": "1························1", "raw": 15, "kind": "digit_mid"}
+      "························": {"probe": "1························1", "raw": 15, "kind": "digit_mid"},
+      "································": {"probe": "1································1", "raw": 15, "kind": "digit_mid"}
     },
     "whitespace": {
       "\t": {"probe": "1\t1", "raw": 15, "kind": "digit_mid"},
@@ -14899,6 +14908,7 @@
       "e286": {"probe": "aↀa", "raw": 15, "kind": "prefix", "agree": 3},
       "e288": {"probe": "a∀a", "raw": 15, "kind": "prefix", "agree": 3},
       "e289": {"probe": "a≀a", "raw": 15, "kind": "prefix", "agree": 3},
+      "e290": {"probe": "a␀a", "raw": 15, "kind": "prefix", "agree": 64},
       "e294": {"probe": "a┃a", "raw": 15, "kind": "prefix", "agree": 3},
       "e295": {"probe": "a╀a", "raw": 15, "kind": "prefix", "agree": 3},
       "e296": {"probe": "a▀a", "raw": 15, "kind": "prefix", "agree": 3},
