@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 10037,
+    "bow": 10038,
     "cased_bow": 880,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -45749,7 +45749,8 @@
    "きき": {"probe": ".ヲききヲ.", "raw": 16, "kind": "mid"},
    "なな": {"probe": ".ヲななヲ.", "raw": 16, "kind": "mid"},
    "もも": {"probe": ".ヲももヲ.", "raw": 16, "kind": "mid"},
-   "やや": {"probe": ".ヲややヲ.", "raw": 16, "kind": "mid"}
+   "やや": {"probe": ".ヲややヲ.", "raw": 16, "kind": "mid"},
+   "⟨bow⟩vármegy": {"probe": ".vármegyヲ.", "raw": 13, "kind": "bow"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
