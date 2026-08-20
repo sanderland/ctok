@@ -34,13 +34,13 @@
         "mark_sep": [".ᛒ{}ᛒ.", 12]
       },
       "coverage": {
-        "bow": 3344,
+        "bow": 3345,
         "cased_bow": 201,
-        "char": 2367,
+        "char": 2370,
         "contraction": 4,
         "digit_bow": 5,
         "digit_eow": 93,
-        "digit_mid": 263,
+        "digit_mid": 264,
         "digit_word": 49,
         "eow": 2801,
         "glued": 1110,
@@ -13267,7 +13267,11 @@
       "⟨bow⟩�⟨eow⟩": {"probe": "a � a", "raw": 14, "kind": "digit_word"},
       "ええ": {"probe": ".ヲええヲ.", "raw": 20, "kind": "mid"},
       "�⟨eow⟩": {"probe": "1� a", "raw": 15, "kind": "digit_eow"},
-      "��": {"probe": "a��a", "raw": 14, "kind": "char"}
+      "��": {"probe": "a��a", "raw": 14, "kind": "char"},
+      "⟨bow⟩throug": {"probe": ".througヲ.", "raw": 17, "kind": "bow"},
+      "���": {"probe": "a���a", "raw": 14, "kind": "char"},
+      "����": {"probe": "a����a", "raw": 14, "kind": "char"},
+      "������": {"probe": "a������a", "raw": 14, "kind": "char"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
@@ -14800,7 +14804,8 @@
       "););": {"probe": "1););1", "raw": 15, "kind": "digit_mid"},
       ">#⟨eow⟩": {"probe": "1># a", "raw": 15, "kind": "digit_eow"},
       "························": {"probe": "1························1", "raw": 15, "kind": "digit_mid"},
-      "································": {"probe": "1································1", "raw": 15, "kind": "digit_mid"}
+      "································": {"probe": "1································1", "raw": 15, "kind": "digit_mid"},
+      "././": {"probe": "1././1", "raw": 15, "kind": "digit_mid"}
     },
     "whitespace": {
       "\t": {"probe": "1\t1", "raw": 15, "kind": "digit_mid"},
