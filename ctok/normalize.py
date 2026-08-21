@@ -31,12 +31,18 @@ _NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
 _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 
 
+# `ϴ` lowercases to `θ` in Unicode, but the source models do not fold it: bare it costs 4 tokens,
+# where the ⟨shift⟩ + `θ` spelling costs 3. The other four BMP capitals whose case does not
+# round-trip (`ẞ Ω K Å`) all measure exact as they are, so this is the codepoint and not the rule.
+_UNCASED = frozenset("\u03f4")
+
+
 def _lower(text: str) -> str:
-    return "".join(_NEW_CASE_PAIRS.get(c, c.lower()) for c in text)
+    return "".join(c if c in _UNCASED else _NEW_CASE_PAIRS.get(c, c.lower()) for c in text)
 
 
 def _is_upper(c: str) -> bool:
-    return c in _NEW_CASE_PAIRS or c.isupper()
+    return c not in _UNCASED and (c in _NEW_CASE_PAIRS or c.isupper())
 
 
 def _is_lower(c: str) -> bool:
