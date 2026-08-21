@@ -31,9 +31,9 @@ _NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
 _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 
 
-# `ϴ` lowercases to `θ` in Unicode, but the source models do not fold it: bare it costs 4 tokens,
-# where the ⟨shift⟩ + `θ` spelling costs 3. The other four BMP capitals whose case does not
-# round-trip (`ẞ Ω K Å`) all measure exact as they are, so this is the codepoint and not the rule.
+# Uncased for the models, though Unicode calls `ϴ` a capital: bare it costs 4, where ⟨shift⟩ + `θ`
+# costs 3. Not ẞ's blanket block below — `Θϴ` still takes its ⟨shift⟩ — so it drops out of the
+# cased set instead.
 _UNCASED = frozenset("\u03f4")
 
 
@@ -405,9 +405,8 @@ def _marks_like_punct(ch: str) -> bool:
     because the marker sits on the `？` side, while `1？。 1` and `1 。？1` are one over if the run
     is judged as a whole.
 
-    The exclusion is by category, so it never reached the eight SYMBOLS the same block holds
-    (`〄 〒 〓 〠 〶 〷 〾 〿`, category So). Each was then asked directly and every one reads the
-    same way its neighbouring punctuation does — `IDEOGRAPHIC_SYMBOLS` carries the measurement.
+    The category test misses the block's own symbols, which read the same way; `IDEOGRAPHIC_SYMBOLS`
+    carries them.
 
     Astral characters are excluded too: an emoji takes no border marker, so it must not be the
     punct kind either. A format character in front of one would otherwise be glued into a single
