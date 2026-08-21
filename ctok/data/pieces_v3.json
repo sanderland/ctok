@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 10042,
+    "bow": 10045,
     "cased_bow": 880,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -46,11 +46,11 @@
     "digit_word": 119,
     "eow": 7804,
     "glued": 1110,
-    "mark_mid": 25,
+    "mark_mid": 26,
     "mark_sep": 22,
-    "mid": 4765,
+    "mid": 4766,
     "prefix": 467,
-    "raw": 6506,
+    "raw": 6507,
     "special": 4,
     "word": 13253
    }
@@ -45796,7 +45796,13 @@
    "⟨shift⟩⟨bow⟩noter⟨eow⟩": {"probe": "Noter", "raw": 8, "kind": "raw"},
    "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 8, "kind": "raw"},
    "étét": {"probe": ".ヲététヲ.", "raw": 16, "kind": "mid"},
-   "⟨bow⟩reformát": {"probe": ".reformátヲ.", "raw": 13, "kind": "bow"}
+   "⟨bow⟩reformát": {"probe": ".reformátヲ.", "raw": 13, "kind": "bow"},
+   "ាា": {"probe": ".ᛒាាᛒ.", "raw": 18, "kind": "mark_mid"},
+   "⟨bow⟩penín": {"probe": ".penínヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩reșed": {"probe": ".reședヲ.", "raw": 13, "kind": "bow"},
+   "⟨bow⟩strugg": {"probe": ".struggヲ.", "raw": 13, "kind": "bow"},
+   "⟨shift⟩⟨bow⟩geometridae⟨eow⟩": {"probe": "Geometridae", "raw": 8, "kind": "raw"},
+   "しし": {"probe": ".ヲししヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},

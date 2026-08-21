@@ -46,7 +46,7 @@
         "glued": 1110,
         "mark_mid": 20,
         "mark_sep": 21,
-        "mid": 2371,
+        "mid": 2372,
         "prefix": 468,
         "raw": 2116,
         "special": 4,
@@ -13272,7 +13272,8 @@
       "���": {"probe": "a���a", "raw": 14, "kind": "char"},
       "����": {"probe": "a����a", "raw": 14, "kind": "char"},
       "������": {"probe": "a������a", "raw": 14, "kind": "char"},
-      "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 12, "kind": "raw"}
+      "⟨shift⟩⟨bow⟩população⟨eow⟩": {"probe": "População", "raw": 12, "kind": "raw"},
+      "しし": {"probe": ".ヲししヲ.", "raw": 20, "kind": "mid"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
