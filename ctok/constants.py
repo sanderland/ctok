@@ -50,14 +50,6 @@ PUNCT_SYMS = frozenset("—»«•°„–−£§€…√→（№†└│།�
 # codepoints and says nothing about any other.
 IDEOGRAPHIC_SYMBOLS = frozenset("〄〒〓〠〶〷〾〿")
 
-# The same block's LETTER-LIKE characters: the five kana repeat marks, the iteration mark and the
-# masu mark. `classify` sends category L/M to WORDY, so these took the full word model — a ⟨bow⟩ and
-# an ⟨eow⟩ of their own, and a new word run after a preceding ideograph. Measured one at a time in
-# both families on six frames per character (bare, `八X`, `X八`, `1X`, `X1`, `a X a`), the wordy
-# spelling reads one to two tokens over on every frame that discriminates and exactly right on the
-# one that does not; the hard spelling reads exact on all of them. Both families agree character for
-# character. Enumerated rather than widened to the category, which holds ordinary letters.
-IDEOGRAPHIC_LETTERLIKE = frozenset("〱〲〳〴〵〻〼")
 
 # Symbol-letters measured to take the full word model (⟨bow⟩ and ⟨eow⟩ flanks, seam absorption, case
 # markers) exactly like Latin letters. Enumerated blocks: category Nl/So/Lu splits both ways, and

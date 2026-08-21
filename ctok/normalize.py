@@ -18,7 +18,7 @@ from .constants import (
     SEPARATOR_SIGNS, FUNNY_SPACE,
     LITERAL_MARKER_ESCAPE_TABLE,
     NON_SEPARATORS,
-    HARD, IDEOGRAPHIC_LETTERLIKE, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
+    HARD, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
@@ -72,7 +72,8 @@ def is_hard_cp(o: int) -> bool:
         # The ideographic iteration and closing marks are letters by category (Lm, Lo) but continue
         # the Han run they follow; the wordy reading costs two tokens more than the oracle pays.
         # The katakana prolonged sound mark `ー` and small `ヶ` measured exact as wordy.
-        or o in (0x3005, 0x3006)      # 々 〆
+        or o in (0x3005, 0x3006, 0x3031, 0x3032, 0x3033, 0x3034, 0x3035, 0x303B, 0x303C)
+        # 々 〆 and the kana repeat, iteration and masu marks
         # Quranic annotation signs (Mn members that would otherwise reach the letter class):
         # measured as unattached marks, with the boundaries pinned on both sides of both ranges.
         # Combining class does not predict the split.
@@ -109,9 +110,6 @@ def classify(c: str) -> str:
         # with older tables reports Cn, which would drop it to HARD. Measured as plain word
         # material (Mc, ccc 0), so pin it WORDY.
         return WORDY
-    if c in IDEOGRAPHIC_LETTERLIKE:
-        # Category Lm/Lo, but measured to take no word model at all — see `constants.py`.
-        return HARD
     if cat[0] in ("L", "M") and not is_hard_cp(o):
         # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
         # vocabulary plus the per-codepoint byte floor as any other letter script.
