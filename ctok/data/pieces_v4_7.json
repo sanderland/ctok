@@ -49,7 +49,7 @@
         "mid": 2372,
         "prefix": 468,
         "raw": 2116,
-        "special": 4,
+        "special": 3,
         "word": 30
       }
     }
@@ -15341,8 +15341,7 @@
     "markers": {
       "⟨bow⟩": {"kind": "special"},
       "⟨eow⟩": {"kind": "special"},
-      "⟨shift⟩": {"kind": "special"},
-      "⟨caps⟩": {"kind": "special"}
+      "⟨shift⟩": {"kind": "special"}
     }
   }
 }
