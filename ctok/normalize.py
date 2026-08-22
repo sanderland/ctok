@@ -18,7 +18,7 @@ from .constants import (
     SEPARATOR_SIGNS, FUNNY_SPACE,
     LITERAL_MARKER_ESCAPE_TABLE,
     NON_SEPARATORS,
-    HARD, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
+    HARD, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
     SEPARATOR_MARKS, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
@@ -31,12 +31,18 @@ _NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
 _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 
 
+# Uncased for the models, though Unicode calls `ϴ` a capital: bare it costs 4, where ⟨shift⟩ + `θ`
+# costs 3. Not ẞ's blanket block below — `Θϴ` still takes its ⟨shift⟩ — so it drops out of the
+# cased set instead.
+_UNCASED = frozenset("\u03f4")
+
+
 def _lower(text: str) -> str:
-    return "".join(_NEW_CASE_PAIRS.get(c, c.lower()) for c in text)
+    return "".join(c if c in _UNCASED else _NEW_CASE_PAIRS.get(c, c.lower()) for c in text)
 
 
 def _is_upper(c: str) -> bool:
-    return c in _NEW_CASE_PAIRS or c.isupper()
+    return c not in _UNCASED and (c in _NEW_CASE_PAIRS or c.isupper())
 
 
 def _is_lower(c: str) -> bool:
@@ -72,7 +78,8 @@ def is_hard_cp(o: int) -> bool:
         # The ideographic iteration and closing marks are letters by category (Lm, Lo) but continue
         # the Han run they follow; the wordy reading costs two tokens more than the oracle pays.
         # The katakana prolonged sound mark `ー` and small `ヶ` measured exact as wordy.
-        or o in (0x3005, 0x3006)      # 々 〆
+        or o in (0x3005, 0x3006, 0x3031, 0x3032, 0x3033, 0x3034, 0x3035, 0x303B, 0x303C)
+        # 々 〆 and the kana repeat, iteration and masu marks
         # Quranic annotation signs (Mn members that would otherwise reach the letter class):
         # measured as unattached marks, with the boundaries pinned on both sides of both ranges.
         # Combining class does not predict the split.
@@ -398,6 +405,9 @@ def _marks_like_punct(ch: str) -> bool:
     because the marker sits on the `？` side, while `1？。 1` and `1 。？1` are one over if the run
     is judged as a whole.
 
+    The category test misses the block's own symbols, which read the same way; `IDEOGRAPHIC_SYMBOLS`
+    carries them.
+
     Astral characters are excluded too: an emoji takes no border marker, so it must not be the
     punct kind either. A format character in front of one would otherwise be glued into a single
     markerless sub-run and lose the ⟨bow⟩ it is entitled to.
@@ -408,7 +418,8 @@ def _marks_like_punct(ch: str) -> bool:
     if is_separator(ch):
         return True
     cat = unicodedata.category(ch)
-    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and cat.startswith("P")
+    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and (cat.startswith("P")
+                                                         or ch in IDEOGRAPHIC_SYMBOLS)
     return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not ideographic_punct
 
 

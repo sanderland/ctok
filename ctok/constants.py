@@ -40,6 +40,11 @@ WORDY, HARD, DIGIT, PUNCT, SPACE = "wordy", "hard", "digit", "punct", "space"
 # is hard). Anything unlisted stays HARD.
 PUNCT_SYMS = frozenset("—»«•°„–−£§€…√→（№†└│།·─═█")
 
+# The category-So members of CJK Symbols and Punctuation, which `_marks_like_punct` reaches by
+# category P and so left marked. Each measured markerless on six frames in both families.
+IDEOGRAPHIC_SYMBOLS = frozenset("〄〒〓〠〶〷〾〿")
+
+
 # Symbol-letters measured to take the full word model (⟨bow⟩ and ⟨eow⟩ flanks, seam absorption, case
 # markers) exactly like Latin letters. Enumerated blocks: category Nl/So/Lu splits both ways, and
 # the Hangzhou numerals (also Nl) measured markerless, so it is the block that predicts, not the
