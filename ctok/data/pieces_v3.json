@@ -48,9 +48,9 @@
     "glued": 1110,
     "mark_mid": 26,
     "mark_sep": 22,
-    "mid": 4766,
+    "mid": 4768,
     "prefix": 467,
-    "raw": 6507,
+    "raw": 6508,
     "special": 4,
     "word": 13253
    }
@@ -45802,7 +45802,10 @@
    "⟨bow⟩reșed": {"probe": ".reședヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩strugg": {"probe": ".struggヲ.", "raw": 13, "kind": "bow"},
    "⟨shift⟩⟨bow⟩geometridae⟨eow⟩": {"probe": "Geometridae", "raw": 8, "kind": "raw"},
-   "しし": {"probe": ".ヲししヲ.", "raw": 16, "kind": "mid"}
+   "しし": {"probe": ".ヲししヲ.", "raw": 16, "kind": "mid"},
+   "հհ": {"probe": ".ヲհհヲ.", "raw": 16, "kind": "mid"},
+   "ււ": {"probe": ".ヲււヲ.", "raw": 16, "kind": "mid"},
+   "⟨shift⟩⟨bow⟩moths⟨eow⟩": {"probe": "Moths", "raw": 8, "kind": "raw"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
