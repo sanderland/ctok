@@ -48,9 +48,9 @@
     "glued": 1110,
     "mark_mid": 26,
     "mark_sep": 22,
-    "mid": 4766,
+    "mid": 4778,
     "prefix": 467,
-    "raw": 6507,
+    "raw": 6508,
     "special": 4,
     "word": 13253
    }
@@ -45802,7 +45802,20 @@
    "⟨bow⟩reșed": {"probe": ".reședヲ.", "raw": 13, "kind": "bow"},
    "⟨bow⟩strugg": {"probe": ".struggヲ.", "raw": 13, "kind": "bow"},
    "⟨shift⟩⟨bow⟩geometridae⟨eow⟩": {"probe": "Geometridae", "raw": 8, "kind": "raw"},
-   "しし": {"probe": ".ヲししヲ.", "raw": 16, "kind": "mid"}
+   "しし": {"probe": ".ヲししヲ.", "raw": 16, "kind": "mid"},
+   "հհ": {"probe": ".ヲհհヲ.", "raw": 16, "kind": "mid"},
+   "ււ": {"probe": ".ヲււヲ.", "raw": 16, "kind": "mid"},
+   "⟨shift⟩⟨bow⟩moths⟨eow⟩": {"probe": "Moths", "raw": 8, "kind": "raw"},
+   "らら": {"probe": ".ヲららヲ.", "raw": 16, "kind": "mid"},
+   "をを": {"probe": ".ヲををヲ.", "raw": 16, "kind": "mid"},
+   "ググ": {"probe": ".ヲググヲ.", "raw": 16, "kind": "mid"},
+   "みみ": {"probe": ".ヲみみヲ.", "raw": 16, "kind": "mid"},
+   "うう": {"probe": ".ヲううヲ.", "raw": 16, "kind": "mid"},
+   "ババ": {"probe": ".ヲババヲ.", "raw": 16, "kind": "mid"},
+   "ัั": {"probe": ".ヲััヲ.", "raw": 16, "kind": "mid"},
+   "ูู": {"probe": ".ヲููヲ.", "raw": 16, "kind": "mid"},
+   "េេ": {"probe": ".ヲេេヲ.", "raw": 16, "kind": "mid"},
+   "ីី": {"probe": ".ヲីីヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
