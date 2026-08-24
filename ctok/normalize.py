@@ -42,7 +42,17 @@ def _lower(text: str) -> str:
 
 
 def _is_upper(c: str) -> bool:
-    return c not in _UNCASED and (c in _NEW_CASE_PAIRS or c.isupper())
+    """Whether the models treat ``c`` as a capital — which is a question about MAPPING, not category.
+
+    Unicode calls `ϓ`, `ϒ`, `ℂ` and `ℳ` uppercase letters, but none of them has a lowercase form to
+    map to. Measured, the models read such a character as caseless: `Dϓ` keeps its ⟨shift⟩ over an
+    unchanged tail (16) where a real two-capital run kill-shifts to a literal spelling (`DDϓ`, 16).
+    Category alone spells `Dϓ` literally and comes out one token short. `Ⲁ` and `Ϗ` are the control
+    — uppercase AND lowerable, so they kill the shift, and both read exact under either rule.
+    """
+    if c in _UNCASED:
+        return False
+    return c in _NEW_CASE_PAIRS or (c.isupper() and _lower(c) != c)
 
 
 def _is_lower(c: str) -> bool:
