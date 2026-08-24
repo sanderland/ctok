@@ -48,7 +48,7 @@
     "glued": 1110,
     "mark_mid": 26,
     "mark_sep": 22,
-    "mid": 4774,
+    "mid": 4778,
     "prefix": 467,
     "raw": 6508,
     "special": 4,
@@ -45811,7 +45811,11 @@
    "ググ": {"probe": ".ヲググヲ.", "raw": 16, "kind": "mid"},
    "みみ": {"probe": ".ヲみみヲ.", "raw": 16, "kind": "mid"},
    "うう": {"probe": ".ヲううヲ.", "raw": 16, "kind": "mid"},
-   "ババ": {"probe": ".ヲババヲ.", "raw": 16, "kind": "mid"}
+   "ババ": {"probe": ".ヲババヲ.", "raw": 16, "kind": "mid"},
+   "ัั": {"probe": ".ヲััヲ.", "raw": 16, "kind": "mid"},
+   "ูู": {"probe": ".ヲููヲ.", "raw": 16, "kind": "mid"},
+   "េេ": {"probe": ".ヲេេヲ.", "raw": 16, "kind": "mid"},
+   "ីី": {"probe": ".ヲីីヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
