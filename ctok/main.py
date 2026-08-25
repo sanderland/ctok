@@ -194,9 +194,8 @@ def marked_stream(text: str, version: str = "3.0") -> str:
     return render_marked(stream(_require_text(text), _model(_family(version))))
 
 
-# Both generations, shown side by side when no version is asked for: the two differ enough on the
-# same string — case marking, vocabulary, frame size — that one alone invites reading a v3 count as
-# "the" Claude count.
+# Both generations when no version is asked for. Case marking, vocabulary and frame size all differ
+# between them, so one number alone invites reading a v3 count as "the" Claude count.
 DEFAULT_VERSIONS = ("3.0", "5.0")
 
 

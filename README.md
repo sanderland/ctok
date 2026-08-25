@@ -9,9 +9,9 @@ the model is described in [On the biology of Claude's tokenizer](https://tokenco
 
 ## Count a string
 
-No install needed — [`ctok` is on PyPI](https://pypi.org/project/ctok/), so `uvx` will fetch and run
-it. With no `--version` it reports both generations, because the same string does not cost the same
-on each:
+[`ctok` is on PyPI](https://pypi.org/project/ctok/), so `uvx` fetches and runs it with no install.
+With no `--version` it reports both generations, since the same string does not cost the same on
+each.
 
 ```bash
 uvx ctok "hello, world"
