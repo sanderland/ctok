@@ -36,7 +36,7 @@
       "coverage": {
         "bow": 3345,
         "cased_bow": 201,
-        "char": 2370,
+        "char": 2371,
         "contraction": 4,
         "digit_bow": 5,
         "digit_eow": 93,
@@ -46,7 +46,7 @@
         "glued": 1110,
         "mark_mid": 20,
         "mark_sep": 21,
-        "mid": 2380,
+        "mid": 2382,
         "prefix": 468,
         "raw": 2116,
         "special": 3,
@@ -13281,7 +13281,9 @@
       "うう": {"probe": ".ヲううヲ.", "raw": 20, "kind": "mid"},
       "ババ": {"probe": ".ヲババヲ.", "raw": 20, "kind": "mid"},
       "ัั": {"probe": ".ヲััヲ.", "raw": 20, "kind": "mid"},
-      "ูู": {"probe": ".ヲููヲ.", "raw": 20, "kind": "mid"}
+      "ูู": {"probe": ".ヲููヲ.", "raw": 20, "kind": "mid"},
+      "étét": {"probe": ".ヲététヲ.", "raw": 20, "kind": "mid"},
+      "ивив": {"probe": ".ヲививヲ.", "raw": 20, "kind": "mid"}
     },
     "ascii_digits": {
       "0": {"probe": "a0b", "raw": 14, "kind": "glued"},
@@ -14815,7 +14817,8 @@
       ">#⟨eow⟩": {"probe": "1># a", "raw": 15, "kind": "digit_eow"},
       "························": {"probe": "1························1", "raw": 15, "kind": "digit_mid"},
       "································": {"probe": "1································1", "raw": 15, "kind": "digit_mid"},
-      "././": {"probe": "1././1", "raw": 15, "kind": "digit_mid"}
+      "././": {"probe": "1././1", "raw": 15, "kind": "digit_mid"},
+      "････": {"probe": "a････a", "raw": 14, "kind": "char"}
     },
     "whitespace": {
       "\t": {"probe": "1\t1", "raw": 15, "kind": "digit_mid"},

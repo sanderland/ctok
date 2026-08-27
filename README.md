@@ -7,13 +7,33 @@ The reconstruction targets counts. Claude does not expose token boundaries, so `
 one valid minimum-cost tiling, not a claim about Anthropic's exact segmentation. The research behind
 the model is described in [On the biology of Claude's tokenizer](https://tokencontributions.substack.com/p/on-the-biology-of-claudes-tokenizer).
 
-## Install
+## Count a string
+
+[`ctok` is on PyPI](https://pypi.org/project/ctok/), so `uvx` fetches and runs it with no install.
+With no `--version` it reports both generations, since the same string does not cost the same on
+each.
 
 ```bash
-pip install ctok
+uvx ctok "hello, world"
 ```
 
-## Quick start
+```
+  v3.0
+  stream: '⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩'
+  tokens: ['⟨bow⟩hello⟨eow⟩', ',⟨eow⟩', '⟨bow⟩world⟨eow⟩']
+
+  content 3 + frame 7 = 10
+
+  v5.0
+  stream: '⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩'
+  tokens: ['⟨bow⟩h', 'ello⟨eow⟩', ',⟨eow⟩', '⟨bow⟩world⟨eow⟩']
+
+  content 4 + frame 6 = 10
+```
+
+`--version 4.7` picks one family instead.
+
+## As a library
 
 ```python
 from ctok import token_count, tokenize
@@ -24,12 +44,6 @@ token_count("hello, world", "5.0")    # 10
 
 tokens = tokenize("NASA likes tokenizers")
 assert len(tokens) == token_count("NASA likes tokenizers")
-```
-
-The command-line interface prints the marked stream and its tiling:
-
-```bash
-ctok "hello, world"
 ```
 
 ## Supported families
@@ -92,13 +106,13 @@ uv run python tests/gates.py
 
 ## Vocabulary evidence
 
-The two vocabulary files contain 48,706 v3 pieces and 15,256 v4.7 pieces. Every entry has a fixed
+The two vocabulary files contain 48,792 v3 pieces and 15,283 v4.7 pieces. Every entry has a fixed
 membership witness or is one of the structural marker atoms checked by the test suite.
 
 ```python
 from ctok import pieces, witness
 
-len(pieces("4.7"))                       # 15256
+len(pieces("4.7"))                       # 15283
 witness("⟨bow⟩the⟨eow⟩", "4.7")
 # {'probe': 'the', 'raw': 12, 'kind': 'raw'}
 ```

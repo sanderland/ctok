@@ -194,20 +194,35 @@ def marked_stream(text: str, version: str = "3.0") -> str:
     return render_marked(stream(_require_text(text), _model(_family(version))))
 
 
+# Both generations when no version is asked for. Case marking, vocabulary and frame size all differ
+# between them, so one number alone invites reading a v3 count as "the" Claude count.
+DEFAULT_VERSIONS = ("3.0", "5.0")
+
+
+def _report(text: str, version: str, *, label: bool) -> None:
+    """One family's reading of ``text``: the marked stream, the content tokens, and the arithmetic."""
+    overhead = _model(_family(version)).message_overhead
+    tokens = tokenize(text, version=version)
+    if label:
+        print(f"  v{version}")
+    print(f"  stream: {marked_stream(text, version=version)!r}")
+    print(f"  tokens: {tokens[overhead:]!r}")
+    print(f"\n  content {len(tokens) - overhead} + frame {overhead} = {len(tokens)}")
+
+
 def main(argv=None) -> None:
     """The ``ctok`` command: count a string and show how it tiles."""
     ap = argparse.ArgumentParser(prog="ctok", description="Claude tokenizer count tool")
     ap.add_argument("text")
-    ap.add_argument("--version", default="3.0",
-                    help='tokenizer version (default "3.0"; "4.7" and "5.0" also available)')
+    ap.add_argument("--version", default=None,
+                    help='tokenizer version (default: both "3.0" and "5.0"; "4.7" also available)')
     args = ap.parse_args(argv)
 
-    overhead = _model(_family(args.version)).message_overhead
-    tokens = tokenize(args.text, version=args.version)
-
-    print(f"  stream: {marked_stream(args.text, version=args.version)!r}")
-    print(f"  tokens: {tokens[overhead:]!r}")
-    print(f"\n  content {len(tokens) - overhead} + frame {overhead} = {len(tokens)}")
+    versions = [args.version] if args.version else list(DEFAULT_VERSIONS)
+    for i, version in enumerate(versions):
+        if i:
+            print()
+        _report(args.text, version, label=len(versions) > 1)
 
 
 if __name__ == "__main__":

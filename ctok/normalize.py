@@ -42,7 +42,11 @@ def _lower(text: str) -> str:
 
 
 def _is_upper(c: str) -> bool:
-    return c not in _UNCASED and (c in _NEW_CASE_PAIRS or c.isupper())
+    """A capital is one that lowers to something else. `ϓ`, `ϒ`, `ℂ` and `ℳ` are category Lu with
+    no lowercase form, and measure as caseless."""
+    if c in _UNCASED:
+        return False
+    return c in _NEW_CASE_PAIRS or (c.isupper() and _lower(c) != c)
 
 
 def _is_lower(c: str) -> bool:
