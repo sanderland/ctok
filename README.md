@@ -63,6 +63,10 @@ v4.8 and v5 use the v4.7 vocabulary with different message frames. Both drop v4.
 overhead to six and lose the frame's trailing `⟨bow⟩`; they part only at the tail, where v4.8
 keeps v4.7's newline ladder and v5 absorbs any trailing ASCII whitespace.
 
+The frame is measured per model, not per version number, and the two do not always agree.
+Claude Sonnet 5 and Claude Fable 5 count with the **v4.8** frame, not v5's: ask for `"4.8"` for
+those two, or a message whose content ends in whitespace reads one token short.
+
 ## How it works
 
 For one user message, `ctok`:
