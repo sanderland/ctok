@@ -30,8 +30,8 @@ from ctok.main import FAMILIES, _vocabulary, token_count
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# v5 is not gated here: it reads v4.7's vocabulary and differs only in its message
-# frame, so it lands on the same documents with the same errors. The frame rules are pinned in
+# v4.8 and v5 are not gated here: both read v4.7's vocabulary and differ only in their message
+# frame, so they land on the same documents with the same errors. The frame rules are pinned in
 # `test_api.py`, and `test_v5_tracks_v4_7_document_for_document` asserts the equality this rests
 # on; if v5 ever stops tracking v4.7, that test fails and v5 comes back into this table.
 GATES: dict[str, dict] = {

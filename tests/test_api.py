@@ -217,10 +217,11 @@ def test_dotted_capital_i_uses_the_ordinary_unit_piece():
 
 def test_version_routing():
     assert _family("3.0") == _family("3.5") == _family("4.6") == "v3"
-    assert _family("4.7") == _family("4.8") == _family("4.9") == "v4.7"
+    assert _family("4.7") == "v4.7"
+    assert _family("4.8") == _family("4.9") == "v4.8"
     assert _family("5.0") == _family("5") == "v5"
     # Dotted-integer comparison, not decimal: "4.10" sorts after "4.9", not below "4.2".
-    assert _family("4.10") == "v4.7"
+    assert _family("4.10") == "v4.8"
     assert _family("4.1") == "v3"
 
 
@@ -229,6 +230,38 @@ def test_version_must_be_a_string():
     for bad in (4.7, 5, None, ["4.7"]):
         with pytest.raises(TypeError):
             _family(bad)
+
+
+def test_v4_8_borrows_the_v4_7_vocabulary_under_its_own_frame():
+    """v4.8 reads v4.7's pieces with its own measured message frame: v5's six-token overhead
+    and bow-less head, and v4.7's newline ladder at the tail."""
+    assert FAMILIES["v4.8"].pieces == FAMILIES["v4.7"].pieces
+    assert token_count("hello, world", "4.8") == token_count("hello, world", "4.7") - 5
+    assert token_count("hello, world", "4.8") == token_count("hello, world", "5.0")
+
+
+def test_the_v4_8_frame_ends_in_no_bow():
+    """v4.8 has no frame ⟨bow⟩, exactly as v5 has none: the digit and the ideograph open for
+    free, and a single leading space is a character like any other."""
+    assert token_count("123", "4.8") == token_count("123", "4.7") - 6
+    assert token_count("日本", "4.8") == token_count("日本", "4.7") - 6
+    assert token_count(" a", "4.8") == token_count("a", "4.8") + 1
+
+
+# (trailing run, what it costs v4.8). Each number is a recorded `claude-opus-4-8` measurement.
+V4_8_TAILS = [(" ", 1), ("   ", 1), (" " * 50, 4), ("\t", 1), ("\n" * 29, 1), (" \n\t \n", 4),
+              ("\n", 0), ("\r\n", 0)]
+
+
+def test_the_v4_8_frame_keeps_the_newline_ladder():
+    """The tail is the one place v4.8 and v5 part. v4.8 keeps v4.7's ladder, so a space, a tab
+    or a long newline run costs it, where v5 absorbs every kind of trailing ASCII whitespace at
+    every length. A short trailing NEWLINE run is free on the ladder too, which is what makes it
+    a ladder and not a flat charge."""
+    base48, base5 = token_count("hello world", "4.8"), token_count("hello world", "5.0")
+    for tail, cost in V4_8_TAILS:
+        assert token_count("hello world" + tail, "4.8") == base48 + cost, repr(tail)
+        assert token_count("hello world" + tail, "5.0") == base5, repr(tail)
 
 
 def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
@@ -329,7 +362,7 @@ SPACE_RUN_ROWS = [("4.7", "]" + " " * 17 + "i", 5), ("4.7", "a" + " " * 17 + "b"
 
 # A message whose content strips to nothing is pinned to the measured count, not to another
 # stripped message. A relative comparison cannot fail because both sides move together.
-FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
+FRAME_ONLY = {"3.0": 8, "4.7": 12, "4.8": 6, "5.0": 6}
 
 
 @pytest.mark.parametrize("version, expected", sorted(FRAME_ONLY.items()))
@@ -339,7 +372,7 @@ def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected)
     assert token_count(text, version=version) == expected
 
 
-@pytest.mark.parametrize("version", ["3.0", "4.7", "5.0"])
+@pytest.mark.parametrize("version", ["3.0", "4.7", "4.8", "5.0"])
 def test_private_use_characters_are_stripped(version: str):
     """A BMP private-use codepoint is deleted like the C0/C1 controls. It costs nothing and
     joins its neighbours into one word. An astral private-use codepoint is not stripped and pays

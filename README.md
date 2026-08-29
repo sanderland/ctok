@@ -55,10 +55,13 @@ raises `TypeError`.
 | requested version | family | model generation |
 |---|---|---|
 | `"3.0" <= version < "4.7"` | v3, the default | Claude 3 through Opus 4.6 |
-| `"4.7" <= version < "5.0"` | v4.7 | Opus 4.7 through 4.9 |
-| `version >= "5.0"` | v5 | Opus 5 and Sonnet 5 |
+| `"4.7" <= version < "4.8"` | v4.7 | Opus 4.7 |
+| `"4.8" <= version < "5.0"` | v4.8 | Opus 4.8 |
+| `version >= "5.0"` | v5 | Opus 5 |
 
-v5 uses the v4.7 vocabulary with a different message frame.
+v4.8 and v5 use the v4.7 vocabulary with different message frames. Both drop v4.7's eleven-token
+overhead to six and lose the frame's trailing `⟨bow⟩`; they part only at the tail, where v4.8
+keeps v4.7's newline ladder and v5 absorbs any trailing ASCII whitespace.
 
 ## How it works
 
@@ -90,8 +93,8 @@ These results compare `ctok` with recorded `count_tokens` responses:
 | Rosetta Code, separate 250 documents | held out | 250 | 250 |
 | UDHR, 501 languages | mining (in-sample since 2026-08-12) | 501 | 501 |
 
-v5 is omitted from the table because its deviation from recorded counts matches v4.7's on every
-gated document. Separate API tests cover its message-frame rules.
+v4.8 and v5 are omitted from the table because their deviation from recorded counts matches
+v4.7's on every gated document. Separate API tests cover their message-frame rules.
 
 The stored measurement sets contain no under-counts: 0 of 2,276,929 v3 texts and 0 of 2,328,425
 v4.7 texts. This does not guarantee the result for arbitrary input. Goldfish, the main Rosetta

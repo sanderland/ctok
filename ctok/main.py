@@ -29,7 +29,10 @@ class Family:
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", (3, 0)),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
-    # v5 reuses v4.7's vocabulary; only the message frame differs. Sonnet 5 counts like Opus 5.
+    # v4.8 and v5 reuse v4.7's vocabulary; only the message frame differs. Opus 4.8 shares v5's
+    # six-token overhead and bow-less frame, and keeps v4.7's newline ladder at the tail.
+    "v4.8": Family("pieces_v4_7.json", "claude-opus-4-8", (4, 8),
+                   (("message_overhead", 6), ("frame_bow", False))),
     "v5": Family("pieces_v4_7.json", "claude-opus-5", (5, 0),
                  (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
 }
@@ -55,8 +58,8 @@ def _at_least(v: tuple[int, ...], base: tuple[int, ...]) -> bool:
 
 
 def _family(version: str) -> str:
-    """Route a requested version to its family key: [3.0, 4.7) → v3, [4.7, 5.0) → v4.7,
-    [5.0, ∞) → v5."""
+    """Route a requested version to its family key: [3.0, 4.7) → v3, [4.7, 4.8) → v4.7,
+    [4.8, 5.0) → v4.8, [5.0, ∞) → v5."""
     v = _parse_version(version)
     for base, key in _FAMILY_BASES:
         if _at_least(v, base):
@@ -215,7 +218,8 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="ctok", description="Claude tokenizer count tool")
     ap.add_argument("text")
     ap.add_argument("--version", default=None,
-                    help='tokenizer version (default: both "3.0" and "5.0"; "4.7" also available)')
+                    help='tokenizer version (default: both "3.0" and "5.0"; "4.7" and "4.8" '
+                         'also available)')
     args = ap.parse_args(argv)
 
     versions = [args.version] if args.version else list(DEFAULT_VERSIONS)
