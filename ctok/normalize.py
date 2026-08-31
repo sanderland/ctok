@@ -12,14 +12,13 @@ from __future__ import annotations
 from functools import cache
 import unicodedata
 
+import regex
+
 from .constants import (
     BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     ESCAPED_MARKER_LITERALS,
-    SEPARATOR_SIGNS, FUNNY_SPACE,
-    LITERAL_MARKER_ESCAPE_TABLE,
-    NON_SEPARATORS,
-    HARD, IDEOGRAPHIC_SYMBOLS, PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SEPARATOR_ANNOTATIONS,
-    SEPARATOR_MARKS, SHIFT_G, SPACE,
+    FUNNY_SPACE, HARD, IDEOGRAPHIC_SYMBOLS, LITERAL_MARKER_ESCAPE_TABLE,
+    PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
     SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
 )
@@ -35,6 +34,7 @@ _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 # costs 3. Not ẞ's blanket block below — `Θϴ` still takes its ⟨shift⟩ — so it drops out of the
 # cased set instead.
 _UNCASED = frozenset("\u03f4")
+_ALPHABETIC = regex.compile(r"\p{Alphabetic}")
 
 
 def _lower(text: str) -> str:
@@ -95,8 +95,6 @@ def is_hard_cp(o: int) -> bool:
 @cache
 def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
-    if is_separator(c):
-        return HARD          # separates word runs; `_marks_like_punct` claims its borders
     if c in _NEW_CASED:
         return WORDY
     o = ord(c)
@@ -116,13 +114,14 @@ def classify(c: str) -> str:
     if VARIATION_SELECTORS[0] <= o <= VARIATION_SELECTORS[1]:
         return HARD                   # gc=Mn, but they take no word model at all
     if o == 0x0CF3:
-        # KANNADA SIGN COMBINING ANUSVARA ABOVE RIGHT, assigned in Unicode 15.0: `unicodedata`
-        # with older tables reports Cn, which would drop it to HARD. Measured as plain word
-        # material (Mc, ccc 0), so pin it WORDY.
+        # KANNADA SIGN COMBINING ANUSVARA ABOVE RIGHT is Alphabetic. Python 3.12 predates its
+        # Unicode assignment, so pin it rather than reading it as an unassigned hard character.
         return WORDY
-    if cat[0] in ("L", "M") and not is_hard_cp(o):
-        # Brahmic scripts are subsumed into WORDY: they tile over the same marked-fragment
-        # vocabulary plus the per-codepoint byte floor as any other letter script.
+    if cat[0] == "M":
+        # The source models take every astral codepoint through the isolated HARD path. The
+        # Alphabetic result is exact for their BMP mark split only.
+        return WORDY if o < 0x10000 and _ALPHABETIC.fullmatch(c) else HARD
+    if cat[0] == "L" and not is_hard_cp(o):
         return WORDY
     return HARD
 
@@ -282,35 +281,23 @@ def _digit_eow(body: str) -> bool:
 
 
 def is_separator(c: str) -> bool:
-    """A mark that terminates the orthographic syllable, and so separates word runs.
+    """Whether ``c`` is a non-Alphabetic mark that closes a word run.
 
-    Three populations: viramas (defined by canonical combining class 9, not listed), the measured
-    ranges of the combining blocks (:data:`SEPARATOR_MARKS`, :data:`SEPARATOR_ANNOTATIONS`), and
-    the enumerated ``SEPARATOR_SIGNS``. These include Thai and Lao tone marks, nukta, the Khmer consonant
-    shifters and their kin, which no combining-class rule picks out. What they share is
-    orthographic: written after the syllable, like a virama, where the vowel signs that do not
-    split are written inside it.
-
-    Every separator stands outside the word: `⟨bow⟩C⟨eow⟩ sep ⟨bow⟩X⟨eow⟩`. One ccc-9 character
-    dissents (:data:`NON_SEPARATORS`, U+0E3A THAI PHINTHU): measured over as a separator on its own
-    script's consonants and under wherever no letter precedes it, so it is an ordinary mark.
+    Claude's split is Unicode's derived ``Alphabetic`` property, not a hand-written orthographic
+    rule: an Alphabetic mark stays with the word; every other BMP mark is a separator. Variation
+    selectors are the separate exception, riding their base without taking word boundaries.
     """
-    return (unicodedata.combining(c) == 9 and c not in NON_SEPARATORS
-            or c in SEPARATOR_SIGNS
-            or bool(SEPARATOR_MARKS.fullmatch(c))
-            or bool(SEPARATOR_ANNOTATIONS.fullmatch(c)))
+    return (ord(c) < 0x10000 and unicodedata.category(c).startswith("M") and not _is_selector(c)
+            and not _ALPHABETIC.fullmatch(c))
 
 
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
-    The letter alternative in a pretokenizer regex is conventionally ``\p{L}\p{M}*``: a letter
-    and the marks that hang off it, not ``\p{L}+``. Read literally, that alternative cannot match
-    a mark with no letter in front of it, so such a mark is left to the catch-all class along with
-    the punctuation and symbols. This fires only where a mark's base is not a letter: after a
-    symbol, a digit, punctuation, an ideograph, an emoji, or at the start of the text. Measured
-    against the alternatives on the corpora, this distinction is the only one they support (marks
-    are letters when they follow one; treating them as punctuation shatters every accented word).
+    For BMP marks, Claude behaves as though its word alternative were ``\p{Alphabetic}+``. An
+    Alphabetic mark with no preceding base opens a word-like run after a symbol, digit,
+    punctuation, ideograph, emoji, or at text start.
+    A non-Alphabetic mark is already a separator and belongs to the catch-all branch.
 
     Only a BMP mark reaches this branch: an astral one is HARD and takes no word model at all
     (:func:`is_hard_cp`), and a syllable-terminating mark is a separator (:func:`is_separator`).
@@ -331,13 +318,11 @@ def _syriac_vowel(c: str) -> bool:
 
 
 def _runs(norm: str) -> list[tuple[str, str]]:
-    """The text split into maximal same-class runs, with terminal marks as unmarked separators.
+    """Split text into maximal same-class runs.
 
-    A separator does not close a word *after itself*. It stands outside the word: the preceding
-    WORDY run closes before the mark and a following WORDY run opens after it. Thus ``C sep X``
-    is written ``⟨bow⟩C⟨eow⟩ sep ⟨bow⟩X⟨eow⟩``. This factorization explains word-final and
-    standalone marks without ``sep⟨eow⟩`` pieces or a stacked-separator exception. Separators are
-    HARD, punct-kind characters: they take punctuation's border markers at space borders.
+    A non-Alphabetic mark stands outside a word: ``C mark X`` becomes
+    ``⟨bow⟩C⟨eow⟩ mark ⟨bow⟩X⟨eow⟩``. It is a HARD, punctuation-kind run, so spaces beside it
+    follow the normal border and seam rules.
     """
     if not norm:
         return []

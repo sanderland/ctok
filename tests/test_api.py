@@ -1,12 +1,15 @@
 """The public API contract, normalization rules, and recorded edge cases."""
 
 import random
+import unicodedata
 
 import pytest
+import regex
 
 from ctok import marked_stream, normalize, token_count, tokenize
-from ctok.constants import PAD
+from ctok.constants import HARD, PAD, WORDY
 from ctok.main import FAMILIES, _family, _model
+from ctok.normalize import classify, is_separator
 
 # Inputs that have historically been edge cases, or would crash a naive byte path.
 ADVERSARIAL = [
@@ -58,10 +61,10 @@ def test_marked_stream_is_the_one_intermediate():
 
 
 # ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in
-# both families. Separator marks stand outside the word; combining accents separate words exactly
-# as viramas do (U+0345 and U+0363 to U+036F stay inside and pin the range); a Syriac vowel point
-# after a separator is a word-forming letter; an unattached mark run is a word that a following
-# letter continues. Every content number is a recorded measurement.
+# both families. Claude's word class is Unicode Alphabetic: non-Alphabetic marks stand outside;
+# Alphabetic marks stay inside. A Syriac vowel point after a separator is a word-forming letter;
+# an unattached Alphabetic mark run is a word that a following letter continues. Every content
+# number is a recorded measurement.
 MARK_ROWS = [
     # separator marks stand outside word boundaries; at a single-space border the separator
     # takes punctuation's right-hand ⟨eow⟩ and the seam then deletes the space
@@ -69,7 +72,7 @@ MARK_ROWS = [
     ("क्ष", "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩", None),
     ("क् ष", "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩", None),
     ("्", "⟨bow⟩्", None),
-    # a Latin accent separates exactly as a virama does (`constants.SEPARATOR_MARKS`)
+    # U+0301 and U+030A are not Alphabetic; U+0345 and U+0363 are.
     ("h\u0301b", "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩", None),
     ("h\u030ab", "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩", None),
     ("h\u0345b", "⟨bow⟩hͅb⟨eow⟩", None),
@@ -134,6 +137,25 @@ def test_marks_and_boundaries(version, text, stream, content):
     if content is not None:
         overhead = _model(_family(version)).message_overhead
         assert token_count(text, version) - overhead == content
+
+
+def test_bmp_mark_class_is_unicode_alphabetic():
+    """The apparent script-specific separator law is exactly Unicode ``Alphabetic``.
+
+    This exhaustive check is the evidence for using the regex property rather than maintaining
+    accent, virama, tone-mark, and annotation tables by hand.
+    """
+    for codepoint in range(0x10000):
+        char = chr(codepoint)
+        if not unicodedata.category(char).startswith("M"):
+            continue
+        alphabetic = bool(regex.fullmatch(r"\p{Alphabetic}", char))
+        assert (classify(char) == WORDY) is alphabetic
+        if 0xFE00 <= codepoint <= 0xFE0F:
+            assert not is_separator(char)
+        else:
+            assert is_separator(char) is not alphabetic
+        assert classify(char) in (WORDY, HARD)
 
 
 def test_the_accent_spelling_does_not_depend_on_the_host():

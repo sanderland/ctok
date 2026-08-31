@@ -65,7 +65,9 @@ v5 uses the v4.7 vocabulary with a different message frame.
 For one user message, `ctok`:
 
 1. normalizes the text, including NFC and family-specific quote folding;
-2. rewrites it into a stream with word, case, and byte markers;
+2. rewrites it into a stream with word, case, and byte markers. For BMP combining marks, Unicode
+   `Alphabetic` decides the split: Alphabetic marks stay with the word and other marks stand
+   outside it;
 3. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback;
 4. adds the measured message frame.
 

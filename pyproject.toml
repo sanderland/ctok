@@ -6,7 +6,9 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "regex>=2024.0.0",
+]
 authors = [
     { name = "Sander Land" },
 ]
