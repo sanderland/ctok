@@ -160,15 +160,14 @@ def char_cost(model, ch: str) -> int:
 
 
 def frame_tail(n: int, model) -> list[str]:
-    """What a content-final run of ``n`` frame-absorbed characters costs beyond the frame's own
-    trailing token. Ladder families only; on v5 trailing whitespace is simply free.
+    """What a content-final run of ``n`` newlines costs beyond the frame's own trailing token.
 
     The frame appends ⏎⏎ after the content and one token can span into it, so the run the
     tokenizer sees is ``n + 2`` newlines, of which the frame already pays for one token. The cost
     is therefore not monotonic in ``n`` (28 trailing newlines are free, 29 cost one). Exact on all
     40 recorded rows; beyond 40 it rests on the vocabulary's newline ladder being complete.
     """
-    if n == 0 or model.frame_tail != "ladder":
+    if n == 0:
         return []
     run = "\n" * (n + 2)
 
@@ -182,14 +181,8 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     Tokens are internal-form: ``str`` for a vocabulary piece or marker, ``bytes`` for a
     sub-character chunk. ``len(tokens) == cost``.
     """
-    if model.frame_tail == "ladder":
-        norm = nfc(text, fold_quotes=model.fold_quotes)
-        n_tail = len(norm) - len(norm.rstrip(model.frame_strip))
-    else:
-        # The frame absorbs raw ASCII whitespace, so strip before NFC: `nfc` folds NBSP etc. to
-        # U+0020, and those are not free at the end (`'a\xa0'` costs one more than `'a'`).
-        norm = nfc(text.rstrip(model.frame_strip), fold_quotes=model.fold_quotes)
-        n_tail = 0
+    norm = nfc(text, fold_quotes=model.fold_quotes)
+    n_tail = len(norm) - len(norm.rstrip("\n"))
     s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
     tail = frame_tail(n_tail, model)
     if not s:

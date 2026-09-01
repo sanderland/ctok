@@ -1,7 +1,7 @@
 # ctok
 
-`ctok` reconstructs Claude token counts offline, with no API call, network access, or runtime
-dependencies. It is unofficial and is not affiliated with Anthropic.
+`ctok` reconstructs Claude token counts offline, with no API call or network access. It is
+unofficial and is not affiliated with Anthropic.
 
 The reconstruction targets counts. Claude does not expose token boundaries, so `tokenize()` returns
 one valid minimum-cost tiling, not a claim about Anthropic's exact segmentation. The research behind
@@ -24,7 +24,7 @@ uvx ctok "hello, world"
 
   content 3 + frame 7 = 10
 
-  v5.0
+  v4.8
   stream: '⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩'
   tokens: ['⟨bow⟩h', 'ello⟨eow⟩', ',⟨eow⟩', '⟨bow⟩world⟨eow⟩']
 
@@ -40,7 +40,7 @@ from ctok import token_count, tokenize
 
 token_count("hello, world")           # 10, using the v3 family
 token_count("hello, world", "4.7")    # 15
-token_count("hello, world", "5.0")    # 10
+token_count("hello, world", "4.8")    # 10
 
 tokens = tokenize("NASA likes tokenizers")
 assert len(tokens) == token_count("NASA likes tokenizers")
@@ -55,17 +55,20 @@ raises `TypeError`.
 | requested version | family | model generation |
 |---|---|---|
 | `"3.0" <= version < "4.7"` | v3, the default | Claude 3 through Opus 4.6 |
-| `"4.7" <= version < "5.0"` | v4.7 | Opus 4.7 through 4.9 |
-| `version >= "5.0"` | v5 | Opus 5 and Sonnet 5 |
+| `"4.7" <= version < "4.8"` | v4.7 | Opus 4.7 |
+| `version >= "4.8"` | v4.8 | Opus 4.8, Sonnet 5, and Fable 5 |
 
-v5 uses the v4.7 vocabulary with a different message frame.
+v4.8+ uses the v4.7 vocabulary with a six-token frame. Opus 5 alone makes trailing ASCII
+whitespace free, which ctok intentionally does not model.
 
 ## How it works
 
 For one user message, `ctok`:
 
 1. normalizes the text, including NFC and family-specific quote folding;
-2. rewrites it into a stream with word, case, and byte markers;
+2. rewrites it into a stream with word, case, and byte markers. For BMP combining marks, Unicode
+   `Alphabetic` decides the split: Alphabetic marks stay with the word and non-Alphabetic marks,
+   other than variation selectors, stand outside it;
 3. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback;
 4. adds the measured message frame.
 
@@ -90,8 +93,7 @@ These results compare `ctok` with recorded `count_tokens` responses:
 | Rosetta Code, separate 250 documents | held out | 250 | 250 |
 | UDHR, 501 languages | mining (in-sample since 2026-08-12) | 501 | 501 |
 
-v5 is omitted from the table because its deviation from recorded counts matches v4.7's on every
-gated document. Separate API tests cover its message-frame rules.
+v4.8+ is omitted because the table gates physical vocabularies. It reuses v4.7's vocabulary.
 
 The stored measurement sets contain no under-counts: 0 of 2,276,929 v3 texts and 0 of 2,328,425
 v4.7 texts. This does not guarantee the result for arbitrary input. Goldfish, the main Rosetta

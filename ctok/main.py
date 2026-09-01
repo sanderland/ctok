@@ -29,9 +29,9 @@ class Family:
 FAMILIES: dict[str, Family] = {
     "v3": Family("pieces_v3.json", "claude-opus-4-5", (3, 0)),
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
-    # v5 reuses v4.7's vocabulary; only the message frame differs. Sonnet 5 counts like Opus 5.
-    "v5": Family("pieces_v4_7.json", "claude-opus-5", (5, 0),
-                 (("message_overhead", 6), ("frame_bow", False), ("frame_tail", "free"))),
+    # Opus 4.8 and later models reuse v4.7's vocabulary under a six-token, bow-less frame.
+    "v4.8": Family("pieces_v4_7.json", "claude-opus-4-8", (4, 8),
+                    (("message_overhead", 6), ("frame_bow", False))),
 }
 
 # (base version, family key), highest first.
@@ -55,8 +55,7 @@ def _at_least(v: tuple[int, ...], base: tuple[int, ...]) -> bool:
 
 
 def _family(version: str) -> str:
-    """Route a requested version to its family key: [3.0, 4.7) → v3, [4.7, 5.0) → v4.7,
-    [5.0, ∞) → v5."""
+    """Route a requested version: [3.0, 4.7) → v3, [4.7, 4.8) → v4.7, [4.8, ∞) → v4.8."""
     v = _parse_version(version)
     for base, key in _FAMILY_BASES:
         if _at_least(v, base):
@@ -88,7 +87,7 @@ def _pieces_file(family: str) -> str:
 @cache
 def _model(family: str) -> "TokenizerModel":
     doc = _document(_pieces_file(family))
-    # A family may borrow another's vocabulary file with its own measured scalars (v5 above).
+    # A family may borrow another's vocabulary file with its own measured scalars (v4.8 above).
     # Replace the metadata mapping rather than mutating the cached document.
     family_doc = {**doc, "meta": {**doc["meta"], **dict(FAMILIES[family].meta)}}
     return TokenizerModel(family_doc)
@@ -129,14 +128,9 @@ class TokenizerModel:
         self.message_overhead = meta["message_overhead"]
         self.fold_quotes = meta["fold_quotes"]
         self.allcaps_min = meta["allcaps_min"]
-        # v3 and v4.7 share the defaults. v5 differs at both frame edges.
+        # v3 and v4.7 share the defaults. v4.8 differs at the frame head.
         # frame_bow says whether the frame ends in a ⟨bow⟩ that absorbs one leading space.
-        # frame_tail is "ladder" for the measured newline ladder and "free" when the frame absorbs
-        # all trailing ASCII whitespace.
         self.frame_bow = meta.get("frame_bow", True)
-        self.frame_tail = meta.get("frame_tail", "ladder")
-        # The characters the frame absorbs off the end of the content, per that rule.
-        self.frame_strip = "\n" if self.frame_tail == "ladder" else " \t\n\r\f\v"
 
         tokens = doc["tokens"]
         # Every group is cost-1 pieces except the byte fallback, which holds prefix costs.
@@ -196,7 +190,7 @@ def marked_stream(text: str, version: str = "3.0") -> str:
 
 # Both generations when no version is asked for. Case marking, vocabulary and frame size all differ
 # between them, so one number alone invites reading a v3 count as "the" Claude count.
-DEFAULT_VERSIONS = ("3.0", "5.0")
+DEFAULT_VERSIONS = ("3.0", "4.8")
 
 
 def _report(text: str, version: str, *, label: bool) -> None:
@@ -215,7 +209,7 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="ctok", description="Claude tokenizer count tool")
     ap.add_argument("text")
     ap.add_argument("--version", default=None,
-                    help='tokenizer version (default: both "3.0" and "5.0"; "4.7" also available)')
+                    help='tokenizer version (default: both "3.0" and "4.8"; "4.7" also available)')
     args = ap.parse_args(argv)
 
     versions = [args.version] if args.version else list(DEFAULT_VERSIONS)

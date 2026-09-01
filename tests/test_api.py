@@ -3,10 +3,12 @@
 import random
 
 import pytest
+import regex
 
 from ctok import marked_stream, normalize, token_count, tokenize
-from ctok.constants import PAD
+from ctok.constants import HARD, PAD, WORDY
 from ctok.main import FAMILIES, _family, _model
+from ctok.normalize import classify, is_separator
 
 # Inputs that have historically been edge cases, or would crash a naive byte path.
 ADVERSARIAL = [
@@ -58,10 +60,9 @@ def test_marked_stream_is_the_one_intermediate():
 
 
 # ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in
-# both families. Separator marks stand outside the word; combining accents separate words exactly
-# as viramas do (U+0345 and U+0363 to U+036F stay inside and pin the range); a Syriac vowel point
-# after a separator is a word-forming letter; an unattached mark run is a word that a following
-# letter continues. Every content number is a recorded measurement.
+# both families. For BMP marks, non-Alphabetic marks stand outside and Alphabetic marks stay
+# inside. A Syriac vowel point after a separator is a word-forming letter; an unattached Alphabetic
+# mark run is a word that a following letter continues. Every content number is a recorded measurement.
 MARK_ROWS = [
     # separator marks stand outside word boundaries; at a single-space border the separator
     # takes punctuation's right-hand ⟨eow⟩ and the seam then deletes the space
@@ -69,7 +70,7 @@ MARK_ROWS = [
     ("क्ष", "⟨bow⟩क⟨eow⟩्⟨bow⟩ष⟨eow⟩", None),
     ("क् ष", "⟨bow⟩क⟨eow⟩्⟨eow⟩⟨bow⟩ष⟨eow⟩", None),
     ("्", "⟨bow⟩्", None),
-    # a Latin accent separates exactly as a virama does (`constants.SEPARATOR_MARKS`)
+    # U+0301 and U+030A are not Alphabetic; U+0345 and U+0363 are.
     ("h\u0301b", "⟨bow⟩h⟨eow⟩́⟨bow⟩b⟨eow⟩", None),
     ("h\u030ab", "⟨bow⟩h⟨eow⟩̊⟨bow⟩b⟨eow⟩", None),
     ("h\u0345b", "⟨bow⟩hͅb⟨eow⟩", None),
@@ -134,6 +135,26 @@ def test_marks_and_boundaries(version, text, stream, content):
     if content is not None:
         overhead = _model(_family(version)).message_overhead
         assert token_count(text, version) - overhead == content
+
+
+def test_bmp_mark_class_is_unicode_alphabetic():
+    """Keep the implementation's BMP Mark split aligned with Unicode ``Alphabetic``."""
+    for codepoint in range(0x10000):
+        char = chr(codepoint)
+        if not regex.fullmatch(r"\p{M}", char):
+            continue
+        alphabetic = bool(regex.fullmatch(r"\p{Alphabetic}", char))
+        assert (classify(char) == WORDY) is alphabetic
+        if 0xFE00 <= codepoint <= 0xFE0F:
+            assert not is_separator(char)
+        else:
+            assert is_separator(char) is not alphabetic
+
+
+def test_newer_mark_uses_the_regex_unicode_tables():
+    """U+0897 is unassigned in Python 3.13's Unicode data but a Mark to ``regex``."""
+    assert classify("\u0897") == WORDY
+    assert not is_separator("\u0897")
 
 
 def test_the_accent_spelling_does_not_depend_on_the_host():
@@ -217,10 +238,10 @@ def test_dotted_capital_i_uses_the_ordinary_unit_piece():
 
 def test_version_routing():
     assert _family("3.0") == _family("3.5") == _family("4.6") == "v3"
-    assert _family("4.7") == _family("4.8") == _family("4.9") == "v4.7"
-    assert _family("5.0") == _family("5") == "v5"
+    assert _family("4.7") == "v4.7"
+    assert _family("4.8") == _family("5.0") == _family("5") == "v4.8"
     # Dotted-integer comparison, not decimal: "4.10" sorts after "4.9", not below "4.2".
-    assert _family("4.10") == "v4.7"
+    assert _family("4.10") == "v4.8"
     assert _family("4.1") == "v3"
 
 
@@ -231,35 +252,26 @@ def test_version_must_be_a_string():
             _family(bad)
 
 
-def test_v5_borrows_the_v4_7_vocabulary_under_its_own_frame():
-    """v5 reads v4.7's pieces with its own measured message frame."""
-    assert FAMILIES["v5"].pieces == FAMILIES["v4.7"].pieces
-    assert token_count("hello, world", "5.0") == token_count("hello, world", "4.7") - 5
+def test_v4_8_borrows_v4_7_vocabulary_under_its_own_frame():
+    """v4.8+ reads v4.7's pieces with six frame tokens and no frame ⟨bow⟩."""
+    assert FAMILIES["v4.8"].pieces == FAMILIES["v4.7"].pieces
+    assert token_count("hello, world", "4.8") == token_count("hello, world", "4.7") - 5
+    assert token_count("hello, world", "5.0") == token_count("hello, world", "4.8")
 
 
-def test_the_v5_frame_absorbs_any_trailing_whitespace():
-    """v4.7's frame ends in ⏎⏎ and absorbs a trailing NEWLINE run, on a ladder that charges for
-    some lengths. v5's absorbs every kind of trailing whitespace, at every length, but only the
-    ASCII kind: a trailing NBSP folds to a space in normalization and still costs a token, which is
-    why the strip runs on the raw text."""
-    for tail in (" ", "   ", " " * 50, "\t", "\n", "\n" * 29, "\r\n", " \n\t \n"):
-        assert token_count("hello world" + tail, "5.0") == token_count("hello world", "5.0"), repr(tail)
-    assert token_count("hello world\xa0", "5.0") == token_count("hello world", "5.0") + 1
-    # v4.7 keeps its ladder: 29 trailing newlines cost it a token where v5 pays nothing.
-    assert token_count("hello world" + "\n" * 29, "4.7") == token_count("hello world", "4.7") + 1
-
-
-def test_the_v5_frame_ends_in_no_bow():
+def test_the_v4_8_frame_ends_in_no_bow_and_keeps_the_newline_ladder():
     """Message start is an interior word boundary on v4.7. Its frame ends in ⟨bow⟩, so a
-    single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v5 has
+    single leading space is free and an opening run that cannot own that ⟨bow⟩ pays for it. v4.8 has
     no such token: the digit and the ideograph open for free, and the leading space is a character
     like any other."""
-    assert token_count("123", "5.0") == token_count("123", "4.7") - 6      # 4.7 pays for the ⟨bow⟩
-    assert token_count("日本", "5.0") == token_count("日本", "4.7") - 6
-    assert token_count(" a", "5.0") == token_count("a", "5.0") + 1
+    assert token_count("123", "4.8") == token_count("123", "4.7") - 6      # 4.7 pays for the ⟨bow⟩
+    assert token_count("日本", "4.8") == token_count("日本", "4.7") - 6
+    assert token_count(" a", "4.8") == token_count("a", "4.8") + 1
     assert token_count(" a", "4.7") == token_count("a", "4.7")
     # A word opens with its own ⟨bow⟩ in both families, so nothing moves there beyond the frame.
-    assert token_count("hello", "5.0") == token_count("hello", "4.7") - 5
+    assert token_count("hello", "4.8") == token_count("hello", "4.7") - 5
+    base = token_count("hello", "4.8")
+    assert token_count("hello" + "\n" * 29, "4.8") == base + 1
 
 
 @pytest.mark.parametrize("version", ["2.9", "banana"])
@@ -329,7 +341,7 @@ SPACE_RUN_ROWS = [("4.7", "]" + " " * 17 + "i", 5), ("4.7", "a" + " " * 17 + "b"
 
 # A message whose content strips to nothing is pinned to the measured count, not to another
 # stripped message. A relative comparison cannot fail because both sides move together.
-FRAME_ONLY = {"3.0": 8, "4.7": 12, "5.0": 6}
+FRAME_ONLY = {"3.0": 8, "4.7": 12, "4.8": 6}
 
 
 @pytest.mark.parametrize("version, expected", sorted(FRAME_ONLY.items()))
@@ -339,7 +351,7 @@ def test_content_that_strips_to_nothing_costs_the_frame(text, version, expected)
     assert token_count(text, version=version) == expected
 
 
-@pytest.mark.parametrize("version", ["3.0", "4.7", "5.0"])
+@pytest.mark.parametrize("version", ["3.0", "4.7", "4.8"])
 def test_private_use_characters_are_stripped(version: str):
     """A BMP private-use codepoint is deleted like the C0/C1 controls. It costs nothing and
     joins its neighbours into one word. An astral private-use codepoint is not stripped and pays
@@ -393,22 +405,3 @@ SYMBOL_ROWS = [
 def test_recorded_costs(version, text, content):
     overhead = _model(_family(version)).message_overhead
     assert token_count(text, version=version) - overhead == content
-
-
-@pytest.mark.parametrize("corpus_name", ["rosetta", "multipl_e", "udhr", "rosetta_holdout"])
-def test_v5_tracks_v4_7_document_for_document(corpus_name):
-    """v5 makes the same error as v4.7 on every document, which is why it is not gated
-    separately: for each document, v5's deviation from its recorded count equals v4.7's from its
-    own, both fixtures being independent `count_tokens` readings. Deliberately not asserted: that
-    the two counts differ by a constant (they differ by 5 or 6 depending on the opening run, and
-    predicting which would restate the head rule inside a test).
-    """
-    from gates import GATES, corpus, recorded
-
-    key = GATES[corpus_name]["key"]
-    rows = corpus(corpus_name)[:60]
-    c47, c5 = recorded(corpus_name, "v4.7")["counts"], recorded(corpus_name, "v5")["counts"]
-    for r in rows:
-        text, k = r["text"], r[key]
-        assert token_count(text, "5.0") - c5[k] == token_count(text, "4.7") - c47[k], \
-            f"v5 stopped tracking v4.7 on {corpus_name}/{k}; it needs its own gate row again"
