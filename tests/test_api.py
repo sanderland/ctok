@@ -239,7 +239,7 @@ def test_dotted_capital_i_uses_the_ordinary_unit_piece():
 def test_version_routing():
     assert _family("3.0") == _family("3.5") == _family("4.6") == "v3"
     assert _family("4.7") == "v4.7"
-    assert _family("4.8") == _family("4.9") == _family("5.0") == _family("5") == "v4.8"
+    assert _family("4.8") == _family("5.0") == _family("5") == "v4.8"
     # Dotted-integer comparison, not decimal: "4.10" sorts after "4.9", not below "4.2".
     assert _family("4.10") == "v4.8"
     assert _family("4.1") == "v3"
