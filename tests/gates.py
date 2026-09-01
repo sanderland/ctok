@@ -30,10 +30,8 @@ from ctok.main import FAMILIES, _vocabulary, token_count
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# v5 is not gated here: it reads v4.7's vocabulary and differs only in its message
-# frame, so it lands on the same documents with the same errors. The frame rules are pinned in
-# `test_api.py`, and `test_v5_tracks_v4_7_document_for_document` asserts the equality this rests
-# on; if v5 ever stops tracking v4.7, that test fails and v5 comes back into this table.
+# v4.8+ borrows v4.7's vocabulary. The gate table covers each physical vocabulary once; frame
+# behavior is pinned in `test_api.py`.
 GATES: dict[str, dict] = {
     "udhr": {
         "title": "UDHR",
@@ -123,7 +121,7 @@ def assert_gate(name: str, family: str, agg: dict) -> None:
 
 def vocabulary_owners() -> dict[str, str]:
     """family -> the family whose vocabulary file it counts with. Derived: two families borrow
-    when they share a file, and the first family listed for a file owns it (v5 reads v4.7's)."""
+    when they share a file, and the first family listed for a file owns it (v4.8 reads v4.7's)."""
     owner: dict[str, str] = {}
     for key, fam in FAMILIES.items():
         owner[key] = next(k for k, f in FAMILIES.items() if f.pieces == fam.pieces)

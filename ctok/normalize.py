@@ -35,6 +35,7 @@ _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 # cased set instead.
 _UNCASED = frozenset("\u03f4")
 _ALPHABETIC = regex.compile(r"\p{Alphabetic}")
+_MARK = regex.compile(r"\p{M}")
 
 
 def _lower(text: str) -> str:
@@ -84,11 +85,6 @@ def is_hard_cp(o: int) -> bool:
         # The katakana prolonged sound mark `ー` and small `ヶ` measured exact as wordy.
         or o in (0x3005, 0x3006, 0x3031, 0x3032, 0x3033, 0x3034, 0x3035, 0x303B, 0x303C)
         # 々 〆 and the kana repeat, iteration and masu marks
-        # Quranic annotation signs (Mn members that would otherwise reach the letter class):
-        # measured as unattached marks, with the boundaries pinned on both sides of both ranges.
-        # Combining class does not predict the split.
-        or 0x06DD <= o <= 0x06E0      # ۝ ۞ and the two small high zeros
-        or 0x06E9 <= o <= 0x06EC      # ۩ and the empty-centre stops
     )
 
 
@@ -113,11 +109,7 @@ def classify(c: str) -> str:
         return PUNCT
     if VARIATION_SELECTORS[0] <= o <= VARIATION_SELECTORS[1]:
         return HARD                   # gc=Mn, but they take no word model at all
-    if o == 0x0CF3:
-        # KANNADA SIGN COMBINING ANUSVARA ABOVE RIGHT is Alphabetic. Python 3.12 predates its
-        # Unicode assignment, so pin it rather than reading it as an unassigned hard character.
-        return WORDY
-    if cat[0] == "M":
+    if _MARK.fullmatch(c):
         # The source models take every astral codepoint through the isolated HARD path. The
         # Alphabetic result is exact for their BMP mark split only.
         return WORDY if o < 0x10000 and _ALPHABETIC.fullmatch(c) else HARD
@@ -287,20 +279,19 @@ def is_separator(c: str) -> bool:
     rule: an Alphabetic mark stays with the word; every other BMP mark is a separator. Variation
     selectors are the separate exception, riding their base without taking word boundaries.
     """
-    return (ord(c) < 0x10000 and unicodedata.category(c).startswith("M") and not _is_selector(c)
+    return (ord(c) < 0x10000 and _MARK.fullmatch(c) and not _is_selector(c)
             and not _ALPHABETIC.fullmatch(c))
 
 
 def _stray_mark(c: str) -> bool:
     r"""A combining mark, asked at a position where nothing before it can be its base.
 
-    For BMP marks, Claude behaves as though its word alternative were ``\p{Alphabetic}+``. An
-    Alphabetic mark with no preceding base opens a word-like run after a symbol, digit,
-    punctuation, ideograph, emoji, or at text start.
-    A non-Alphabetic mark is already a separator and belongs to the catch-all branch.
+    An Alphabetic BMP mark with no preceding base opens a word-like run after a symbol, digit,
+    punctuation, ideograph, emoji, or at text start. A non-Alphabetic mark is already a separator
+    and belongs to the catch-all branch.
 
-    Only a BMP mark reaches this branch: an astral one is HARD and takes no word model at all
-    (:func:`is_hard_cp`), and a syllable-terminating mark is a separator (:func:`is_separator`).
+    Only a BMP mark reaches this branch. Astral marks are HARD and non-Alphabetic BMP marks are
+    separators.
     """
     if _syriac_vowel(c):
         return False                   # a baseless Syriac vowel is a word-forming letter instead
@@ -445,14 +436,12 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     # by NFC, so the private-use escape values cannot collide with text.
     norm = norm.translate(LITERAL_MARKER_ESCAPE_TABLE)
 
-    # The frame's tail, for a family whose frame has one: `engine.tile` reads the run off the same
-    # string before dropping it here. A "free" family is stripped on the raw text instead (see
-    # `tile`), so there is nothing left to take off here and taking it would eat a folded NBSP.
-    if model.frame_tail == "ladder":
-        norm = norm.rstrip(model.frame_strip)
+    # `engine.tile` reads the content-final newline run before dropping it here and applies the
+    # frame's newline ladder separately.
+    norm = norm.rstrip("\n")
     # A single leading space is dropped: the frame ends in ⟨bow⟩ and that ⟨bow⟩ is the space
     # (' a' = 1). Two or more are a whitespace-run token and stay ('  a' = 2).
-    # Where the frame does not end in a ⟨bow⟩ (v5), there is no space to stand in for: the leading
+    # Where the frame does not end in a ⟨bow⟩ (v4.8+), there is no space to stand in for: the leading
     # space is a character like any other, and ' a' costs one more than 'a' rather than the same.
     # A space that normalization exposed or manufactured is not the raw head and is not absorbed
     # either. The oracle read `[stripped or folded char][space][text]` (see
@@ -504,7 +493,7 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
                    or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
-    # message pays for no marker, which is exactly where v5 counts one token under v4.7.
+    # message pays for no marker, which is exactly where v4.8+ counts one token under v4.7.
     out = [] if has_own_bow or not model.frame_bow else [" " if head_quote else BOW_G]
     for i, (cls, body) in enumerate(runs):
         if cls == WORDY:

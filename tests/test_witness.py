@@ -93,16 +93,16 @@ def test_a_witness_asks_about_the_position_the_piece_actually_occupies(name):
 
 
 def test_the_witness_reader_serves_a_borrowing_family():
-    """v5 borrows v4.7's file and its witnesses, measured on v4.7's source model,
+    """v4.8 borrows v4.7's file and its witnesses, measured on v4.7's source model,
     as `meta.witness.measured_on` says."""
-    assert witness("⟨bow⟩the⟨eow⟩", "4.7") == witness("⟨bow⟩the⟨eow⟩", "5.0")
-    assert pieces("5.0") == pieces("4.7")
+    assert witness("⟨bow⟩the⟨eow⟩", "4.7") == witness("⟨bow⟩the⟨eow⟩", "4.8")
+    assert pieces("4.8") == pieces("4.7")
     for fam in FAMILIES.values():
         if fam.pieces:
             meta = _doc(fam.pieces)["meta"]
             assert meta["witness"]["measured_on"] == FAMILIES[_family_of(fam.pieces)].source_model
             assert meta["witness"]["base"] > meta["message_overhead"], "BASE is one token above it"
-    assert _family("5.0") == "v5"
+    assert _family("5.0") == "v4.8"
 
 
 @pytest.mark.parametrize("name", FILES)

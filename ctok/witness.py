@@ -6,7 +6,7 @@ value it returned, and which template it is. The arithmetic ships with the data 
     cost = raw − BASE + 1 − overhead        is_token ⟺ cost == 1
 
 ``BASE`` is ``count_tokens`` on the one-character message ``"a"`` for that family (8 on v3, 12 on
-v4.7, 7 on v5), and every template's ``overhead`` is calibrated against it. Templates
+v4.7, 7 on v4.8+), and every template's ``overhead`` is calibrated against it. Templates
 (``meta.witness.templates``):
 
     raw         X                               the span is the message
