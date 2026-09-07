@@ -11,7 +11,7 @@ from functools import cache
 from importlib.resources import files
 
 from .constants import MARKER_GLYPHS, PAD
-from .engine import ByteFloor, ReverseTrie, build_vocab, tile
+from .engine import ByteFloor, ReverseTrie, build_vocab, valid_utf8_prefix, tile
 from .normalize import nfc, stream
 from .notation import parse_marked, render_bytes, render_marked
 
@@ -141,7 +141,10 @@ class TokenizerModel:
         parsed_pieces = [parse_marked(p) for p in pieces]
         self.unit_pieces = {c for c in parsed_pieces
                             if len(c) == 1 and c not in MARKER_GLYPHS}
-        self.bytes = ByteFloor(tokens["bytes_fallback"], self.unit_pieces)
+        prefixes = tokens["bytes_fallback"]
+        if invalid := [prefix for prefix in prefixes if not valid_utf8_prefix(bytes.fromhex(prefix))]:
+            raise ValueError(f"bytes_fallback has non-prefix entries: {invalid[:3]}")
+        self.bytes = ByteFloor(prefixes, self.unit_pieces)
         self.vocab = build_vocab(parsed_pieces, tokens)
         self.trie = ReverseTrie(self.vocab)
 
