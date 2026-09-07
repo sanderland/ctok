@@ -1,9 +1,9 @@
 """The vocabulary index and byte floor must preserve their reference tilings."""
 
-import json
-from importlib.resources import files
+import pytest
 
 from ctok.engine import ByteFloor, ReverseTrie, min_tile, min_vocab_tile, valid_utf8_prefix
+from ctok.main import TokenizerModel
 
 
 def test_reverse_trie_dp_matches_exhaustive_search_including_ties():
@@ -31,14 +31,20 @@ def _reference_byte_chunks(bs: bytes, tokens: set[str]) -> list[bytes]:
     return [bs[start:end] for start, end in spans]
 
 
-def test_byte_fallback_entries_are_utf8_prefixes_and_the_fast_path_matches_dp():
-    for name in ("pieces_v3.json", "pieces_v4_7.json"):
-        doc = json.loads(files("ctok").joinpath("data", name).read_text())
-        prefixes = set(doc["tokens"]["bytes_fallback"])
-        assert all(valid_utf8_prefix(bytes.fromhex(prefix)) for prefix in prefixes)
+def test_byte_floor_matches_the_generic_dp_for_prefixes_and_unit_pieces():
+    floor = ByteFloor({"c3", "e2", "e282", "f0"}, unit_chars=("é",))
+    for char in ("", "a", "¢", "é", "€", "😀", "\U0010ffff"):
+        encoded = char.encode()
+        assert floor.chunks(encoded) == _reference_byte_chunks(encoded, floor.tokens)
 
-        floor = ByteFloor(prefixes)
-        # Each sequence is one codepoint, the only input shape ByteFloor receives from the tiler.
-        for char in ("\x00", "é", "अ", "€", "😀", "\U0010ffff"):
-            encoded = char.encode()
-            assert floor.chunks(encoded) == _reference_byte_chunks(encoded, floor.tokens)
+
+def test_utf8_prefix_validation_rejects_nonprefix_bytes():
+    assert valid_utf8_prefix(b"\xe0")
+    assert valid_utf8_prefix(b"\xf0\x9f")
+    for invalid in (b"a", b"\x80", b"a\xe0", b"\xed\xa0"):
+        assert not valid_utf8_prefix(invalid)
+
+    doc = {"meta": {"message_overhead": 1, "fold_quotes": False, "allcaps_min": None},
+           "tokens": {"bytes_fallback": {"61": {}}}}
+    with pytest.raises(ValueError, match="non-prefix"):
+        TokenizerModel(doc)

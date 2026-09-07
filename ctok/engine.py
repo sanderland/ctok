@@ -1,8 +1,8 @@
 """The min-cost tiling, with the marked-stream vocabulary indexed by a reverse trie.
 
-    min_tile        generic segmentation DP for tiny byte strings
+    min_tile        generic segmentation DP used by audits and reference tests
     min_vocab_tile  the same recurrence, visiting only vocabulary edges through the trie
-    ByteFloor       byte tiling for characters no piece covers
+    ByteFloor       longest UTF-8 prefix plus single-byte fallback
     tile            marked-stream tiling for the count
 
 Marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs tiles as itself.
@@ -12,7 +12,7 @@ The count is the number of tiles.
 from __future__ import annotations
 
 from .constants import EOW_G, ESCAPED_MARKER_LITERALS, MARKER_GLYPHS
-from .normalize import PreparedText, prepare
+from .normalize import nfc, raw_head_space, stream_norm
 
 
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
@@ -99,15 +99,17 @@ def valid_utf8_prefix(bs: bytes) -> bool:
     try:
         bs.decode("utf-8")
     except UnicodeDecodeError as error:
-        return error.reason == "unexpected end of data" and error.end == len(bs)
+        return (error.start == 0 and error.reason == "unexpected end of data"
+                and error.end == len(bs))
     return False
 
 
 class ByteFloor:
     """What one uncovered codepoint costs under the UTF-8 byte floor.
 
-    The fallback entries are UTF-8 prefixes, never tokens that begin at a continuation byte. The
-    longest available prefix therefore leaves only continuation bytes, which cost one each.
+    A cost-1 whole-codepoint piece wins when present. Otherwise the fallback entries are UTF-8
+    prefixes, never tokens that begin at a continuation byte, so the longest available prefix leaves
+    only continuation bytes, which cost one each.
     """
 
     def __init__(self, byte_tokens, unit_chars=()) -> None:
@@ -183,14 +185,16 @@ def frame_tail(n: int, model) -> list[str]:
     return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
 
 
-def tile_prepared(prepared: PreparedText, model) -> tuple[int, list[str | bytes]]:
-    """Tile one prepared stream. Returns ``(cost, tokens)``.
+def tile(text: str, model) -> tuple[int, list[str | bytes]]:
+    """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
 
     Tokens are internal-form: ``str`` for a vocabulary piece or marker, ``bytes`` for a
     sub-character chunk. ``len(tokens) == cost``.
     """
-    s = prepared.stream
-    tail = frame_tail(prepared.frame_tail_newlines, model)
+    norm = nfc(text, fold_quotes=model.fold_quotes)
+    n_tail = len(norm) - len(norm.rstrip("\n"))
+    s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
+    tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
@@ -217,8 +221,3 @@ def tile_prepared(prepared: PreparedText, model) -> tuple[int, list[str | bytes]
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out
-
-
-def tile(text: str, model) -> tuple[int, list[str | bytes]]:
-    """Prepare one input and return its min-cost tiling."""
-    return tile_prepared(prepare(text, model), model)

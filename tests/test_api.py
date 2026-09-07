@@ -7,10 +7,9 @@ import regex
 
 from ctok import marked_stream, normalize, token_count, tokenize
 import ctok.main as api
-from ctok.constants import BOW_G, EOW_G, HARD, PAD, WORDY
-from ctok.engine import tile, tile_prepared
+from ctok.constants import HARD, PAD, WORDY
 from ctok.main import FAMILIES, _family, _model
-from ctok.normalize import classify, is_separator, prepare
+from ctok.normalize import classify, is_separator
 
 # Inputs that have historically been edge cases, or would crash a naive byte path.
 ADVERSARIAL = [
@@ -57,25 +56,14 @@ def test_word_count_never_exceeds_letter_count():
         assert overhead + 1 <= token_count(word) <= overhead + len(word)
 
 
-def test_token_count_uses_tile_cost_without_rendering_tokens(monkeypatch):
-    model = _model("v3")
-    monkeypatch.setattr(api, "tile", lambda text, got_model: (3, ["unused"]))
+def test_token_count_does_not_render_tiles(monkeypatch):
     monkeypatch.setattr(api, "render_marked", lambda _token: pytest.fail("count rendered a tile"))
-    assert api.token_count("hello") == model.message_overhead + 3
+    monkeypatch.setattr(api, "render_bytes", lambda _token: pytest.fail("count rendered a byte"))
+    assert api.token_count("hello, world") == 10
 
 
 def test_marked_stream_is_the_one_intermediate():
     assert marked_stream("hello, world") == "⟨bow⟩hello⟨eow⟩,⟨eow⟩⟨bow⟩world⟨eow⟩"
-
-
-def test_preparation_keeps_stream_and_frame_data_together():
-    model = _model("v3")
-    prepared = prepare(" hello\n\n", model)
-    assert prepared.raw_head_space is True
-    assert prepared.normalized == " hello\n\n"
-    assert prepared.frame_tail_newlines == 2
-    assert prepared.stream == BOW_G + "hello" + EOW_G
-    assert tile_prepared(prepared, model) == tile(" hello\n\n", model)
 
 
 # ---- marks and boundaries: (text, marked stream or None, content tokens or None), identical in

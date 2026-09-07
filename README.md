@@ -64,18 +64,16 @@ whitespace free, which ctok intentionally does not model.
 
 For one user message, `ctok`:
 
-1. prepares the text: NFC and family-specific quote folding, while retaining whether the raw text
-   began with a space and how many normalized newlines it ended with;
-2. rewrites the prepared body into a stream with word, case, and byte markers. These markers show
-   the encoder's spans; they are separate from the barriers that keep unrelated spans apart. For BMP combining marks, Unicode
-   `Alphabetic` decides the split: Alphabetic marks stay with the word and non-Alphabetic marks,
-   other than variation selectors, stand outside it;
-3. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback, then adds the
-   prepared frame edge and measured message frame.
+1. normalizes the text, including NFC and family-specific quote folding, then rewrites it with word,
+   case, and byte markers. Run boundaries belong to this rewrite; the tiler only sees its resulting
+   stream. For BMP combining marks, Unicode `Alphabetic` decides the split: Alphabetic marks stay
+   with the word and non-Alphabetic marks, other than variation selectors, stand outside it;
+2. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback, then prices the
+   normalized trailing-newline run against the frame and adds the measured message frame.
 
 `token_count(text)` takes the tiler's cost directly. `tokenize(text)` renders one matching tiling
-for inspection; the tiler checks that its rendered token count equals that cost. The output notation
-makes internal structure visible:
+for inspection; the tiler checks that its internal token list matches that cost. The output notation
+makes the rewrite visible:
 
 | notation | meaning |
 |---|---|
