@@ -11,8 +11,8 @@ from functools import cache
 from importlib.resources import files
 
 from .constants import MARKER_GLYPHS, PAD
-from .engine import ByteFloor, ReverseTrie, build_vocab, valid_utf8_prefix, tile
-from .normalize import nfc, stream
+from .engine import ByteFloor, ReverseTrie, build_vocab, tile, tile_prepared, valid_utf8_prefix
+from .normalize import nfc, prepare
 from .notation import parse_marked, render_bytes, render_marked
 
 
@@ -189,7 +189,7 @@ def normalize(text: str, version: str = "3.0") -> str:
 def marked_stream(text: str, version: str = "3.0") -> str:
     """The marked stream the tiler tiles, in public notation. Useful for understanding a count;
     not part of the stable API."""
-    return render_marked(stream(_require_text(text), _model(_family(version))))
+    return render_marked(prepare(_require_text(text), _model(_family(version))).stream)
 
 
 # Both generations when no version is asked for. Case marking, vocabulary and frame size all differ
@@ -199,11 +199,17 @@ DEFAULT_VERSIONS = ("3.0", "4.8")
 
 def _report(text: str, version: str, *, label: bool) -> None:
     """One family's reading of ``text``: the marked stream, the content tokens, and the arithmetic."""
-    overhead = _model(_family(version)).message_overhead
-    tokens = tokenize(text, version=version)
+    model = _model(_family(version))
+    overhead = model.message_overhead
+    prepared = prepare(_require_text(text), model)
+    _cost, raw_tokens = tile_prepared(prepared, model)
+    tokens = [PAD] * model.message_overhead + [
+        render_marked(token) if isinstance(token, str) else render_bytes(token)
+        for token in raw_tokens
+    ]
     if label:
         print(f"  v{version}")
-    print(f"  stream: {marked_stream(text, version=version)!r}")
+    print(f"  stream: {render_marked(prepared.stream)!r}")
     print(f"  tokens: {tokens[overhead:]!r}")
     print(f"\n  content {len(tokens) - overhead} + frame {overhead} = {len(tokens)}")
 

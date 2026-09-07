@@ -12,7 +12,7 @@ The count is the number of tiles.
 from __future__ import annotations
 
 from .constants import EOW_G, ESCAPED_MARKER_LITERALS, MARKER_GLYPHS
-from .normalize import nfc, raw_head_space, stream_norm
+from .normalize import PreparedText, prepare
 
 
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
@@ -183,16 +183,14 @@ def frame_tail(n: int, model) -> list[str]:
     return [run[j:i] for j, i in spans][:-1]      # the last token is the frame's own ⏎⏎
 
 
-def tile(text: str, model) -> tuple[int, list[str | bytes]]:
-    """One min-cost tiling of the marked stream. Returns ``(cost, tokens)``.
+def tile_prepared(prepared: PreparedText, model) -> tuple[int, list[str | bytes]]:
+    """Tile one prepared stream. Returns ``(cost, tokens)``.
 
     Tokens are internal-form: ``str`` for a vocabulary piece or marker, ``bytes`` for a
     sub-character chunk. ``len(tokens) == cost``.
     """
-    norm = nfc(text, fold_quotes=model.fold_quotes)
-    n_tail = len(norm) - len(norm.rstrip("\n"))
-    s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
-    tail = frame_tail(n_tail, model)
+    s = prepared.stream
+    tail = frame_tail(prepared.frame_tail_newlines, model)
     if not s:
         return len(tail), list(tail)
     pieces = model.vocab
@@ -219,3 +217,8 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     assert len(out) == int(total), (len(out), int(total))
     out.extend(tail)
     return int(total) + len(tail), out
+
+
+def tile(text: str, model) -> tuple[int, list[str | bytes]]:
+    """Prepare one input and return its min-cost tiling."""
+    return tile_prepared(prepare(text, model), model)

@@ -9,6 +9,7 @@ text or a measured fact about the oracle. No costs live in this module.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import cache
 import unicodedata
 
@@ -24,6 +25,16 @@ from .constants import (
 )
 
 _STRAY_MARK = "stray_mark"
+
+
+@dataclass(frozen=True)
+class PreparedText:
+    """One input after normalization, marking, and frame-edge inspection."""
+
+    normalized: str
+    stream: str
+    frame_tail_newlines: int
+    raw_head_space: bool
 
 # Python 3.13 ships Unicode 15.1 data; the source models know these Unicode 16.0 case pairs.
 _NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
@@ -410,8 +421,24 @@ def stream(text: str, model) -> str:
     encodes a single space between two such runs. Every other space stays literal.
     Punctuation-like, digit, separator, and stray-mark runs receive their measured boundary markers.
     """
-    return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
-                       raw_head_space=raw_head_space(text))
+    return prepare(text, model).stream
+
+
+def prepare(text: str, model) -> PreparedText:
+    """Prepare text once for both stream explanation and frame-aware tiling.
+
+    Normalization can erase or expose a leading space, so the raw-space observation stays beside
+    the normalized text. ``stream_norm`` removes content-final newlines; their count is retained
+    here for ``engine.frame_tail``.
+    """
+    raw_space = raw_head_space(text)
+    normalized = nfc(text, fold_quotes=model.fold_quotes)
+    return PreparedText(
+        normalized=normalized,
+        stream=stream_norm(normalized, model, raw_head_space=raw_space),
+        frame_tail_newlines=len(normalized) - len(normalized.rstrip("\n")),
+        raw_head_space=raw_space,
+    )
 
 
 def raw_head_space(text: str) -> bool:
