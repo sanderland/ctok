@@ -176,7 +176,8 @@ def tokenize(text: str, version: str = "3.0") -> list[str]:
 
 def token_count(text: str, version: str = "3.0") -> int:
     """Reconstructed token count for ``text`` as a single user message."""
-    return len(tokenize(text, version))
+    model = _model(_family(version))
+    return tile(_require_text(text), model)[0] + model.message_overhead
 
 
 def normalize(text: str, version: str = "3.0") -> str:

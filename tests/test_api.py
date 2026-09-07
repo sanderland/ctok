@@ -6,6 +6,7 @@ import pytest
 import regex
 
 from ctok import marked_stream, normalize, token_count, tokenize
+import ctok.main as api
 from ctok.constants import HARD, PAD, WORDY
 from ctok.main import FAMILIES, _family, _model
 from ctok.normalize import classify, is_separator
@@ -53,6 +54,13 @@ def test_word_count_never_exceeds_letter_count():
     for _ in range(500):
         word = "".join(rng.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(rng.randint(1, 24)))
         assert overhead + 1 <= token_count(word) <= overhead + len(word)
+
+
+def test_token_count_uses_tile_cost_without_rendering_tokens(monkeypatch):
+    model = _model("v3")
+    monkeypatch.setattr(api, "tile", lambda text, got_model: (3, ["unused"]))
+    monkeypatch.setattr(api, "render_marked", lambda _token: pytest.fail("count rendered a tile"))
+    assert api.token_count("hello") == model.message_overhead + 3
 
 
 def test_marked_stream_is_the_one_intermediate():
