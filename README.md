@@ -59,7 +59,8 @@ raises `TypeError`.
 | `version >= "4.8"` | v4.8 | Opus 4.8, Sonnet 5, and Fable 5 |
 
 v4.8+ uses the v4.7 vocabulary with a six-token frame. Opus 5 alone makes trailing ASCII
-whitespace free, which ctok intentionally does not model.
+whitespace free, which ctok intentionally does not model. Opus 5.5 counts two tokens more than
+Opus 5. This offset is not yet modeled in ctok.
 
 ## How it works
 
