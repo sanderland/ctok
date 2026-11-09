@@ -25,7 +25,7 @@ the encoder rather than trusting the recorded kind.
 from __future__ import annotations
 
 from .constants import BOW_G, CAPS_G, EOW_G, MARKER_GLYPHS, SHIFT_G
-from .normalize import nfc, stream_norm
+from .normalize import stream
 
 # piece shape -> which position it occupies in a word, and so which templates can ask about it.
 POSITIONS = {(True, True): "word", (True, False): "bow", (False, True): "eow", (False, False): "mid"}
@@ -120,7 +120,7 @@ def places(key: str, probe: str, model) -> bool:
     claims. Computed from the encoder rather than assumed: the message edges are family-scoped,
     so a probe must be checked against its own family's frame.
     """
-    s = stream_norm(nfc(probe, fold_quotes=model.fold_quotes), model)
+    s = stream(probe, model)
     if s == key:
         return True                     # the piece is the whole content, markers and all
     at = s.find(key)

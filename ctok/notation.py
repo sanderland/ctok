@@ -11,7 +11,7 @@ import re
 
 from .constants import ATOM_TO_GLYPH, ESCAPED_MARKER_LITERALS, GLYPH_TO_ATOM, L, R
 
-_ATOM_RE = re.compile(f"{L}(?:bow|eow|shift|caps|pad|0x[0-9A-Fa-f]{{2}}){R}" "|.", re.DOTALL)
+_ATOM_RE = re.compile(f"{L}(?:bow|eow|shift|caps|pad|human|assistant|0x[0-9A-Fa-f]{{2}}){R}" "|.", re.DOTALL)
 _BYTE_ATOM_RE = re.compile(f"{L}0x([0-9A-Fa-f]{{2}}){R}")
 
 

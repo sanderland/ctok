@@ -12,7 +12,7 @@ The count is the number of tiles.
 from __future__ import annotations
 
 from .constants import EOW_G, ESCAPED_MARKER_LITERALS, MARKER_GLYPHS
-from .normalize import nfc, raw_head_space, stream_norm
+from .normalize import prepare, raw_head_space, stream_norm
 
 
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
@@ -201,9 +201,9 @@ def tile(text: str, model) -> tuple[int, list[str | bytes]]:
     Tokens are internal-form: ``str`` for a vocabulary piece or marker, ``bytes`` for a
     sub-character chunk. ``len(tokens) == cost``.
     """
-    norm = nfc(text, fold_quotes=model.fold_quotes)
+    norm = prepare(text, model)
     n_tail = len(norm) - len(norm.rstrip("\n"))
-    s = stream_norm(norm, model, raw_head_space=raw_head_space(text))
+    s = stream_norm(norm, model, raw_head_space=raw_head_space(text), protected=True)
     tail = frame_tail(n_tail, model)
     if not s:
         return len(tail), list(tail)

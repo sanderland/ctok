@@ -84,6 +84,12 @@ minimum count. The output notation makes the rewrite visible:
 | `⟨shift⟩`, `⟨caps⟩` | case rewrites |
 | `⟨0xNN⟩` | a byte-fallback token |
 | `⟨pad⟩` | part of the single-message frame |
+| `⟨human⟩`, `⟨assistant⟩` | legacy turn-marker words in v3 and v4.7 |
+
+Two content rewrites handle reserved strings, matched case-insensitively on ASCII. The `antml:`
+namespace is removed after `<`, `</`, or `<//` when another character follows, except `<` or `>`;
+`<//` then becomes `</`. In v3 and v4.7, `Human:` and `Assistant:` immediately after two or more
+newlines use a turn-marker atom followed by one colon. v4.8 treats those words as ordinary text.
 
 ## Measured accuracy
 
