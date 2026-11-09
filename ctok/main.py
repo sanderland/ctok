@@ -37,6 +37,20 @@ FAMILIES: dict[str, Family] = {
 # (base version, family key), highest first.
 _FAMILY_BASES = sorted(((fam.min_version, key) for key, fam in FAMILIES.items()), reverse=True)
 
+# Single-user request policy measured November 8–9, 2026.
+# model ID -> (vocabulary family, additional frame tokens, trim raw trailing ASCII whitespace)
+_MESSAGE_MODELS = {
+    "claude-opus-4-7": ("v4.7", 0, False),
+    "claude-opus-4-8": ("v4.8", 0, False),
+    "claude-sonnet-5": ("v4.8", 0, False),
+    "claude-fable-5": ("v4.8", 0, False),
+    "claude-opus-5": ("v4.8", 0, True),
+    "claude-opus-5-5": ("v4.8", 2, True),
+    "claude-sonnet-5-5": ("v4.8", 2, True),
+    "claude-haiku-5-5": ("v4.8", 2, True),
+    "claude-fable-5-1": ("v4.8", 2, True),
+}
+
 
 def _parse_version(version: str) -> tuple[int, ...]:
     """Parse "4.7" to (4, 7). ``str`` only: the float literal ``4.10`` is ``4.1``."""
@@ -155,7 +169,7 @@ def _require_text(text) -> str:
     return text
 
 
-def tokenize(text: str, version: str = "3.0") -> list[str]:
+def tokenize(text: str, version: str = "3.0", *, model: str | None = None) -> list[str]:
     """``text`` as a token list; ``token_count`` is its length.
 
     Every element is a string in the public notation: text tokens carry their structural markers
@@ -164,16 +178,43 @@ def tokenize(text: str, version: str = "3.0") -> list[str]:
     frame as ``⟨pad⟩`` tokens, so its length matches ``count_tokens`` on a one-message request.
 
     Token *boundaries* are approximate; the *length* is the count model's prediction.
+
+    :param str text: Raw single-user message text.
+    :param str version: Tokenizer family version when no model ID is supplied.
+    :param str | None model: Explicit model ID selecting both family and single-message policy.
+    :raises NotImplementedError: The requested model or version is unavailable.
+    :return list[str]: Frame tokens followed by the estimated content tokens.
     """
-    model = _model(_family(version))
-    _cost, toks = tile(_require_text(text), model)
-    rendered = [render_marked(t) if isinstance(t, str) else render_bytes(t) for t in toks]
-    return [PAD] * model.message_overhead + rendered
+    if model is None:
+        family, frame_offset, trim = _family(version), 0, False
+    else:
+        try:
+            family, frame_offset, trim = _MESSAGE_MODELS[model]
+        except KeyError:
+            raise NotImplementedError(
+                f"Unknown Claude message model: {model!r}"
+            ) from None
+    text = _require_text(text)
+    if trim:
+        text = text.rstrip(" \t\n\r\v\f")
+    tokenizer = _model(family)
+    _cost, toks = tile(text, tokenizer)
+    rendered = [
+        render_marked(t) if isinstance(t, str) else render_bytes(t) for t in toks
+    ]
+    return [PAD] * (tokenizer.message_overhead + frame_offset) + rendered
 
 
-def token_count(text: str, version: str = "3.0") -> int:
-    """Reconstructed token count for ``text`` as a single user message."""
-    return len(tokenize(text, version))
+def token_count(text: str, version: str = "3.0", *, model: str | None = None) -> int:
+    """Reconstructed token count for ``text`` as a single user message.
+
+    :param str text: Raw single-user message text.
+    :param str version: Tokenizer family version when no model ID is supplied.
+    :param str | None model: Explicit model ID selecting both family and single-message policy.
+    :raises NotImplementedError: The requested model or version is unavailable.
+    :return int: Estimated input token count.
+    """
+    return len(tokenize(text, version, model=model))
 
 
 def normalize(text: str, version: str = "3.0") -> str:

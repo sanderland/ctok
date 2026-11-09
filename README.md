@@ -41,6 +41,7 @@ from ctok import token_count, tokenize
 token_count("hello, world")           # 10, using the v3 family
 token_count("hello, world", "4.7")    # 15
 token_count("hello, world", "4.8")    # 10
+token_count("a ", model="claude-opus-5")  # 7
 
 tokens = tokenize("NASA likes tokenizers")
 assert len(tokens) == token_count("NASA likes tokenizers")
@@ -58,9 +59,11 @@ raises `TypeError`.
 | `"4.7" <= version < "4.8"` | v4.7 | Opus 4.7 |
 | `version >= "4.8"` | v4.8 | Opus 4.8, Sonnet 5, and Fable 5 |
 
-v4.8+ uses the v4.7 vocabulary with a six-token frame. Opus 5 alone makes trailing ASCII
-whitespace free, which ctok intentionally does not model. Opus 5.5 counts two tokens more than
-Opus 5. This offset is not yet modeled in ctok.
+v4.8+ uses the v4.7 vocabulary with a six-token frame. The optional `model=` argument to
+`token_count` and `tokenize` selects a family and the single-message policy for an explicit
+model ID. Opus 5, Opus 5.5, Sonnet 5.5, Haiku 5.5, and Fable 5.1 trim trailing ASCII
+whitespace before normalization. Opus 5 uses the six-token frame. The other four use eight.
+Opus 4.7, Opus 4.8, Sonnet 5, and Fable 5 use their family frame and keep trailing whitespace.
 
 ## How it works
 
