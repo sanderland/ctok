@@ -42,8 +42,7 @@ token_count("hello, world")           # 10, using the v3 family
 token_count("hello, world", "4.7")    # 15
 token_count("hello, world", "4.8")    # 10
 
-tokens = tokenize("NASA likes tokenizers")
-assert len(tokens) == token_count("NASA likes tokenizers")
+tokens = tokenize("NASA likes tokenizers")  # one readable minimum-cost tiling
 ```
 
 ## Supported families
@@ -66,14 +65,16 @@ Opus 5. This offset is not yet modeled in ctok.
 
 For one user message, `ctok`:
 
-1. normalizes the text, including NFC and family-specific quote folding;
-2. rewrites it into a stream with word, case, and byte markers. For BMP combining marks, Unicode
-   `Alphabetic` decides the split: Alphabetic marks stay with the word and non-Alphabetic marks,
-   other than variation selectors, stand outside it;
-3. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback;
-4. adds the measured message frame.
+1. normalizes the text, including NFC and family-specific quote folding, then rewrites it with word,
+   case, and byte markers. Run boundaries belong to this rewrite; the tiler only sees its resulting
+   stream. For BMP combining marks, Unicode `Alphabetic` decides the split: Alphabetic marks stay
+   with the word and non-Alphabetic marks, other than variation selectors, stand outside it;
+2. finds a minimum-cost tiling over the measured vocabulary and UTF-8 byte fallback, then prices the
+   normalized trailing-newline run against the frame and adds the measured message frame.
 
-`token_count(text)` is `len(tokenize(text))`. The output notation makes internal structure visible:
+`token_count(text)` takes the tiler's cost directly. `tokenize(text)` renders one matching tiling
+for inspection; the tiler checks that its internal token list matches that cost. The output notation
+makes the rewrite visible:
 
 | notation | meaning |
 |---|---|

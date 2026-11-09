@@ -1,8 +1,8 @@
 """The min-cost tiling, with the marked-stream vocabulary indexed by a reverse trie.
 
-    min_tile        generic segmentation DP for tiny byte strings
+    min_tile        generic segmentation DP used by audits and reference tests
     min_vocab_tile  the same recurrence, visiting only vocabulary edges through the trie
-    ByteFloor       byte tiling for characters no piece covers
+    ByteFloor       longest UTF-8 prefix plus single-byte fallback
     tile            marked-stream tiling for the count
 
 Marker atoms are in the vocabulary as cost-1 tokens, so a marker no piece absorbs tiles as itself.
@@ -94,26 +94,36 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
     return best[-1], spans[::-1]
 
 
+def valid_utf8_prefix(bs: bytes) -> bool:
+    """Whether ``bs`` is an incomplete, well-formed prefix of one UTF-8 codepoint."""
+    try:
+        bs.decode("utf-8")
+    except UnicodeDecodeError as error:
+        return (error.start == 0 and error.reason == "unexpected end of data"
+                and error.end == len(bs))
+    return False
+
+
 class ByteFloor:
-    """What a codepoint costs when no piece covers it: a min-cost tiling of its UTF-8 bytes over
-    the partial byte-prefix tokens, every single byte costing 1."""
+    """What one uncovered codepoint costs under the UTF-8 byte floor.
+
+    A cost-1 whole-codepoint piece wins when present. Otherwise the fallback entries are UTF-8
+    prefixes, never tokens that begin at a continuation byte, so the longest available prefix leaves
+    only continuation bytes, which cost one each.
+    """
 
     def __init__(self, byte_tokens, unit_chars=()) -> None:
         # Membership is all that is needed, since every token costs 1. ``unit_chars`` are the
         # cost-1 whole codepoints from the piece vocabulary.
         self.tokens = set(byte_tokens) | {c.encode().hex() for c in unit_chars}
-        self.max_len = max((len(k) // 2 for k in self.tokens), default=1)
         self._chunks: dict[bytes, list[bytes]] = {}
 
     def chunks(self, bs: bytes) -> list[bytes]:
         """The chosen byte segments, one per token. Memoized per byte string."""
         hit = self._chunks.get(bs)
         if hit is None:
-            def cost_fn(j: int, i: int) -> int | None:
-                return 1 if (i - j == 1 or bs[j:i].hex() in self.tokens) else None
-
-            _, spans = min_tile(len(bs), cost_fn, self.max_len)
-            hit = self._chunks[bs] = [bs[j:i] for j, i in spans]
+            end = max((i for i in range(1, len(bs) + 1) if bs[:i].hex() in self.tokens), default=0)
+            hit = self._chunks[bs] = ([bs[:end]] if end else []) + [bytes((b,)) for b in bs[end:]]
         return hit
 
     def cost_bytes(self, bs: bytes) -> int:
