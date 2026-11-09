@@ -74,9 +74,9 @@ For one user message, `ctok`:
 
 `token_count(text)` takes the tiler's cost directly. `tokenize(text)` renders one matching tiling
 for inspection; the tiler checks that its internal token list matches that cost. Equal-cost tilings
-prefer the longest first token, then the longest next token, and so on. For example, `12345` splits
-as `123 | 45`. This choice does not change the minimum count. The output notation makes the rewrite
-visible:
+prefer the longest first token, then the longest next token, and so on. ASCII digits retain their
+three-digit grouping from the right: `12345` splits as `12 | 345`. These choices do not change the
+minimum count. The output notation makes the rewrite visible:
 
 | notation | meaning |
 |---|---|

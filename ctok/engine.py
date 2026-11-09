@@ -59,19 +59,27 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
 
     The specialized form of :func:`min_tile`: the trie visits only prefixes that can still become
     a piece, instead of probing every substring up to the longest piece (128 for v3).
-    Suffix costs are settled from right to left; ties keep the longest initial tile.
+    Suffix costs are settled from right to left; ties keep the longest initial tile. Within an
+    ASCII digit run, prefer a shorter initial tile instead, keeping three-digit groups on the right.
     """
     best = [float("inf")] * len(text) + [0]
     following = [0] * (len(text) + 1)
     root = trie.root
     terminal = trie._END
+
+    def digit_tie(start: int, candidate: int) -> bool:
+        if candidate != best[start]:
+            return False
+        previous = text[start:following[start]]
+        return previous.isascii() and previous.isdigit()
+
     for end in range(len(text), 0, -1):
         # The guaranteed one-character edge: the vocabulary spelling if it is a piece, else the
         # byte floor.
         start = end - 1
         node = root.get(text[start])
         candidate = best[end] + (1 if node is not None and terminal in node else unit_cost(start))
-        if candidate < best[start]:
+        if candidate < best[start] or digit_tie(start, candidate):
             best[start] = candidate
             following[start] = end
 
@@ -83,8 +91,8 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
                 break
             if terminal in node:
                 candidate = best[end] + 1
-                # Endpoints decrease, so a tie already has the longer initial piece.
-                if candidate < best[start]:
+                # Endpoints decrease: keep the longer piece, except within ASCII digits.
+                if candidate < best[start] or digit_tie(start, candidate):
                     best[start] = candidate
                     following[start] = end
 

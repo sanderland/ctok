@@ -25,6 +25,20 @@ def test_minimum_tilings_prefer_the_longest_initial_token(text, pieces, expected
     assert min_vocab_tile(text, ReverseTrie(pieces), lambda _at: 1) == (len(expected), expected)
 
 
+@pytest.mark.parametrize(
+    "text,pieces,expected",
+    [
+        ("12345", {"12", "123", "45", "345"}, [(0, 2), (2, 5)]),
+        # Digit grouping must not increase the minimum cost when a digit piece is absent.
+        ("12345", {"123", "45"}, [(0, 3), (3, 5)]),
+        # A token containing both letters and digits still follows longest-initial ordering.
+        ("x12", {"x1", "12"}, [(0, 2), (2, 3)]),
+    ],
+)
+def test_digit_ties_preserve_cost_and_leave_mixed_tokens_alone(text, pieces, expected):
+    assert min_vocab_tile(text, ReverseTrie(pieces), lambda _at: 1) == (len(expected), expected)
+
+
 def test_tiebreak_matches_all_tilings_of_short_strings():
     pieces = {"ab", "ba", "aba", "bax"}
     floors = {"a": 1, "b": 2, "x": 4}

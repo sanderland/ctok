@@ -51,13 +51,19 @@ def test_token_list_starts_with_the_message_frame(version: str):
 @pytest.mark.parametrize("version", ["3.0", "4.7", "4.8"])
 @pytest.mark.parametrize(
     "text,expected",
-    [("1234", ["123", "4"]), ("12345", ["123", "45"]),
-     ("1234567", ["123", "456", "7"]), ("12345678", ["123", "456", "78"])],
+    [("1234", ["1", "234"]), ("12345", ["12", "345"]),
+     ("1234567", ["1", "234", "567"]), ("12345678", ["12", "345", "678"])],
 )
-def test_ascii_digits_prefer_three_digit_tokens_from_the_left(version, text, expected):
+def test_ascii_digits_keep_three_digit_tokens_from_the_right(version, text, expected):
     model = _model(_family(version))
     head = ["⟨bow⟩"] if model.frame_bow else []
     assert tokenize(text, version) == [PAD] * model.message_overhead + head + expected
+
+
+@pytest.mark.parametrize("version", ["3.0", "4.7", "4.8"])
+def test_each_embedded_ascii_digit_run_groups_from_the_right(version):
+    tokens = tokenize("a12345b6789c", version)
+    assert [t for t in tokens if t.isascii() and t.isdigit()] == ["12", "345", "6", "789"]
 
 
 def test_word_count_never_exceeds_letter_count():
