@@ -73,8 +73,10 @@ For one user message, `ctok`:
    normalized trailing-newline run against the frame and adds the measured message frame.
 
 `token_count(text)` takes the tiler's cost directly. `tokenize(text)` renders one matching tiling
-for inspection; the tiler checks that its internal token list matches that cost. The output notation
-makes the rewrite visible:
+for inspection; the tiler checks that its internal token list matches that cost. Equal-cost tilings
+prefer the longest first token, then the longest next token, and so on. For example, `12345` splits
+as `123 | 45`. This choice does not change the minimum count. The output notation makes the rewrite
+visible:
 
 | notation | meaning |
 |---|---|

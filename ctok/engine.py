@@ -18,24 +18,25 @@ from .normalize import nfc, raw_head_space, stream_norm
 def min_tile(n: int, cost_fn, max_len: int) -> tuple[float, list[tuple[int, int]]]:
     """Min-cost tiling of ``[0, n)``. ``cost_fn(j, i)`` gives the cost of segment ``[j, i)``, or
     ``None`` if it is not a piece. Returns ``(total_cost, spans)`` with the chosen ``(j, i)`` in
-    order. Callers guarantee a tiling exists by supplying a length-1 floor. Ties break on strict
-    ``<``, towards the leftmost start and therefore the longest final segment, which makes the
-    result deterministic."""
+    order. Callers guarantee a tiling exists by supplying a length-1 floor. Among minimum-cost
+    tilings, prefer the longest initial segment, then apply the same rule to the remaining suffix.
+    """
     INF = float("inf")
-    best = [0.0] + [INF] * n
-    par = [0] * (n + 1)
-    for i in range(1, n + 1):
+    best = [INF] * n + [0.0]
+    following = [0] * (n + 1)
+    for i in range(n, 0, -1):
         for j in range(max(0, i - max_len), i):
             c = cost_fn(j, i)
-            if c is not None and best[j] + c < best[i]:
-                best[i] = best[j] + c
-                par[i] = j
-    spans, i = [], n
-    while i > 0:
-        j = par[i]
+            # Larger endpoints arrive first, so strict improvement retains the longest first tile.
+            if c is not None and best[i] + c < best[j]:
+                best[j] = best[i] + c
+                following[j] = i
+    spans, j = [], 0
+    while j < n:
+        i = following[j]
         spans.append((j, i))
-        i = j
-    return best[n], spans[::-1]
+        j = i
+    return best[0], spans
 
 
 class ReverseTrie:
@@ -58,19 +59,21 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
 
     The specialized form of :func:`min_tile`: the trie visits only prefixes that can still become
     a piece, instead of probing every substring up to the longest piece (128 for v3).
+    Suffix costs are settled from right to left; ties keep the longest initial tile.
     """
-    best = [0] * (len(text) + 1)
-    par = [0] * (len(text) + 1)
+    best = [float("inf")] * len(text) + [0]
+    following = [0] * (len(text) + 1)
     root = trie.root
     terminal = trie._END
-    for end in range(1, len(text) + 1):
+    for end in range(len(text), 0, -1):
         # The guaranteed one-character edge: the vocabulary spelling if it is a piece, else the
         # byte floor.
         start = end - 1
         node = root.get(text[start])
-        best[end] = best[start] + (1 if node is not None and terminal in node
-                                   else unit_cost(start))
-        par[end] = start
+        candidate = best[end] + (1 if node is not None and terminal in node else unit_cost(start))
+        if candidate < best[start]:
+            best[start] = candidate
+            following[start] = end
 
         if node is None:
             continue
@@ -79,19 +82,18 @@ def min_vocab_tile(text: str, trie: ReverseTrie, unit_cost) -> tuple[int, list[t
             if node is None:
                 break
             if terminal in node:
-                candidate = best[start] + 1
-                # Starts decrease through the traversal, so replacing on a tie retains min_tile's
-                # longest-final-piece tie order.
-                if candidate <= best[end]:
-                    best[end] = candidate
-                    par[end] = start
+                candidate = best[end] + 1
+                # Endpoints decrease, so a tie already has the longer initial piece.
+                if candidate < best[start]:
+                    best[start] = candidate
+                    following[start] = end
 
-    spans, end = [], len(text)
-    while end > 0:
-        start = par[end]
+    spans, start = [], 0
+    while start < len(text):
+        end = following[start]
         spans.append((start, end))
-        end = start
-    return best[-1], spans[::-1]
+        start = end
+    return best[0], spans
 
 
 def valid_utf8_prefix(bs: bytes) -> bool:
