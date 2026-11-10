@@ -118,7 +118,7 @@ uv run python tests/gates.py
 
 ## Vocabulary evidence
 
-The two vocabulary files contain 48,792 v3 pieces and 15,283 v4.7 pieces. Every entry has a fixed
+The two vocabulary files contain 48,813 v3 pieces and 15,283 v4.7 pieces. Every entry has a fixed
 membership witness or is one of the structural marker atoms checked by the test suite.
 
 ```python
