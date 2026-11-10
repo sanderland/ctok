@@ -34,7 +34,7 @@
     "mark_sep": [".ᛒ{}ᛒ.", 12]
    },
    "coverage": {
-    "bow": 10045,
+    "bow": 10046,
     "cased_bow": 880,
     "cased_eow": 116,
     "cased_mid": 142,
@@ -44,13 +44,13 @@
     "digit_eow": 252,
     "digit_mid": 835,
     "digit_word": 119,
-    "eow": 7804,
+    "eow": 7807,
     "glued": 1110,
     "mark_mid": 26,
     "mark_sep": 22,
     "mid": 4782,
     "prefix": 467,
-    "raw": 6508,
+    "raw": 6517,
     "special": 4,
     "word": 13253
    }
@@ -45819,7 +45819,20 @@
    "phph": {"probe": ".ヲphphヲ.", "raw": 16, "kind": "mid"},
    "цици": {"probe": ".ヲцициヲ.", "raw": 16, "kind": "mid"},
    "ивив": {"probe": ".ヲививヲ.", "raw": 16, "kind": "mid"},
-   "ység": {"probe": ".ヲységヲ.", "raw": 16, "kind": "mid"}
+   "ység": {"probe": ".ヲységヲ.", "raw": 16, "kind": "mid"},
+   "emenea⟨eow⟩": {"probe": ".ヲemenea.", "raw": 13, "kind": "eow"},
+   "eniul⟨eow⟩": {"probe": ".ヲeniul.", "raw": 13, "kind": "eow"},
+   "ројект⟨eow⟩": {"probe": ".ヲројект.", "raw": 13, "kind": "eow"},
+   "⟨bow⟩climats⟨eow⟩": {"probe": "climats", "raw": 8, "kind": "raw"},
+   "⟨bow⟩divizija⟨eow⟩": {"probe": "divizija", "raw": 8, "kind": "raw"},
+   "⟨bow⟩uporabl": {"probe": ".uporablヲ.", "raw": 13, "kind": "bow"},
+   "⟨shift⟩⟨bow⟩demografia⟨eow⟩": {"probe": "Demografia", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩freguesias⟨eow⟩": {"probe": "Freguesias", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩jegyzetek⟨eow⟩": {"probe": "Jegyzetek", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩narození⟨eow⟩": {"probe": "Narození", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩nosilci⟨eow⟩": {"probe": "Nosilci", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩referencer⟨eow⟩": {"probe": "Referencer", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩източници⟨eow⟩": {"probe": "Източници", "raw": 8, "kind": "raw"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
