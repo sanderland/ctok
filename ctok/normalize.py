@@ -24,6 +24,8 @@ from .constants import (
 )
 
 _STRAY_MARK = "stray_mark"
+_TURN_RUN = "turn"
+_TURN_ATOMS = {"human": HUMAN_G, "assistant": ASSISTANT_G}
 _NAMESPACE = regex.compile(r"(?<=<)(/?)/?antml:(?:/?antml:)*(?=[^<>])",
                            regex.ASCII | regex.IGNORECASE)
 _TURN = regex.compile(r"(?<=\n\n)(human|assistant):", regex.ASCII | regex.IGNORECASE)
@@ -96,7 +98,7 @@ def is_hard_cp(o: int) -> bool:
 def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
     if c in TURN_GLYPHS:
-        return PUNCT
+        return _TURN_RUN
     if c in _NEW_CASED:
         return WORDY
     o = ord(c)
@@ -299,7 +301,7 @@ def _runs(norm: str) -> list[tuple[str, str]]:
         # rider measured one token under if made to ride.
         if cur_cls == _STRAY_MARK and c == WORDY and _stray_mark(ch):
             cur += ch                  # consecutive unattached marks are one regex-style run
-        elif c == cur_cls and ch not in TURN_GLYPHS and cur[0] not in TURN_GLYPHS:
+        elif c == cur_cls:
             cur += ch
         elif c == WORDY and _stray_mark(ch) and cur_cls != WORDY:
             out.append((cur_cls, cur))
@@ -315,8 +317,9 @@ def _runs(norm: str) -> list[tuple[str, str]]:
     # its base's sub-run, or a symbol like `⚖️` would sever at the selector and lose its ⟨eow⟩.
     split = []
     for cls, body in out:
-        if body in TURN_GLYPHS:
-            body += ":"                # a legacy turn marker owns exactly one colon
+        if cls == _TURN_RUN:
+            # Recognition leaves the preceding newlines, so turn atoms cannot be adjacent.
+            cls, body = PUNCT, body + ":"  # the marker owns exactly one colon
         if cls != HARD or len(body) == 1:
             split.append((cls, body))
             continue
@@ -400,7 +403,7 @@ def prepare(text: str, model) -> str:
     text = _NAMESPACE.sub(r"\1", text)
     parts = _TURN.split(text) if model.turn_markers else [text]
     return "".join(
-        (HUMAN_G if part.lower() == "human" else ASSISTANT_G) if i % 2
+        _TURN_ATOMS[part.lower()] if i % 2
         else nfc(part, fold_quotes=model.fold_quotes).translate(LITERAL_MARKER_ESCAPE_TABLE)
         for i, part in enumerate(parts))
 
