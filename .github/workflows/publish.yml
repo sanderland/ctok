@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish package and vocabularies
 
 on:
   release:
@@ -28,10 +28,41 @@ jobs:
       - name: Check metadata
         run: uvx twine check dist/*
 
+      - name: Prepare vocabulary assets
+        run: |
+          mkdir vocabularies
+          cp ctok/data/pieces_*.json LICENSE vocabularies/
+          cd vocabularies
+          sha256sum *.json LICENSE > SHA256SUMS
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vocabularies
+          path: vocabularies/
+          if-no-files-found: error
+
+  release-vocabularies:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: vocabularies
+          path: vocabularies/
+
+      - name: Attach vocabulary assets to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" vocabularies/* --clobber
 
   publish:
     needs: build

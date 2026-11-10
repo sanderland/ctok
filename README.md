@@ -118,7 +118,7 @@ uv run python tests/gates.py
 
 ## Vocabulary evidence
 
-The two vocabulary files contain 48,792 v3 pieces and 15,283 v4.7 pieces. Every entry has a fixed
+The two vocabulary files contain 48,813 v3 pieces and 15,283 v4.7 pieces. Every entry has a fixed
 membership witness or is one of the structural marker atoms checked by the test suite.
 
 ```python
@@ -132,6 +132,22 @@ witness("⟨bow⟩the⟨eow⟩", "4.7")
 A witness says that one marked piece costs one token in a calibrated probe. It does not prove the
 encoder rewrite or resolve ties between equal-cost tilings. `tests/test_witness.py` checks every
 published witness and requires complete witnessed-or-special coverage.
+
+## Download vocabulary files
+
+The release workflow attaches standalone vocabulary assets to each [GitHub release](https://github.com/sanderland/ctok/releases):
+
+- `pieces_v3.json` and `pieces_v4_7.json`, identical to the files in the Python package;
+- `SHA256SUMS` to verify the downloads;
+- `LICENSE`, covering reuse under MIT.
+
+Other implementations can download these JSON files without installing Python. Pin a release with
+`https://github.com/sanderland/ctok/releases/download/TAG/pieces_v3.json`, replacing `TAG` with the
+release tag. Older releases may not include these assets.
+
+Each file includes the pieces, membership witnesses, byte-fallback prefixes, and family metadata.
+The files supply vocabulary data; implementations still need the normalization and tiling rules
+described above. v4.8+ shares the v4.7 vocabulary but uses different frame and turn-marker rules.
 
 ## License
 
