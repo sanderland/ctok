@@ -135,11 +135,9 @@ published witness and requires complete witnessed-or-special coverage.
 
 ## Download vocabulary files
 
-The release workflow attaches standalone vocabulary assets to each [GitHub release](https://github.com/sanderland/ctok/releases):
-
-- `pieces_v3.json` and `pieces_v4_7.json`, identical to the files in the Python package;
-- `SHA256SUMS` to verify the downloads;
-- `LICENSE`, covering reuse under MIT.
+The release workflow attaches `pieces_v3.json` and `pieces_v4_7.json` to each
+[GitHub release](https://github.com/sanderland/ctok/releases). They are identical to the files in
+the Python package.
 
 Other implementations can download these JSON files without installing Python. Pin a release with
 `https://github.com/sanderland/ctok/releases/download/TAG/pieces_v3.json`, replacing `TAG` with the

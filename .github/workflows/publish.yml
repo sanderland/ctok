@@ -31,9 +31,7 @@ jobs:
       - name: Prepare vocabulary assets
         run: |
           mkdir vocabularies
-          cp ctok/data/pieces_*.json LICENSE vocabularies/
-          cd vocabularies
-          sha256sum *.json LICENSE > SHA256SUMS
+          cp ctok/data/pieces_*.json vocabularies/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -43,7 +41,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: vocabularies
-          path: vocabularies/
+          path: vocabularies/*.json
           if-no-files-found: error
 
   release-vocabularies:
@@ -62,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" vocabularies/* --clobber
+        run: gh release upload "$RELEASE_TAG" vocabularies/*.json --clobber
 
   publish:
     needs: build
