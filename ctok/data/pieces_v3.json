@@ -48,7 +48,7 @@
     "glued": 1110,
     "mark_mid": 26,
     "mark_sep": 22,
-    "mid": 4781,
+    "mid": 4782,
     "prefix": 467,
     "raw": 6508,
     "special": 4,
@@ -45818,7 +45818,8 @@
    "ីី": {"probe": ".ヲីីヲ.", "raw": 16, "kind": "mid"},
    "phph": {"probe": ".ヲphphヲ.", "raw": 16, "kind": "mid"},
    "цици": {"probe": ".ヲцициヲ.", "raw": 16, "kind": "mid"},
-   "ивив": {"probe": ".ヲививヲ.", "raw": 16, "kind": "mid"}
+   "ивив": {"probe": ".ヲививヲ.", "raw": 16, "kind": "mid"},
+   "ység": {"probe": ".ヲységヲ.", "raw": 16, "kind": "mid"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
