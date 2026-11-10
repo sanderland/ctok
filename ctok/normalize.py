@@ -370,6 +370,9 @@ def _marks_like_punct(ch: str) -> bool:
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
     if ord(ch) >= 0x10000 or ch in _NEW_CASED:     # letters this Python still reads as Cn
         return False
+    # The unassigned tail keeps the Hangul block's markerless boundaries.
+    if 0xD7A4 <= ord(ch) <= 0xD7AF:
+        return False
     cat = unicodedata.category(ch)
     ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and (cat[0] in ("P", "M")
                                                          or ch in IDEOGRAPHIC_SYMBOLS)

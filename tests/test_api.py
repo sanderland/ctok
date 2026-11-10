@@ -241,6 +241,15 @@ def test_bmp_unassigned_characters_take_space_border_markers(version, overhead):
 
 
 @pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
+def test_unassigned_hangul_tail_stays_markerless(version, overhead):
+    for codepoint in range(0xD7A4, 0xD7B0):
+        literal = chr(codepoint)
+        assert token_count(literal, version=version) == overhead + 3
+        assert token_count(literal + " ", version=version) == overhead + 4
+        assert token_count(f"5 {literal} 5", version=version) == overhead + 7
+
+
+@pytest.mark.parametrize("version, overhead", (("3.0", 7), ("4.7", 11)))
 def test_unicode_16_letters_use_the_word_and_case_model(version, overhead):
     """The source models know two cased letters newer than Python 3.13's Unicode table."""
     assert token_count("\u1c89", version=version) == overhead + 6
