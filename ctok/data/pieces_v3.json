@@ -50,7 +50,7 @@
     "mark_sep": 22,
     "mid": 4783,
     "prefix": 467,
-    "raw": 6521,
+    "raw": 6522,
     "special": 4,
     "word": 13253
    }
@@ -45838,7 +45838,8 @@
    "⟨bow⟩forewings⟨eow⟩": {"probe": "forewings", "raw": 8, "kind": "raw"},
    "⟨bow⟩valència⟨eow⟩": {"probe": "valència", "raw": 8, "kind": "raw"},
    "⟨bow⟩координате⟨eow⟩": {"probe": "координате", "raw": 8, "kind": "raw"},
-   "⟨shift⟩⟨bow⟩referències⟨eow⟩": {"probe": "Referències", "raw": 8, "kind": "raw"}
+   "⟨shift⟩⟨bow⟩referències⟨eow⟩": {"probe": "Referències", "raw": 8, "kind": "raw"},
+   "⟨shift⟩⟨bow⟩referenser⟨eow⟩": {"probe": "Referenser", "raw": 8, "kind": "raw"}
   },
   "ascii_digits": {
    "0": {"probe": "a0b", "raw": 10, "kind": "glued"},
