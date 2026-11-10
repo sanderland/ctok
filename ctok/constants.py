@@ -11,8 +11,10 @@ import re
 # The engine computes over marked strings in which each structural marker is one codepoint.
 BOW_G, EOW_G, PAD_G = "\ufdd0", "\ufdd1", "\ufdd2"
 SHIFT_G, CAPS_G = "\ufdd3", "\ufdd4"
+HUMAN_G, ASSISTANT_G = "\ufdd5", "\ufdd6"
+TURN_GLYPHS = frozenset({HUMAN_G, ASSISTANT_G})
 
-MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G})
+MARKER_GLYPHS = frozenset({BOW_G, EOW_G, SHIFT_G, CAPS_G}) | TURN_GLYPHS
 
 # The public form: named atoms in mathematical angle brackets, practically absent from real text.
 # Literal brackets in text are byte-escaped at render time, so a rendered token always parses back
@@ -21,11 +23,12 @@ L, R = "⟨", "⟩"
 BOW, EOW, SHIFT, CAPS = f"{L}bow{R}", f"{L}eow{R}", f"{L}shift{R}", f"{L}caps{R}"
 PAD = f"{L}pad{R}"
 
-GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS}
-ATOM_TO_GLYPH = {BOW: BOW_G, EOW: EOW_G, SHIFT: SHIFT_G, CAPS: CAPS_G}
+GLYPH_TO_ATOM = {BOW_G: BOW, EOW_G: EOW, PAD_G: PAD, SHIFT_G: SHIFT, CAPS_G: CAPS,
+                 HUMAN_G: f"{L}human{R}", ASSISTANT_G: f"{L}assistant{R}"}
+ATOM_TO_GLYPH = {atom: glyph for glyph, atom in GLYPH_TO_ATOM.items() if glyph != PAD_G}
 
 # Scraped text can contain the noncharacters used above. NFC strips BMP private-use input, so these
-# five private-use codepoints are safe internal escapes inserted after NFC. The byte floor and
+# private-use codepoints are safe internal escapes inserted after NFC. The byte floor and
 # renderer map them back to the original noncharacters.
 LITERAL_MARKER_ESCAPES = {glyph: chr(0xE000 + i) for i, glyph in enumerate(GLYPH_TO_ATOM)}
 ESCAPED_MARKER_LITERALS = {escape: glyph for glyph, escape in LITERAL_MARKER_ESCAPES.items()}

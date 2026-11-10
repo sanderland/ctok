@@ -15,18 +15,24 @@ import unicodedata
 import regex
 
 from .constants import (
-    BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
+    ASSISTANT_G, BOW_G, CAPS_G, CONTRACTION_SUFFIXES, DIGIT, EOW_G,
     ESCAPED_MARKER_LITERALS,
-    FUNNY_SPACE, HARD, IDEOGRAPHIC_SYMBOLS, LITERAL_MARKER_ESCAPE_TABLE,
+    FUNNY_SPACE, HARD, HUMAN_G, IDEOGRAPHIC_SYMBOLS, LITERAL_MARKER_ESCAPE_TABLE,
     PUNCT, PUNCT_SYMS, QUOTE_FOLD, SEAM_RE, SHIFT_G, SPACE,
     STRIP_CONTROL, STRIP_PRIVATE,
-    SURROGATE, SYMBOL_LETTERS, VARIATION_SELECTORS, WORDY,
+    SURROGATE, SYMBOL_LETTERS, TURN_GLYPHS, VARIATION_SELECTORS, WORDY,
 )
 
 _STRAY_MARK = "stray_mark"
+_TURN_RUN = "turn"
+_TURN_ATOMS = {"human": HUMAN_G, "assistant": ASSISTANT_G}
+_NAMESPACE = regex.compile(r"(?<=<)(/?)/?antml:(?:/?antml:)*(?=[^<>])",
+                           regex.ASCII | regex.IGNORECASE)
+_TURN = regex.compile(r"(?<=\n\n)(human|assistant):", regex.ASCII | regex.IGNORECASE)
 
 # Python 3.13 ships Unicode 15.1 data; the source models know these Unicode 16.0 case pairs.
-_NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264"}
+_NEW_CASE_PAIRS = {"\u1c89": "\u1c8a", "\ua7cb": "\u0264", "\ua7cc": "\ua7cd",
+                   "\ua7da": "\ua7db", "\ua7dc": "\u019b"}
 _NEW_CASED = frozenset(_NEW_CASE_PAIRS) | frozenset(_NEW_CASE_PAIRS.values())
 
 
@@ -91,6 +97,8 @@ def is_hard_cp(o: int) -> bool:
 @cache
 def classify(c: str) -> str:
     """The stream class of one codepoint, derived from Unicode data and measured tables."""
+    if c in TURN_GLYPHS:
+        return _TURN_RUN
     if c in _NEW_CASED:
         return WORDY
     o = ord(c)
@@ -132,21 +140,18 @@ def mark_case(span: str, allcaps_min: int | None = 4, *, head_mark: bool = False
       True for ``ヲBUTTヲ`` or ``းUNDPA``, but the oracle spells them literally). ⟨shift⟩ is not
       blocked: a title-case head with a caseless tail keeps its marker.
     * A character with no lowered form blocks either marker (``'ℳ'.lower()`` is ``'ℳ'``, so a
-      marker in front of an unchanged body over-counts). İ is the one exception: transparent to
-      the title-case test and literal in the lowered body, blocking only at the span head; ẞ
-      blocks everywhere.
+      marker in front of an unchanged body over-counts). İ and ẞ are the exceptions: transparent
+      to the title-case test and literal in the lowered body, blocking only at the span head.
     * ``head_mark`` means an unattached mark opened the word, so its head is
       that mark and neither marker can assert its lowered first letter.
     """
     if head_mark:
         return span
-    if "ẞ" in span:
-        return span
-    if "İ" in span:
+    if "İ" in span or "ẞ" in span:
         tail = span[1:]
-        if _is_upper(span[:1]) and span[:1] != "İ" and \
-                not any(_is_upper(c) for c in tail if c != "İ"):
-            return SHIFT_G + _lower(span[0]) + "".join(c if c == "İ" else _lower(c)
+        if _is_upper(span[:1]) and span[:1] not in "İẞ" and \
+                not any(_is_upper(c) for c in tail if c not in "İẞ"):
+            return SHIFT_G + _lower(span[0]) + "".join(c if c in "İẞ" else _lower(c)
                                                        for c in tail)
         return span
     unlowerable = any((c in _NEW_CASED or unicodedata.category(c)[0] in ("L", "M"))
@@ -172,13 +177,15 @@ def _is_selector(ch: str) -> bool:
 
 
 def _hard_bow(body: str) -> bool:
-    """Whether the first character of a hard run takes a left border marker."""
-    return bool(body) and (_is_selector(body[0]) or _marks_like_punct(body[0]))
+    """Whether the run's first character takes a left border, including mixed numeral runs."""
+    return bool(body) and (_is_selector(body[0]) or _marks_like_punct(body[0])
+                           or _digit_border(body[0]))
 
 
 def _hard_eow(body: str) -> bool:
-    """Whether the last character of a hard run takes a right border marker."""
-    return bool(body) and (_is_selector(body[-1]) or _marks_like_punct(body[-1]))
+    """Whether the run's last character takes a right border, including mixed numeral runs."""
+    return bool(body) and (_is_selector(body[-1]) or _marks_like_punct(body[-1])
+                           or _digit_border(body[-1]))
 
 
 def _opens_word(runs: list[tuple[str, str]], i: int) -> bool:
@@ -203,9 +210,7 @@ def _takes_right_border(cls: str, body: str) -> bool:
     (the ``_STRAY_MARK`` branch of :func:`stream_norm`), and a word lets the contraction seam
     through.
     """
-    return (cls == PUNCT
-            or _hard_eow(body)
-            or (cls in (DIGIT, HARD) and _digit_run(body) and _digit_eow(body)))
+    return cls == PUNCT or _hard_eow(body)
 
 
 def _contraction_seam(runs: list[tuple[str, str]], i: int) -> bool:
@@ -239,37 +244,6 @@ def _digit_border(ch: str) -> bool:
     """
     cat = unicodedata.category(ch)
     return (cat == "No" or (cat == "Nd" and not ch.isascii())) and ord(ch) < 0x10000
-
-
-def _digit_run(body: str) -> bool:
-    """A uniform run of decimal digits (Nd) or other numbers (No).
-
-    No covers fractions, super/subscripts, circled digits, and script-specific numeral signs.
-    These classify HARD but take border markers below U+10000.
-    """
-    if not body:
-        return False
-    category = unicodedata.category(body[0])
-    return category in ("Nd", "No") and all(
-        unicodedata.category(ch) == category for ch in body[1:])
-
-
-def _digit_bow(body: str) -> bool:
-    """Does a digit run write ⟨bow⟩ where it borders a space on the left? The run's first
-    character decides, not the run as a whole (measured on mixed ASCII/Arabic-Indic runs, the
-    only runs where the two readings differ).
-    """
-    return _digit_run(body) and _digit_border(body[0])
-
-
-def _digit_eow(body: str) -> bool:
-    """Does a digit run write ⟨eow⟩ where it borders a single space on the right? The run's last
-    character decides, the mirror of :func:`_digit_bow`.
-
-    The seam hides this marker almost everywhere; it shows only before a run that writes no ⟨bow⟩
-    of its own, such as a CJK or Hangul letter or ideographic punctuation. There it costs one token.
-    """
-    return _digit_run(body) and _digit_border(body[-1])
 
 
 def is_separator(c: str) -> bool:
@@ -343,6 +317,9 @@ def _runs(norm: str) -> list[tuple[str, str]]:
     # its base's sub-run, or a symbol like `⚖️` would sever at the selector and lose its ⟨eow⟩.
     split = []
     for cls, body in out:
+        if cls == _TURN_RUN:
+            # Recognition leaves the preceding newlines, so turn atoms cannot be adjacent.
+            cls, body = PUNCT, body + ":"  # the marker owns exactly one colon
         if cls != HARD or len(body) == 1:
             split.append((cls, body))
             continue
@@ -386,21 +363,24 @@ def _marks_like_punct(ch: str) -> bool:
     is judged as a whole.
 
     The category test misses the block's own symbols, which read the same way; `IDEOGRAPHIC_SYMBOLS`
-    carries them.
+    carries them. The block's six tone marks (U+302A to U+302F) are separator marks that read the
+    same way too: `〬 䦜` and `a  〬` are one over with a marker on either side.
 
     Astral characters are excluded too: an emoji takes no border marker, so it must not be the
     punct kind either. A format character in front of one would otherwise be glued into a single
     markerless sub-run and lose the ⟨bow⟩ it is entitled to.
     """
     ch = ESCAPED_MARKER_LITERALS.get(ch, ch)
-    if ord(ch) >= 0x10000:
+    if ord(ch) >= 0x10000 or ch in _NEW_CASED:     # letters this Python still reads as Cn
         return False
-    if is_separator(ch):
-        return True
+    # The unassigned tail keeps the Hangul block's markerless boundaries.
+    if 0xD7A4 <= ord(ch) <= 0xD7AF:
+        return False
     cat = unicodedata.category(ch)
-    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and (cat.startswith("P")
+    ideographic_punct = 0x3001 <= ord(ch) <= 0x303F and (cat[0] in ("P", "M")
                                                          or ch in IDEOGRAPHIC_SYMBOLS)
-    return (cat[0] in ("P", "S") or cat in ("Cf", "Cn")) and not ideographic_punct
+    return not ideographic_punct and (is_separator(ch) or cat[0] in ("P", "S")
+                                     or cat in ("Cf", "Cn"))
 
 
 def stream(text: str, model) -> str:
@@ -410,8 +390,22 @@ def stream(text: str, model) -> str:
     encodes a single space between two such runs. Every other space stays literal.
     Punctuation-like, digit, separator, and stray-mark runs receive their measured boundary markers.
     """
-    return stream_norm(nfc(text, fold_quotes=model.fold_quotes), model,
-                       raw_head_space=raw_head_space(text))
+    return stream_norm(prepare(text, model), model,
+                       raw_head_space=raw_head_space(text), protected=True)
+
+
+def prepare(text: str, model) -> str:
+    """Recognize reserved strings in raw text, then normalize and protect ordinary text.
+
+    Matching after NFC would recognize strings that a stripped control merely joined together.
+    Literal marker codepoints are escaped before inserting the reserved turn-marker atoms.
+    """
+    text = _NAMESPACE.sub(r"\1", text)
+    parts = _TURN.split(text) if model.turn_markers else [text]
+    return "".join(
+        _TURN_ATOMS[part.lower()] if i % 2
+        else nfc(part, fold_quotes=model.fold_quotes).translate(LITERAL_MARKER_ESCAPE_TABLE)
+        for i, part in enumerate(parts))
 
 
 def raw_head_space(text: str) -> bool:
@@ -425,16 +419,18 @@ def raw_head_space(text: str) -> bool:
     return text.startswith(" ")
 
 
-def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
+def stream_norm(norm: str, model, *, raw_head_space: bool = True, protected: bool = False) -> str:
     """The marked stream over already-normalized text.
 
     This is :func:`stream` over text the caller has already folded. It is split out so a document
     is NFC-folded once, and the caller can read the content-final newline run before ``rstrip``
-    drops it. See ``engine.frame_tail``.
+    drops it. ``prepare`` also escapes literals and inserts turn markers; its callers pass
+    ``protected=True`` to preserve those atoms. Use ``stream`` when raw text is available.
     """
     # Protect literal occurrences of the codepoints used as internal markers. PUA input was removed
     # by NFC, so the private-use escape values cannot collide with text.
-    norm = norm.translate(LITERAL_MARKER_ESCAPE_TABLE)
+    if not protected:
+        norm = norm.translate(LITERAL_MARKER_ESCAPE_TABLE)
 
     # `engine.tile` reads the content-final newline run before dropping it here and applies the
     # frame's newline ladder separately.
@@ -490,7 +486,6 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
     has_own_bow = not head_quote and (
                    first[0] in (WORDY, PUNCT, _STRAY_MARK)
                    or _hard_bow(first[1])
-                   or (first[0] in (DIGIT, HARD) and _digit_bow(first[1]))
                    or (first[0] == SPACE and first[1][:1] == " "))
     # Nothing to hand out where the frame ends in no ⟨bow⟩: a digit or an ideograph opening the
     # message pays for no marker, which is exactly where v4.8+ counts one token under v4.7.
@@ -527,13 +522,6 @@ def stream_norm(norm: str, model, *, raw_head_space: bool = True) -> str:
             out.append((BOW_G if takes_bow else "") + body
                        + (EOW_G if borders_space(i, +1)
                           and (cls == PUNCT or _hard_eow(body)) else ""))
-        elif _digit_run(body) and cls in (DIGIT, HARD):
-            # A digit run takes the same border markers punctuation does, on both sides, decided
-            # by the border character (`_digit_bow`, `_digit_eow`). Deliberately no lookback
-            # across the space: a space run kills a border marker but not a seamless ⟨bow⟩, which
-            # separates the two readings, and the lookback reads one over.
-            out.append((BOW_G if _digit_bow(body) and borders_space(i, -1) else "") + body
-                       + (EOW_G if _digit_eow(body) and borders_space(i, +1) else ""))
         else:
             out.append(body)                      # HARD letter scripts and whitespace: no markers
     return SEAM_RE.sub(r"\1" + EOW_G + r"\2" + BOW_G, "".join(out))

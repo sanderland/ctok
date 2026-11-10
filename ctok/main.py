@@ -31,7 +31,7 @@ FAMILIES: dict[str, Family] = {
     "v4.7": Family("pieces_v4_7.json", "claude-opus-4-7", (4, 7)),
     # Opus 4.8 and later models reuse v4.7's vocabulary under a six-token, bow-less frame.
     "v4.8": Family("pieces_v4_7.json", "claude-opus-4-8", (4, 8),
-                    (("message_overhead", 6), ("frame_bow", False))),
+                    (("message_overhead", 6), ("frame_bow", False), ("turn_markers", False))),
 }
 
 # (base version, family key), highest first.
@@ -131,6 +131,7 @@ class TokenizerModel:
         # v3 and v4.7 share the defaults. v4.8 differs at the frame head.
         # frame_bow says whether the frame ends in a ⟨bow⟩ that absorbs one leading space.
         self.frame_bow = meta.get("frame_bow", True)
+        self.turn_markers = meta.get("turn_markers", True)
 
         tokens = doc["tokens"]
         # Every group is cost-1 pieces except the byte fallback, which holds prefix costs.
